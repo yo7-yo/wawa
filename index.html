@@ -4,13 +4,13 @@
     <meta charset="UTF-8" />
     <title>数字潇湘 · 灵境</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <!-- 引入库：国内镜像源 -->
+    <!-- 引入库 -->
     <script type="importmap">
     {
         "imports": {
-            "three": "https://registry.npmmirror.com/three/0.158.0/files/build/three.module.js",
-            "three/addons/": "https://registry.npmmirror.com/three/0.158.0/files/examples/jsm/",
-            "@mediapipe/tasks-vision": "https://registry.npmmirror.com/@mediapipe/tasks-vision/0.10.3/files/+esm"
+            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/",
+            "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm"
         }
     }
     </script>
@@ -207,69 +207,68 @@
 <script type="module">
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; 
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; // 引入控制器
     import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 
     const ZONE_CONFIG = {
         "博物馆": { 
             models: [ 
-                // 注意这里加上了 ./ 
-                "./model/1.glb", "./model/2.glb", "./model/3.glb", "./model/4.glb", "./model/5.glb", 
-                "./model/6.glb", "./model/7.glb", "./model/8.glb", "./model/9.glb", "./model/10.glb",
-                "./model/11.glb", "./model/12.glb", "./model/13.glb", "./model/14.glb", "./model/15.glb",
-                "./model/16.glb", "./model/17.glb", "./model/18.glb", "./model/19.glb", "./model/20.glb",
-                "./model/21.glb", "./model/22.glb", "./model/23.glb", "./model/24.glb", "./model/25.glb",
-                "./model/26.glb", "./model/27.glb", "./model/28.glb", "./model/29.glb", "./model/30.glb",
-                "./model/31.glb", "./model/32.glb", "./model/33.glb", "./model/34.glb", "./model/35.glb"
+                "model/1.glb", "model/2.glb", "model/3.glb", "model/4.glb", "model/5.glb", 
+                "model/6.glb", "model/7.glb", "model/8.glb", "model/9.glb", "model/10.glb",
+                "model/11.glb", "model/12.glb", "model/13.glb", "model/14.glb", "model/15.glb",
+                "model/16.glb", "model/17.glb", "model/18.glb", "model/19.glb", "model/20.glb",
+                "model/21.glb", "model/22.glb", "model/23.glb", "model/24.glb", "model/25.glb",
+                "model/26.glb", "model/27.glb", "model/28.glb", "model/29.glb", "model/30.glb",
+                "model/31.glb", "model/32.glb", "model/33.glb", "model/34.glb", "model/35.glb"
             ] 
         },
-        "默认": { models: [ "./model/1.glb" ] }
+        "默认": { models: [ "model/1.glb" ] }
     };
 
     // === 花名册 ===
     const MODEL_NAME_MAP = {
-       "./model/1.glb": "T形帛画 · 小引魂官",
-        "./model/2.glb": "帛书 · 小书书",
-        "./model/3.glb": "帛书老子 · 小道道",
-        "./model/4.glb": "楚风通灵巫女 ·（楚巫文化）",
-        "./model/5.glb": "楚魂安抚灵女 ·（楚人灵魂观）",
-        "./model/6.glb": "楚梦祭司 ·（楚文化梦魂观）",
-        "./model/7.glb": "楚香灵女 · 小香灵",
-        "./model/8.glb": "楚羽通魂女 ·（楚人羽化观念）",
-        "./model/9.glb": "楚云祭司 · 小云祭",
-        "./model/10.glb": "楚云祭天女 ·（楚文化云纹体系）",
-        "./model/11.glb": "楚云守界女 ·（楚文化天地分界观）",
-        "./model/12.glb": "错金银青铜器 · 小铭铭",
-        "./model/13.glb": "导引图 · 小动动",
-        "./model/14.glb": "漢绣灵女 · 小绣灵",
-        "./model/15.glb": "荷花",
-        "./model/16.glb": "简牍 · 小简简",
-        "./model/17.glb": "马王堆墓主人 · 小辛辛",
-        "./model/18.glb": "漆耳杯 · 小酌酌",
-        "./model/19.glb": "漆绘食案 · 小案案",
-        "./model/20.glb": "漆奁 · 小妆妆",
-        "./model/21.glb": "漆器盒 · 小漆安",
-        "./model/22.glb": "漆纹祭守女 ·（马王堆漆器纹样）",
-        "./model/23.glb": "日月引灵女 ·（马王堆帛画日月体系）",
-        "./model/24.glb": "神鸟引梦者 · 小梦鸢",
-        "./model/25.glb": "神兽铃使 · 小铃儿",
-        "./model/26.glb": "素纱襌衣 · 小纱纱",
-        "./model/27.glb": "铜镜",
-        "./model/28.glb": "辛追夫人 · 辛辛夫人",
-        "./model/29.glb": "引魂帛画祭司 ·（马王堆+T形帛画）",
-        "./model/30.glb": "羽人引路者 · 小羽引",
-        "./model/31.glb": "玉璧 · 小璧璧",
-        "./model/32.glb": "玉舞引灵 · 小玉舞",
-        "./model/33.glb": "岳麓书院门",
-        "./model/34.glb": "云纹玉佩 · 小玉玉",
-        "./model/35.glb": "朱砂印章 · 小印安"
+       "model/1.glb": "T形帛画 · 小引魂官",
+        "model/2.glb": "帛书 · 小书书",
+        "model/3.glb": "帛书老子 · 小道道",
+        "model/4.glb": "楚风通灵巫女 ·（楚巫文化）",
+        "model/5.glb": "楚魂安抚灵女 ·（楚人灵魂观）",
+        "model/6.glb": "楚梦祭司 ·（楚文化梦魂观）",
+        "model/7.glb": "楚香灵女 · 小香灵",
+        "model/8.glb": "楚羽通魂女 ·（楚人羽化观念）",
+        "model/9.glb": "楚云祭司 · 小云祭",
+        "model/10.glb": "楚云祭天女 ·（楚文化云纹体系）",
+        "model/11.glb": "楚云守界女 ·（楚文化天地分界观）",
+        "model/12.glb": "错金银青铜器 · 小铭铭",
+        "model/13.glb": "导引图 · 小动动",
+        "model/14.glb": "漢绣灵女 · 小绣灵",
+        "model/15.glb": "荷花",
+        "model/16.glb": "简牍 · 小简简",
+        "model/17.glb": "马王堆墓主人 · 小辛辛",
+        "model/18.glb": "漆耳杯 · 小酌酌",
+        "model/19.glb": "漆绘食案 · 小案案",
+        "model/20.glb": "漆奁 · 小妆妆",
+        "model/21.glb": "漆器盒 · 小漆安",
+        "model/22.glb": "漆纹祭守女 ·（马王堆漆器纹样）",
+        "model/23.glb": "日月引灵女 ·（马王堆帛画日月体系）",
+        "model/24.glb": "神鸟引梦者 · 小梦鸢",
+        "model/25.glb": "神兽铃使 · 小铃儿",
+        "model/26.glb": "素纱襌衣 · 小纱纱",
+        "model/27.glb": "铜镜",
+        "model/28.glb": "辛追夫人 · 辛辛夫人",
+        "model/29.glb": "引魂帛画祭司 ·（马王堆+T形帛画）",
+        "model/30.glb": "羽人引路者 · 小羽引",
+        "model/31.glb": "玉璧 · 小璧璧",
+        "model/32.glb": "玉舞引灵 · 小玉舞",
+        "model/33.glb": "岳麓书院门",
+        "model/34.glb": "云纹玉佩 · 小玉玉",
+        "model/35.glb": "朱砂印章 · 小印安"
     };
 
     let selectedModelPath = "";
     let currentArtifactName = ""; // 系统定义的前缀名
     let userCustomName = "";
     let scene, camera, renderer, model, animationId;
-    let controls; 
+    let controls; // 轨道控制器
     let arStreamObj = null, isMirrored = false;
     let handLandmarker = undefined;
     let lastVideoTime = -1, isAiRunning = false, aiLoadFailed = false;
@@ -285,12 +284,15 @@
         return MODEL_NAME_MAP[path] || "神秘文物";
     }
 
+    // --- 核心逻辑修改：初始化或扫码进入 ---
     window.addEventListener('load', () => {
+        // 检查 URL 是否带有参数（比如扫码进来的）
         const params = new URLSearchParams(window.location.search);
-        const m = params.get('m'); 
-        const n = params.get('n'); 
+        const m = params.get('m'); // 获取模型路径
+        const n = params.get('n'); // 获取名字
 
         if (m && n) {
+            // 如果有参数，直接跳过盲盒，展示结果页
             selectedModelPath = decodeURIComponent(m);
             const fullName = decodeURIComponent(n);
             
@@ -299,7 +301,8 @@
             document.getElementById('actionSection').style.display = 'block';
             document.getElementById('finalNameDisplay').innerText = `✨ ${fullName} ✨`;
             
-            const textToEncode = `${window.location.href}`; 
+            // 重新生成二维码显示出来（方便分享）
+            const textToEncode = `${window.location.href}`; // 既然已经在结果页，二维码就是当前链接
             const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(textToEncode)}`;
             const qrImg = document.getElementById('generatedQr');
             qrImg.src = qrApiUrl;
@@ -359,7 +362,10 @@
         document.getElementById('actionSection').style.display = 'block';
         document.getElementById('finalNameDisplay').innerText = `✨ ${finalFullName} ✨`;
         
+        // --- 生成带参数的 URL 二维码 ---
+        // 获取当前网址（去除旧参数）
         const baseUrl = window.location.href.split('?')[0];
+        // 构造新链接：网址 + ?m=模型路径 + &n=完整名字
         const shareUrl = `${baseUrl}?m=${encodeURIComponent(selectedModelPath)}&n=${encodeURIComponent(finalFullName)}`;
         
         const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
@@ -370,6 +376,7 @@
 
     window.backToMap = function() {
         cleanUpThreeJS();
+        // 清除 URL 参数，防止刷新又回到结果页
         window.history.replaceState({}, document.title, window.location.pathname);
         window.gotoPage('mapPage');
     }
@@ -380,11 +387,9 @@
         if (aiLoadFailed) return false;
         showLoading(true, "启动 AI 引擎...");
         try {
-            // 使用国内镜像加载 AI 模型文件
-            const vision = await FilesetResolver.forVisionTasks("https://registry.npmmirror.com/@mediapipe/tasks-vision/0.10.3/files/wasm");
+            const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
             if (!handLandmarker) {
                 handLandmarker = await HandLandmarker.createFromOptions(vision, {
-                    // 请确认你本地有 hand_landmarker.task 文件，且就在 index.html 旁边
                     baseOptions: { modelAssetPath: "./hand_landmarker.task", delegate: "GPU", modelComplexity: 0 },
                     runningMode: "VIDEO",
                     numHands: 1
@@ -393,7 +398,7 @@
             return true;
         } catch (error) {
             aiLoadFailed = true;
-            alert("⚠️ AI模型加载失败！\n(请确保 hand_landmarker.task 文件存在)");
+            alert("⚠️ AI模型加载失败！\n(已自动切换为手动模式)");
             showLoading(false);
             return false;
         }
@@ -401,7 +406,7 @@
 
     window.enterARMode = async function() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            alert("⚠️ 需要HTTPS环境。请上传到 GitHub Pages 即可解决。"); return;
+            alert("⚠️ 请使用 HTTPS 或 Localhost。"); return;
         }
         const modelsLoaded = await loadAiModels();
         if (!modelsLoaded) { showLoading(false); return; }
@@ -512,7 +517,7 @@
             const size = box.getSize(new THREE.Vector3());
             const s = 1.5 / Math.max(size.x, size.y, size.z);
             model.scale.set(s,s,s);
-            if (controls) controls.reset();
+            if (controls) controls.reset(); // 重置控制器
             showTempStatus("📍 已归位");
         }
     }
@@ -549,20 +554,23 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         
+        // 结果页使用 OrbitControls，AR模式下使用原生触控或AI
         if (isAR) {
             document.body.appendChild(renderer.domElement);
             renderer.domElement.style.position = 'fixed';
             renderer.domElement.style.top = '0';
             renderer.domElement.style.left = '0';
             renderer.domElement.style.zIndex = '50';
+            // AR模式下不使用OrbitControls，保留原来的逻辑或者AI控制
         } else {
             wrap.appendChild(renderer.domElement);
+            // === 增加鼠标/触控交互 (旋转、缩放) ===
             controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
+            controls.enableDamping = true; // 启用阻尼（惯性）
             controls.dampingFactor = 0.05;
-            controls.autoRotate = true;
-            controls.autoRotateSpeed = 30.0;
-            controls.enableZoom = true;
+            controls.autoRotate = true;    // 开启自动旋转
+            controls.autoRotateSpeed = 20.0; // 调整转速 (原来较慢，现在设为 10.0)
+            controls.enableZoom = true;    // 允许缩放
         }
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.0); scene.add(ambientLight);
@@ -574,10 +582,12 @@
             const size = box.getSize(new THREE.Vector3());
             const baseScale = 1.5 / Math.max(size.x, size.y, size.z);
             model.scale.set(baseScale, baseScale, baseScale);
+            
             const center = box.getCenter(new THREE.Vector3());
             model.position.x = -center.x * baseScale;
             model.position.y = -center.y * baseScale;
             model.position.z = -center.z * baseScale;
+            
             if(isAR) {
                 model.position.y = -0.5;
                 model.position.z = -3;
@@ -586,18 +596,24 @@
             animate();
         }, undefined, (err) => { 
             console.error('模型加载失败:', err); 
-            alert(`加载失败: ${selectedModelPath}。\n请确认文件夹名为 model (单数) 且在同一目录下。`);
+            alert(`加载失败: ${selectedModelPath}。\n请确认 model 文件夹下是否有这些数字命名的文件。`);
         });
     }
 
     function animate() {
         animationId = requestAnimationFrame(animate);
+        // 如果有控制器（结果页），更新控制器
         if (controls) {
             controls.update();
         } 
+        // 如果是AR模式且没有AI控制，保留简单自转
+        else if (model && document.getElementById('mascotPage').classList.contains('ar-mode-active')) {
+            // AR 模式下通常由手势控制，这里不设自动旋转，或者你可以加 model.rotation.y += 0.05;
+        }
         renderer.render(scene, camera);
     }
 
+    // AR模式下拍照
     window.takePhoto = function() {
         const bgVideo = document.getElementById('bgVideo');
         const glCanvas = renderer.domElement;
@@ -661,4 +677,3 @@
 </script>
 </body>
 </html>
-

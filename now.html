@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <title>数字潇湘 · 灵境</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- 引入库：国内镜像源 -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://registry.npmmirror.com/three/0.158.0/files/build/three.module.js",
+            "three/addons/": "https://registry.npmmirror.com/three/0.158.0/files/examples/jsm/",
+            "@mediapipe/tasks-vision": "https://registry.npmmirror.com/@mediapipe/tasks-vision/0.10.3/files/+esm"
+        }
+    }
+    </script>
+    <style>
+        /* === 基础重置 === */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", sans-serif; background: #020617; color: #fff; overflow: hidden; width: 100vw; height: 100vh; }
+        /* 通用 UI */
+        section { position: absolute; inset: 0; display: none; z-index: 10; width: 100%; height: 100%; }
+        section.active { display: flex; z-index: 100; }
+        div.full-page { position: absolute; inset: 0; display: none; z-index: 50; width: 100%; height: 100%; }
+        div.full-page.active { display: block; z-index: 100; }
+        /* === AR 操作指南样式 === */
+        #arInstructions {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px); z-index: 200; display: none;
+            justify-content: center; align-items: center; color: #fff;
+            text-align: center; padding: 20px;
+        }
+        .instructions-content {
+            background: rgba(20, 20, 20, 0.8); padding: 25px 30px;
+            border-radius: 20px; border: 1px solid #fcd34d;
+            width: 100%; max-width: 380px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+        .instructions-content h2 { color: #fcd34d; font-size: 24px; margin-bottom: 25px; text-shadow: 0 0 10px #f59e0b; }
+        .instructions-content ul { list-style: none; padding: 0; margin-bottom: 30px; text-align: left; }
+        .instructions-content li { font-size: 16px; margin-bottom: 15px; display: flex; align-items: center; }
+        .instructions-content .icon { font-size: 24px; margin-right: 15px; width: 30px; display: inline-block; }
+        .instructions-btn {
+            background: linear-gradient(to bottom, #fcd34d, #d97706); color: #450a0a;
+            font-weight: 900; padding: 14px 40px; border-radius: 30px; border: none;
+            box-shadow: 0 4px 0 #92400e; cursor: pointer; font-size: 18px;
+            width: 100%; transition: transform 0.2s;
+        }
+        .instructions-btn:active { transform: scale(0.96); }
+        /* === 2. 地图 (首页) === */
+        #mapPage{ justify-content:center; align-items:center; height:100vh; background:#020617; }
+        #mapStage{position:relative;}
+        #mapImg{ height:96vh; max-width:96vw; border-radius:24px; display:block; }
+        
+        /* === 3. 抽取页 === */
+        #aiPage { flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle, #5e0a0a, #000); }
+        .ai-box { width: 80%; max-width: 320px; text-align: center; }
+        .shake-jar { 
+            font-size: 180px; 
+            margin-bottom: 30px; 
+            animation: jarShake 0.6s infinite ease-in-out; 
+            display: inline-block; 
+            filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.6)); 
+        }
+        @keyframes jarShake { 
+            0%, 100% { transform: rotate(0deg); } 
+            25% { transform: rotate(-12deg) translateY(-5px); } 
+            50% { transform: rotate(0deg); } 
+            75% { transform: rotate(12deg) translateY(-5px); } 
+        }
+        .ai-title { color: #fcd34d; font-size: 22px; margin-bottom: 24px; font-weight: bold; text-shadow: 0 0 10px #b45309; }
+        .progress-track { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; }
+        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #fbbf24, #f59e0b); transition: width 0.1s linear; }
+        .ai-log { margin-top: 15px; color: #fbbf24; font-family: monospace; font-size: 14px; }
+        /* === 4. 结果页 === */
+        #mascotPage { flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #7f1d1d 100%); }
+        .result-card { background: rgba(140, 20, 20, 0.6); border: 2px solid #fcd34d; border-radius: 24px; padding: 25px; width: 90%; max-width: 400px; text-align: center; backdrop-filter: blur(10px); transition: all 0.5s; position: relative; z-index: 10; }
+        #mascotCanvasWrap { width: 100%; height: 300px; margin-bottom: 10px; position: relative; z-index: 2; }
+        .model-info h2 { color: #fcd34d; font-size: 26px; margin-bottom: 8px; }
+        .model-info p { color: #fed7aa; font-size: 14px; margin-bottom: 15px; }
+        
+        #namingSection { display: none; margin-top: 10px; animation: fadeIn 0.5s; }
+        .name-input { width: 80%; padding: 12px; border-radius: 30px; border: 2px solid #fcd34d; background: rgba(255,255,255,0.9); color: #7f1d1d; font-size: 18px; font-weight: bold; text-align: center; outline: none; margin-bottom: 20px; }
+        .btn-confirm { background: linear-gradient(to bottom, #fcd34d, #d97706); color: #450a0a; font-weight: 900; padding: 12px 40px; border-radius: 30px; border: none; box-shadow: 0 4px 0 #92400e; cursor: pointer; font-size: 18px; width: 100%; }
+        
+        #actionSection { display: none; margin-top: 15px; animation: fadeIn 0.5s; }
+        #qrCodeContainer { margin: 15px auto; width: 140px; height: 140px; background: rgba(255,255,255,0.1); border-radius: 12px; display: flex; justify-content: center; align-items: center; border: 2px dashed #fcd34d; }
+        #generatedQr { width: 100%; height: 100%; border-radius: 10px; border: 4px solid #fff; display: none; }
+        
+        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; margin-top: 15px; }
+        .action-btn { padding: 12px 0; width: 100%; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; color: #fff; flex: 1; transition: 0.3s; }
+        .btn-ar { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .btn-back { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fcd34d; width: 100%; }
+        @keyframes fadeIn { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+        /* === 5. AR 界面 === */
+        #bgVideo { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; display: none; transform: scaleX(1); transition: transform 0.3s; }
+        #bgVideo.mirrored { transform: scaleX(-1); }
+        #mascotPage.ar-mode-active { background: none !important; pointer-events: none; }
+        .ar-mode-active .result-card { background: transparent !important; border: none !important; backdrop-filter: none !important; box-shadow: none !important; }
+        .ar-mode-active .model-info, .ar-mode-active .btn-group, .ar-mode-active .btn-back, .ar-mode-active #actionSection, .ar-mode-active #namingSection { display: none !important; }
+        #arControls { display: none; position: fixed; inset: 0; z-index: 100; pointer-events: none; }
+        .ar-btn {
+            position: absolute; height: 44px; padding: 0 16px; border-radius: 22px; border: none;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); color: #fff; font-size: 14px; font-weight: bold;
+            display: flex; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3); transition: 0.2s; white-space: nowrap;
+        }
+        .ar-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.2); }
+        #arExitBtn { top: 20px; left: 20px; background: rgba(220, 38, 38, 0.8); }
+        #arMirrorBtn { top: 20px; right: 20px; background: rgba(255, 255, 255, 0.2); }
+        #arResetBtn { bottom: 40px; left: 20px; background: rgba(245, 158, 11, 0.8); }
+        #arPhotoBtn { bottom: 100px; right: 20px; background: rgba(59, 130, 246, 0.8); }
+        #arVideoBtn { bottom: 40px; right: 20px; background: rgba(239, 68, 68, 0.8); }
+        #arVideoBtn.recording { animation: pulseRed 1s infinite; border: 2px solid #fff; background: red; }
+        @keyframes pulseRed { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        #arHelpBtn { top: 80px; left: 20px; }
+        /* === 6. 状态与加载 === */
+        #aiStatus {
+            position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%);
+            background: rgba(16, 185, 129, 0.8); padding: 8px 16px; border-radius: 20px;
+            color: #fff; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.5s;
+        }
+        #loadingToast { position: fixed; top: 45%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 20px 40px; border-radius: 12px; display: none; flex-direction: column; align-items: center; z-index: 999; pointer-events: none; }
+        .spinner { width: 30px; height: 30px; border: 4px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s infinite linear; margin-bottom: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<!-- AR 操作指南 -->
+<div id="arInstructions">
+    <div class="instructions-content">
+        <h2>AR 互动指南</h2>
+        <ul>
+            <li><span class="icon">👆</span><b>食指指向:</b> 模型将跟随您的指尖。</li>
+            <li><span class="icon">🖐️</span><b>张开手掌:</b> 放大模型。</li>
+            <li><span class="icon">✊</span><b>握紧拳头:</b> 缩小模型。</li>
+            <li><span class="icon">👆</span><b>单指滑动:</b> 旋转模型。</li>
+            <li><span class="icon">✌️</span><b>双指拖动:</b> 移动模型。</li>
+        </ul>
+        <button class="instructions-btn" onclick="startArExperience()">开启奇妙之旅</button>
+    </div>
+</div>
+
+<div id="loadingToast"><div class="spinner"></div><div id="loadingText">处理中...</div></div>
+<video id="bgVideo" autoplay playsinline muted></video>
+<div id="aiStatus"></div>
+
+<!-- 1. 地图页（首页） -->
+<section id="mapPage" class="active">
+    <div id="mapStage">
+        <img id="mapImg" src="map.png" alt="MAP">
+        <!-- 统一启动按钮 -->
+        <div style="position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); text-align: center; width: 100%;">
+            <button class="instructions-btn" style="padding: 15px 40px; font-size: 20px; width: auto;" onclick="startBlindBoxFlow()">开启探索之旅</button>
+        </div>
+    </div>
+</section>
+
+<!-- 2. 抽取页 (拟人化主题) -->
+<section id="aiPage">
+    <div class="ai-box">
+        <div class="shake-jar">🏺</div>
+        <div class="ai-title">正在唤醒文物之灵...</div>
+        <div class="progress-track"><div class="progress-fill" id="aiBar"></div></div>
+        <div class="ai-log" id="aiLog">解析历史印记...</div>
+    </div>
+</section>
+
+<!-- 3. 结果页 -->
+<section id="mascotPage">
+    <div class="result-card" id="resCard">
+        <div id="mascotCanvasWrap"></div>
+        <div class="model-info">
+            <div id="namingSection">
+                <h2 class="congrats-title">🎉 唤醒成功！</h2>
+                <p style="color:#fde68a; font-size:14px; margin-bottom:15px;">您唤醒了：<span id="artifactNameDisplay" style="color:#fff;font-weight:bold;font-size:18px;"></span><br>请您为TA赐名：</p>
+                <input type="text" id="customNameInput" class="name-input" placeholder="输入名字..." maxlength="8">
+                <button class="btn-confirm" onclick="confirmModelName()">✨ 确认并生成名片 ✨</button>
+            </div>
+            <div id="actionSection">
+                <h2 id="finalNameDisplay" style="color:#fcd34d; font-size:24px; margin-bottom:5px; white-space: normal; line-height: 1.2;"></h2>
+                <p style="color:#fca5a5; font-size:12px; margin-bottom:10px;">文物拟人化形态已生成</p>
+                
+                <div id="qrCodeContainer">
+                    <img id="generatedQr" src="" alt="QR Code">
+                </div>
+                <p style="font-size:10px; color:#aaa; margin-bottom:15px;">长按二维码保存专属名片</p>
+                <div class="btn-group">
+                    <button class="action-btn btn-ar" onclick="enterARMode()">📸 与TA合影</button>
+                    <button class="action-btn btn-back" onclick="backToMap()">↺ 返回首页</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="arControls">
+        <button class="ar-btn" id="arExitBtn" onclick="exitARMode()">❌ 退出</button>
+        <button class="ar-btn" id="arHelpBtn" onclick="showArInstructions()">❓ 帮助</button>
+        <button class="ar-btn" id="arMirrorBtn" onclick="toggleMirror()">🔁 镜像</button>
+        <button class="ar-btn" id="arResetBtn" onclick="resetModelPos()">📍 归位</button>
+        <button class="ar-btn" id="arPhotoBtn" onclick="takePhoto()">📷 拍照</button>
+        <button class="ar-btn" id="arVideoBtn" onclick="toggleVideoRecord()">🎥 录像</button>
+    </div>
+</section>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; 
+    import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
+
+    const ZONE_CONFIG = {
+        "博物馆": { 
+            models: [ 
+                // 注意这里加上了 ./ 
+                "./model/1.glb", "./model/2.glb", "./model/3.glb", "./model/4.glb", "./model/5.glb", 
+                "./model/6.glb", "./model/7.glb", "./model/8.glb", "./model/9.glb", "./model/10.glb",
+                "./model/11.glb", "./model/12.glb", "./model/13.glb", "./model/14.glb", "./model/15.glb",
+                "./model/16.glb", "./model/17.glb", "./model/18.glb", "./model/19.glb", "./model/20.glb",
+                "./model/21.glb", "./model/22.glb", "./model/23.glb", "./model/24.glb", "./model/25.glb",
+                "./model/26.glb", "./model/27.glb", "./model/28.glb", "./model/29.glb", "./model/30.glb",
+                "./model/31.glb", "./model/32.glb", "./model/33.glb", "./model/34.glb", "./model/35.glb"
+            ] 
+        },
+        "默认": { models: [ "./model/1.glb" ] }
+    };
+
+    // === 花名册 ===
+    const MODEL_NAME_MAP = {
+       "./model/1.glb": "T形帛画 · 小引魂官",
+        "./model/2.glb": "帛书 · 小书书",
+        "./model/3.glb": "帛书老子 · 小道道",
+        "./model/4.glb": "楚风通灵巫女 ·（楚巫文化）",
+        "./model/5.glb": "楚魂安抚灵女 ·（楚人灵魂观）",
+        "./model/6.glb": "楚梦祭司 ·（楚文化梦魂观）",
+        "./model/7.glb": "楚香灵女 · 小香灵",
+        "./model/8.glb": "楚羽通魂女 ·（楚人羽化观念）",
+        "./model/9.glb": "楚云祭司 · 小云祭",
+        "./model/10.glb": "楚云祭天女 ·（楚文化云纹体系）",
+        "./model/11.glb": "楚云守界女 ·（楚文化天地分界观）",
+        "./model/12.glb": "错金银青铜器 · 小铭铭",
+        "./model/13.glb": "导引图 · 小动动",
+        "./model/14.glb": "漢绣灵女 · 小绣灵",
+        "./model/15.glb": "荷花",
+        "./model/16.glb": "简牍 · 小简简",
+        "./model/17.glb": "马王堆墓主人 · 小辛辛",
+        "./model/18.glb": "漆耳杯 · 小酌酌",
+        "./model/19.glb": "漆绘食案 · 小案案",
+        "./model/20.glb": "漆奁 · 小妆妆",
+        "./model/21.glb": "漆器盒 · 小漆安",
+        "./model/22.glb": "漆纹祭守女 ·（马王堆漆器纹样）",
+        "./model/23.glb": "日月引灵女 ·（马王堆帛画日月体系）",
+        "./model/24.glb": "神鸟引梦者 · 小梦鸢",
+        "./model/25.glb": "神兽铃使 · 小铃儿",
+        "./model/26.glb": "素纱襌衣 · 小纱纱",
+        "./model/27.glb": "铜镜",
+        "./model/28.glb": "辛追夫人 · 辛辛夫人",
+        "./model/29.glb": "引魂帛画祭司 ·（马王堆+T形帛画）",
+        "./model/30.glb": "羽人引路者 · 小羽引",
+        "./model/31.glb": "玉璧 · 小璧璧",
+        "./model/32.glb": "玉舞引灵 · 小玉舞",
+        "./model/33.glb": "岳麓书院门",
+        "./model/34.glb": "云纹玉佩 · 小玉玉",
+        "./model/35.glb": "朱砂印章 · 小印安"
+    };
+
+    let selectedModelPath = "";
+    let currentArtifactName = ""; // 系统定义的前缀名
+    let userCustomName = "";
+    let scene, camera, renderer, model, animationId;
+    let controls; 
+    let arStreamObj = null, isMirrored = false;
+    let handLandmarker = undefined;
+    let lastVideoTime = -1, isAiRunning = false, aiLoadFailed = false;
+    let statusTimer = null;
+    let mediaRecorder = null, recordedChunks = [], isRecording = false;
+
+    window.gotoPage = function(id) {
+        document.querySelectorAll('section, div.full-page').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function getChineseNameFromPath(path) {
+        return MODEL_NAME_MAP[path] || "神秘文物";
+    }
+
+    window.addEventListener('load', () => {
+        const params = new URLSearchParams(window.location.search);
+        const m = params.get('m'); 
+        const n = params.get('n'); 
+
+        if (m && n) {
+            selectedModelPath = decodeURIComponent(m);
+            const fullName = decodeURIComponent(n);
+            
+            window.gotoPage('mascotPage');
+            document.getElementById('namingSection').style.display = 'none';
+            document.getElementById('actionSection').style.display = 'block';
+            document.getElementById('finalNameDisplay').innerText = `✨ ${fullName} ✨`;
+            
+            const textToEncode = `${window.location.href}`; 
+            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(textToEncode)}`;
+            const qrImg = document.getElementById('generatedQr');
+            qrImg.src = qrApiUrl;
+            qrImg.style.display = "block";
+
+            showMascot(false);
+        }
+    });
+
+    window.startBlindBoxFlow = function() {
+        let matchedKey = "博物馆"; 
+        const pool = ZONE_CONFIG[matchedKey].models;
+        selectedModelPath = (pool && pool.length > 0) ? pool[Math.floor(Math.random() * pool.length)] : ZONE_CONFIG["默认"].models[0];
+        currentArtifactName = getChineseNameFromPath(selectedModelPath);
+        window.gotoPage('aiPage');
+        runAIProgress();
+    }
+
+    function runAIProgress() {
+        const bar = document.getElementById('aiBar');
+        const log = document.getElementById('aiLog');
+        bar.style.width = "0%";
+        let width = 0;
+        const timer = setInterval(() => {
+            width += Math.random() * 4;
+            if (width > 30 && width < 60) log.innerText = "正在描绘人形轮廓...";
+            if (width > 60 && width < 90) log.innerText = "正在赋予文物灵性...";
+            if (width >= 100) {
+                clearInterval(timer);
+                log.innerText = "✨ 唤醒成功！";
+                setTimeout(showResult, 500);
+            }
+            bar.style.width = width + "%";
+        }, 80);
+    }
+
+    function showResult() {
+        window.gotoPage('mascotPage');
+        document.getElementById('namingSection').style.display = 'block';
+        document.getElementById('actionSection').style.display = 'none';
+        document.getElementById('artifactNameDisplay').innerText = currentArtifactName;
+        document.getElementById('customNameInput').value = "";
+        document.getElementById('generatedQr').style.display = 'none';
+        document.getElementById('generatedQr').src = "";
+        showMascot(false);
+    }
+
+    window.confirmModelName = function() {
+        const input = document.getElementById('customNameInput');
+        const name = input.value.trim();
+        if(!name) { alert("客官，给它取个名字再走吧！"); return; }
+        
+        userCustomName = name;
+        const finalFullName = `${currentArtifactName} ${userCustomName}`;
+        
+        document.getElementById('namingSection').style.display = 'none';
+        document.getElementById('actionSection').style.display = 'block';
+        document.getElementById('finalNameDisplay').innerText = `✨ ${finalFullName} ✨`;
+        
+        const baseUrl = window.location.href.split('?')[0];
+        const shareUrl = `${baseUrl}?m=${encodeURIComponent(selectedModelPath)}&n=${encodeURIComponent(finalFullName)}`;
+        
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
+        const qrImg = document.getElementById('generatedQr');
+        qrImg.src = qrApiUrl;
+        qrImg.onload = () => { qrImg.style.display = "block"; };
+    }
+
+    window.backToMap = function() {
+        cleanUpThreeJS();
+        window.history.replaceState({}, document.title, window.location.pathname);
+        window.gotoPage('mapPage');
+    }
+
+    // === THREE.js & AR Logic ===
+    async function loadAiModels() {
+        if (handLandmarker) return true;
+        if (aiLoadFailed) return false;
+        showLoading(true, "启动 AI 引擎...");
+        try {
+            // 使用国内镜像加载 AI 模型文件
+            const vision = await FilesetResolver.forVisionTasks("https://registry.npmmirror.com/@mediapipe/tasks-vision/0.10.3/files/wasm");
+            if (!handLandmarker) {
+                handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                    // 请确认你本地有 hand_landmarker.task 文件，且就在 index.html 旁边
+                    baseOptions: { modelAssetPath: "./hand_landmarker.task", delegate: "GPU", modelComplexity: 0 },
+                    runningMode: "VIDEO",
+                    numHands: 1
+                });
+            }
+            return true;
+        } catch (error) {
+            aiLoadFailed = true;
+            alert("⚠️ AI模型加载失败！\n(请确保 hand_landmarker.task 文件存在)");
+            showLoading(false);
+            return false;
+        }
+    }
+
+    window.enterARMode = async function() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert("⚠️ 需要HTTPS环境。请上传到 GitHub Pages 即可解决。"); return;
+        }
+        const modelsLoaded = await loadAiModels();
+        if (!modelsLoaded) { showLoading(false); return; }
+        
+        showLoading(false);
+        const btn = document.querySelector('#arInstructions .instructions-btn');
+        btn.textContent = '开启奇妙之旅';
+        btn.onclick = startArExperience;
+        document.getElementById('arInstructions').style.display = 'flex';
+    }
+
+    window.startArExperience = async function() {
+        document.getElementById('arInstructions').style.display = 'none';
+        showLoading(true, "启动相机...");
+        try {
+            try {
+                arStreamObj = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } },
+                    audio: false
+                });
+            } catch (e) { arStreamObj = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
+            
+            const bgVideo = document.getElementById('bgVideo');
+            bgVideo.srcObject = arStreamObj;
+            bgVideo.style.display = "block";
+            await bgVideo.play();
+            
+            showMascot(true);
+            document.getElementById('mascotPage').classList.add('ar-mode-active');
+            document.getElementById('arControls').style.display = 'block';
+            isAiRunning = true;
+            predictWebcam();
+            showTempStatus("探索AR模式已开启");
+        } catch (err) {
+            alert("相机启动失败: " + err.message);
+            exitARMode();
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    window.showArInstructions = function() {
+        const btn = document.querySelector('#arInstructions .instructions-btn');
+        btn.textContent = '关闭说明';
+        btn.onclick = () => { document.getElementById('arInstructions').style.display = 'none'; };
+        document.getElementById('arInstructions').style.display = 'flex';
+    }
+
+    async function predictWebcam() {
+        if (!isAiRunning) return;
+        const video = document.getElementById('bgVideo');
+        if (video.readyState >= 2) {
+            let startTimeMs = performance.now();
+            if (video.currentTime !== lastVideoTime) {
+                lastVideoTime = video.currentTime;
+                if (!aiLoadFailed && handLandmarker) {
+                    const handResult = handLandmarker.detectForVideo(video, startTimeMs);
+                    if (handResult.landmarks && handResult.landmarks.length > 0) {
+                        handleHandGestures(handResult.landmarks[0]);
+                    }
+                }
+            }
+        }
+        requestAnimationFrame(predictWebcam);
+    }
+
+    function handleHandGestures(landmarks) {
+        if (!model || !landmarks) return;
+        const getDistance = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z);
+        const [wrist, thumbTip, indexMcp, indexPip, indexTip, middlePip, middleTip, ringPip, ringTip, pinkyPip, pinkyTip] =
+            [landmarks[0], landmarks[4], landmarks[5], landmarks[6], landmarks[8], landmarks[10], landmarks[12], landmarks[14], landmarks[16], landmarks[18], landmarks[20]];
+        const isIndexStraight = getDistance(indexTip, wrist) > getDistance(indexPip, wrist);
+        const areOthersCurled = getDistance(middleTip, wrist) < getDistance(middlePip, wrist) &&
+                               getDistance(ringTip, wrist) < getDistance(ringPip, wrist) &&
+                               getDistance(pinkyTip, wrist) < getDistance(pinkyPip, wrist);
+        
+        if (isIndexStraight && areOthersCurled) {
+            const x = isMirrored ? (landmarks[8].x * 2 - 1) : (1 - landmarks[8].x) * 2 - 1;
+            const y = -(landmarks[8].y * 2 - 1);
+            const vec = new THREE.Vector3(x, y, 0.5);
+            vec.unproject(camera);
+            const dir = vec.sub(camera.position).normalize();
+            const newPos = camera.position.clone().add(dir.multiplyScalar(3));
+            model.position.lerp(newPos, 0.05);
+            return;
+        }
+    }
+
+    function showTempStatus(text) {
+        const el = document.getElementById('aiStatus');
+        el.innerText = text; el.style.opacity = '1';
+        if(statusTimer) clearTimeout(statusTimer);
+        statusTimer = setTimeout(() => { el.style.opacity = '0'; }, 3000);
+    }
+
+    window.toggleMirror = function() {
+        isMirrored = !isMirrored;
+        const v = document.getElementById('bgVideo');
+        if (isMirrored) { v.classList.add('mirrored'); showTempStatus("🔁 镜像开启"); }
+        else { v.classList.remove('mirrored'); showTempStatus("🔁 镜像关闭"); }
+    }
+
+    window.resetModelPos = function() {
+        if(model) {
+            model.position.set(0, -0.5, -3);
+            model.rotation.set(0, Math.PI, 0);
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            const s = 1.5 / Math.max(size.x, size.y, size.z);
+            model.scale.set(s,s,s);
+            if (controls) controls.reset();
+            showTempStatus("📍 已归位");
+        }
+    }
+
+    window.exitARMode = function() {
+        isAiRunning = false;
+        if(arStreamObj) arStreamObj.getTracks().forEach(track => track.stop());
+        arStreamObj = null;
+        document.getElementById('bgVideo').style.display = "none";
+        document.getElementById('mascotPage').classList.remove('ar-mode-active');
+        document.getElementById('arControls').style.display = 'none';
+        showMascot(false);
+    }
+
+    function cleanUpThreeJS() {
+        if (animationId) cancelAnimationFrame(animationId);
+        if (renderer) { renderer.domElement.remove(); renderer.dispose(); }
+        if (controls) { controls.dispose(); }
+        scene = null; camera = null; renderer = null; model = null; controls = null;
+    }
+
+    function showMascot(isAR) {
+        cleanUpThreeJS();
+        const wrap = document.getElementById("mascotCanvasWrap");
+        if(!wrap) return;
+        if(isAR) wrap.innerHTML = "";
+        const width = isAR ? window.innerWidth : wrap.clientWidth;
+        const height = isAR ? window.innerHeight : wrap.clientHeight;
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+        camera.position.set(0, 1.2, 3); camera.lookAt(0, 0.5, 0);
+        renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: true });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        
+        if (isAR) {
+            document.body.appendChild(renderer.domElement);
+            renderer.domElement.style.position = 'fixed';
+            renderer.domElement.style.top = '0';
+            renderer.domElement.style.left = '0';
+            renderer.domElement.style.zIndex = '50';
+        } else {
+            wrap.appendChild(renderer.domElement);
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 30.0;
+            controls.enableZoom = true;
+        }
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0); scene.add(ambientLight);
+        const mainLight = new THREE.DirectionalLight(0xffffff, 2.0); mainLight.position.set(5, 10, 7); scene.add(mainLight);
+        
+        new GLTFLoader().load(selectedModelPath, (gltf) => {
+            model = gltf.scene;
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            const baseScale = 1.5 / Math.max(size.x, size.y, size.z);
+            model.scale.set(baseScale, baseScale, baseScale);
+            const center = box.getCenter(new THREE.Vector3());
+            model.position.x = -center.x * baseScale;
+            model.position.y = -center.y * baseScale;
+            model.position.z = -center.z * baseScale;
+            if(isAR) {
+                model.position.y = -0.5;
+                model.position.z = -3;
+            }
+            scene.add(model);
+            animate();
+        }, undefined, (err) => { 
+            console.error('模型加载失败:', err); 
+            alert(`加载失败: ${selectedModelPath}。\n请确认文件夹名为 model (单数) 且在同一目录下。`);
+        });
+    }
+
+    function animate() {
+        animationId = requestAnimationFrame(animate);
+        if (controls) {
+            controls.update();
+        } 
+        renderer.render(scene, camera);
+    }
+
+    window.takePhoto = function() {
+        const bgVideo = document.getElementById('bgVideo');
+        const glCanvas = renderer.domElement;
+        const canvas = document.createElement('canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const ctx = canvas.getContext('2d');
+        const vRatio = bgVideo.videoWidth / bgVideo.videoHeight;
+        const cRatio = canvas.width / canvas.height;
+        let sW, sH, sX, sY;
+        if (vRatio > cRatio) {
+            sH = bgVideo.videoHeight; sW = sH * cRatio; sX = (bgVideo.videoWidth - sW)/2; sY = 0;
+        } else {
+            sW = bgVideo.videoWidth; sH = sW / cRatio; sX = 0; sY = (bgVideo.videoHeight - sH)/2;
+        }
+        ctx.save();
+        if (isMirrored) { ctx.translate(canvas.width, 0); ctx.scale(-1, 1); }
+        ctx.drawImage(bgVideo, sX, sY, sW, sH, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
+        ctx.drawImage(glCanvas, 0, 0, canvas.width, canvas.height);
+        const link = document.createElement('a');
+        link.download = `AR_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showTempStatus("📸 照片已保存");
+    }
+
+    window.toggleVideoRecord = function() {
+        if (isRecording) {
+            if(mediaRecorder) mediaRecorder.stop();
+            isRecording = false;
+            document.getElementById('arVideoBtn').classList.remove('recording');
+        } else {
+            const stream = renderer.domElement.captureStream(30);
+            recordedChunks = [];
+            try {
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `AR_${Date.now()}.webm`;
+                    a.click();
+                    showTempStatus("💾 视频已保存");
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                document.getElementById('arVideoBtn').classList.add('recording');
+                showTempStatus("🎥 录制中...");
+            } catch(e) { alert("录制不支持"); }
+        }
+    }
+
+    function showLoading(show, text) {
+        document.getElementById('loadingToast').style.display = show ? 'flex' : 'none';
+        if(text) document.getElementById('loadingText').innerText = text;
+    }
+
+</script>
+</body>
+</html>

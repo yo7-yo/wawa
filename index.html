@@ -130,6 +130,41 @@
         #loadingToast { position: fixed; top: 45%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 20px 40px; border-radius: 12px; display: none; flex-direction: column; align-items: center; z-index: 999; pointer-events: none; }
         .spinner { width: 30px; height: 30px; border: 4px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s infinite linear; margin-bottom: 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+                /* === 7. 纯展示模式 (扫码后的页面) === */
+        /* 当 body 带有 share-mode 类时生效 */
+        body.share-mode .btn-group,       /* 隐藏按钮(合影、返回) */
+        body.share-mode #qrCodeContainer, /* 隐藏二维码 */
+        body.share-mode #actionSection p, /* 隐藏"长按保存"等小字 */
+        body.share-mode .instructions-btn,
+        body.share-mode #namingSection {
+            display: none !important;
+        }
+
+        /* 调整名字的样式，让它更大、更漂亮 */
+        body.share-mode #finalNameDisplay {
+            font-size: 32px;
+            margin-top: 20px;
+            color: #fcd34d;
+            text-shadow: 0 2px 15px rgba(251, 191, 36, 0.6);
+            padding-bottom: 20px;
+        }
+
+        /* 去掉卡片的边框和背景，让模型看起来悬浮在页面中间 */
+        body.share-mode .result-card {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            backdrop-filter: none;
+        }
+        
+        /* 调整模型高度，让它处于屏幕正中 */
+        body.share-mode #mascotCanvasWrap {
+            height: 60vh; /* 模型占据屏幕高度的 60% */
+            margin-top: 10vh;
+        }
+
+
     </style>
 </head>
 <body>
@@ -299,7 +334,7 @@
         return MODEL_NAME_MAP[path] || "神秘文物";
     }
 
-    // --- 核心逻辑修改：初始化或扫码进入 ---
+        // --- 核心逻辑修改：初始化或扫码进入 ---
     window.addEventListener('load', () => {
         // 检查 URL 是否带有参数（比如扫码进来的）
         const params = new URLSearchParams(window.location.search);
@@ -307,25 +342,30 @@
         const n = params.get('n'); // 获取名字
 
         if (m && n) {
-            // 如果有参数，直接跳过盲盒，展示结果页
+            // ★★★ 关键点：给 body 加上 share-mode 标签 ★★★
+            // 这会触发上面写的 CSS，把按钮、二维码全隐藏掉
+            document.body.classList.add('share-mode');
+
             selectedModelPath = decodeURIComponent(m);
             const fullName = decodeURIComponent(n);
             
+            // 直接跳转到结果页
             window.gotoPage('mascotPage');
+
+            // 确保输入框隐藏，展示区显示
             document.getElementById('namingSection').style.display = 'none';
             document.getElementById('actionSection').style.display = 'block';
+            
+            // 设置名字
             document.getElementById('finalNameDisplay').innerText = `✨ ${fullName} ✨`;
             
-            // 重新生成二维码显示出来（方便分享）
-            const textToEncode = `${window.location.href}`; // 既然已经在结果页，二维码就是当前链接
-            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(textToEncode)}`;
-            const qrImg = document.getElementById('generatedQr');
-            qrImg.src = qrApiUrl;
-            qrImg.style.display = "block";
-
+            // 加载模型
             showMascot(false);
+
+            // 注意：扫码进来的页面不需要生成二维码，所以去掉了生成二维码的代码
         }
     });
+
 
     window.startBlindBoxFlow = function() {
         let matchedKey = "博物馆"; 

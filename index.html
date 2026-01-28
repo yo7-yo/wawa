@@ -15,6 +15,13 @@
     }
     </script>
     <style>
+        /* --- ★★★ 新增：默认隐藏切换镜头按钮 ★★★ --- */
+        #arSwitchCameraBtn {
+            display: none; /* ★ 默认是隐藏的 */
+            top: 74px; 
+            right: 20px;
+        }
+
         /* === 基础重置 === */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: "Microsoft YaHei", sans-serif; background: #020617; color: #fff; overflow: hidden; width: 100vw; height: 100vh; }
@@ -106,20 +113,63 @@
         .ar-mode-active .model-info, .ar-mode-active .btn-group, .ar-mode-active .btn-back, .ar-mode-active #actionSection, .ar-mode-active #namingSection { display: none !important; }
         #arControls { display: none; position: fixed; inset: 0; z-index: 100; pointer-events: none; }
         .ar-btn {
-            position: absolute; height: 44px; padding: 0 16px; border-radius: 22px; border: none;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); color: #fff; font-size: 14px; font-weight: bold;
-            display: flex; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3); transition: 0.2s; white-space: nowrap;
+            position: absolute;
+            height: 44px;
+            width: auto;
+            min-width: 44px;
+            padding: 0 16px;
+            border-radius: 22px;
+            border: none;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+            white-space: nowrap;
         }
-        .ar-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.2); }
-        #arExitBtn { top: 20px; left: 20px; background: rgba(220, 38, 38, 0.8); }
-        #arMirrorBtn { top: 20px; right: 20px; background: rgba(255, 255, 255, 0.2); }
-        #arResetBtn { bottom: 40px; left: 20px; background: rgba(245, 158, 11, 0.8); }
-        #arPhotoBtn { bottom: 100px; right: 20px; background: rgba(59, 130, 246, 0.8); }
-        #arVideoBtn { bottom: 40px; right: 20px; background: rgba(239, 68, 68, 0.8); }
+
+        .ar-btn:active {
+            transform: scale(0.95);
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* 2. 识别按钮的激活(黄色)样式 */
+        .ar-btn.active-yellow {
+            background: rgba(245, 158, 11, 0.9);
+            color: #fff;
+        }
+
+        /* 3. 按钮的具体定位 - 最终布局 */
+
+        /* --- 左侧区域 --- */
+        #arExitBtn { top: 20px; left: 20px; background: rgba(220, 38, 38, 0.8); } /* 退出 */
+        #arHelpBtn { top: 74px; left: 20px; } /* 帮助 */
+        #arToggleGestureBtn { bottom: 94px; left: 20px; } /* ★ 识别 (在归位上面: 40+44+10) */
+        #arResetBtn { bottom: 40px; left: 20px; } /* 归位 */
+
+        /* --- 右侧区域 --- */
+        #arMirrorBtn { top: 20px; right: 20px; } /* 镜像 */
+        #arSwitchCameraBtn { top: 74px; right: 20px; display: none; } /* ★ 切换镜头 (在镜像下面: 20+44+10) */
+        #arPhotoBtn { bottom: 100px; right: 20px; background: rgba(59, 130, 246, 0.8); } /* 拍照 */
+        #arVideoBtn { bottom: 40px; right: 20px; background: rgba(239, 68, 68, 0.8); } /* 录像 */
+
+        /* 4. 视频录制中的闪烁效果 */
         #arVideoBtn.recording { animation: pulseRed 1s infinite; border: 2px solid #fff; background: red; }
+
+        /* 5. 切换摄像头按钮的显示控制 (仅在手机上显示) */
+        body.mobile-device #arSwitchCameraBtn {
+            display: flex;
+        }
+        
         @keyframes pulseRed { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        #arHelpBtn { top: 80px; left: 20px; }
+        
         /* === 6. 状态与加载 === */
         #aiStatus {
             position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%);
@@ -133,12 +183,22 @@
 
                 /* === 7. 纯展示模式 (扫码后的页面) === */
         /* 当 body 带有 share-mode 类时生效 */
-        body.share-mode .btn-group,       /* 隐藏按钮(合影、返回) */
-        body.share-mode #qrCodeContainer, /* 隐藏二维码 */
-        body.share-mode #actionSection p, /* 隐藏"长按保存"等小字 */
+        body.share-mode #qrCodeContainer,  /* 隐藏二维码容器 */
+        body.share-mode #actionSection p,  /* 隐藏"长按保存"等小字 */
         body.share-mode .instructions-btn,
-        body.share-mode #namingSection {
+        body.share-mode #namingSection,
+        body.share-mode .btn-back {         /* ★★★ 新增：只隐藏【返回】按钮 ★★★ */
             display: none !important;
+        }
+
+        /* --- ★★★ 关键：让AR按钮在分享模式下也好看 ★★★ --- */
+        body.share-mode .btn-group {
+            /* 移除 flex 布局，因为现在只有一个按钮了 */
+            display: block; 
+        }
+        body.share-mode .btn-ar {
+            /* 让AR按钮宽度占满100%，看起来更居中、更协调 */
+            width: 100%;
         }
 
         /* 调整名字的样式，让它更大、更漂亮 */
@@ -252,6 +312,8 @@
         <button class="ar-btn" id="arHelpBtn" onclick="showArInstructions()">❓ 帮助</button>
         <button class="ar-btn" id="arMirrorBtn" onclick="toggleMirror()">🔁 镜像</button>
         <button class="ar-btn" id="arResetBtn" onclick="resetModelPos()">📍 归位</button>
+        <button class="ar-btn" id="arToggleGestureBtn" onclick="toggleGestureRecognition()">✋ 无识别</button>
+        <button class="ar-btn" id="arSwitchCameraBtn" onclick="switchCamera()">🔄 切换镜头</button>
         <button class="ar-btn" id="arPhotoBtn" onclick="takePhoto()">📷 拍照</button>
         <button class="ar-btn" id="arVideoBtn" onclick="toggleVideoRecord()">🎥 录像</button>
     </div>
@@ -322,6 +384,8 @@
     let currentArtifactName = ""; // 系统定义的前缀名
     let isDragging = false;
     let raycaster;
+    let isGestureRecognitionActive = true; // 默认开启手势识别
+    let currentFacingMode = 'environment';   // 默认是后置摄像头
     const pointer = new THREE.Vector2();
     const dragPlane = new THREE.Plane();
     const intersection = new THREE.Vector3();
@@ -489,35 +553,32 @@
         showLoading(true, "启动相机...");
 
         try {
-            // 1. 判断当前设备是否为手机或平板
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+            document.body.classList.add('mobile-device');
+            }
+            // 如果是手机，就显示切换按钮
+            document.getElementById('arSwitchCameraBtn').style.display = isMobile ? 'flex' : 'none';
+
+            // 设定初始的摄像头模式
+            currentFacingMode = isMobile ? 'environment' : 'user';
             
             let videoConstraints;
-
-            // 2. 根据设备类型，设定不同的摄像头请求参数
             if (isMobile) {
-                // 如果是移动设备，我们优先请求后置摄像头 (environment)
-                videoConstraints = { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } };
+                videoConstraints = { facingMode: { exact: currentFacingMode }, width: { ideal: 640 }, height: { ideal: 480 } };
             } else {
-                // 如果是PC，我们直接请求默认摄像头，不指定 facingMode
                 videoConstraints = { width: { ideal: 640 }, height: { ideal: 480 } };
-                // PC端默认开启镜像，使用起来更直观
                 if (!isMirrored) { toggleMirror(); } 
             }
 
             try {
-                // 3. 使用上面设定的参数来请求摄像头
-                arStreamObj = await navigator.mediaDevices.getUserMedia({
-                    video: videoConstraints,
-                    audio: false
-                });
+                arStreamObj = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
             } catch (e) {
-                // 4. 如果初次请求失败（例如移动设备没有后置摄像头），则尝试请求任意摄像头作为备用
                 console.warn("请求指定摄像头失败，尝试备用方案...", e);
+                // 备用方案：不再指定模式，让浏览器自己选
+                currentFacingMode = 'user'; // 失败后通常是前置
                 arStreamObj = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             }
-            
-            // --- 接下来的代码与原来保持一致 ---
             
             const bgVideo = document.getElementById('bgVideo');
             bgVideo.srcObject = arStreamObj;
@@ -536,11 +597,14 @@
             domElement.addEventListener('pointercancel', onDragEnd);
 
             isAiRunning = true;
+            isGestureRecognitionActive = true; // 确保每次进入AR都重置为开启
+            const gestureBtn = document.getElementById('arToggleGestureBtn');
+            gestureBtn.innerHTML = "✋ 正在识别"; // 确保文字是“识别”
+            gestureBtn.classList.add('active-yellow'); // 初始设为激活的黄色
             predictWebcam();
             showTempStatus("探索AR模式已开启");
 
         } catch (err) {
-            // 5. 优化了错误提示，引导用户检查权限
             alert("相机启动失败！\n\n错误信息: " + err.message + "\n\n请确认：\n1. 您已授权浏览器使用摄像头。\n2. 摄像头没有被其他程序占用。");
             exitARMode();
         } finally {
@@ -557,6 +621,10 @@
 
     async function predictWebcam() {
         if (!isAiRunning) return;
+        if (!isGestureRecognitionActive) {
+            requestAnimationFrame(predictWebcam); // 保持循环！
+            return; 
+        }
         const video = document.getElementById('bgVideo');
         if (video.readyState >= 2) {
             let startTimeMs = performance.now();
@@ -574,84 +642,64 @@
     }
 
 function handleHandGestures(landmarks) {
-    if (isDragging) return; 
+    // 1. 如果正在用手指拖动模型，则忽略所有手势
+    if (isDragging) return;
+    
+    // 2. 基础检查
     if (!model || !landmarks || landmarks.length === 0) {
         lastRotationAngle = null; 
         return;
     }
 
-    const [
-        wrist, thumb_cmc, thumb_mcp, thumb_ip, thumb_tip,
-        index_mcp, index_pip, index_dip, index_tip, // index_tip is landmarks[8]
-        middle_mcp, middle_pip, middle_dip, middle_tip,
-        ring_mcp, ring_pip, ring_dip, ring_tip,
-        pinky_mcp, pinky_pip, pinky_dip, pinky_tip
-    ] = landmarks;
-
+    // 3. 获取所有手指坐标并判断状态
+    const [wrist, thumb_cmc, thumb_mcp, thumb_ip, thumb_tip, index_mcp, index_pip, index_dip, index_tip, middle_mcp, middle_pip, middle_dip, middle_tip, ring_mcp, ring_pip, ring_dip, ring_tip, pinky_mcp, pinky_pip, pinky_dip, pinky_tip] = landmarks;
     const isIndexStraight = index_tip.y < index_pip.y;
     const isMiddleStraight = middle_tip.y < middle_pip.y;
     const isRingStraight = ring_tip.y < ring_pip.y;
     const isPinkyStraight = pinky_tip.y < pinky_pip.y;
-    
-    // 计算伸出的手指数量
     const straightFingers = [isIndexStraight, isMiddleStraight, isRingStraight, isPinkyStraight].filter(Boolean).length;
 
-    // --- 核心逻辑：根据手指数执行唯一操作 ---
-
-    // 1. 握拳 (缩小)
-    if (straightFingers === 0) {
-        if (model.scale.x > 0.4) {
-            model.scale.multiplyScalar(0.98); 
-        }
+    // 4. 根据手势执行动作
+    if (straightFingers === 0) { // 握拳 -> 缩小
+        if (model.scale.x > 0.4) model.scale.multiplyScalar(0.98); 
         showTempStatus("✊ 缩小");
         lastRotationAngle = null;
-    }
-    // 2. ✨ 单指指向 (贴近)
-    else if (straightFingers === 1 && isIndexStraight) {
-        // 采用更优的坐标算法，自动处理镜像问题
+    } 
+    // ★★★ 核心：完全采用您文件中正确的“单指跟随”逻辑 ★★★
+    else if (straightFingers === 1 && isIndexStraight) { 
+        
+        // 这个公式将摄像头原始数据(0到1)翻转，并映射到3D空间的(-1到1)，
+        // 从而永远提供符合用户直觉的“镜子”操控感。
         const x = (1 - index_tip.x) * 2 - 1; 
         const y = -(index_tip.y * 2 - 1);
-
-        // 通过射线投射，将模型放置在镜头前固定距离
+        
         const vec = new THREE.Vector3(x, y, 0.5);
         vec.unproject(camera);
         const dir = vec.sub(camera.position).normalize();
         const newPos = camera.position.clone().add(dir.multiplyScalar(3));
-
-        // 使用更平滑的lerp动画
+        
         model.position.lerp(newPos, 0.05);
 
         showTempStatus("☝️ 贴近");
         lastRotationAngle = null;
-    }
-    // 3. "V"字手势 (顺时针旋转)
-    else if (straightFingers === 2 && isIndexStraight && isMiddleStraight) {
+
+    } else if (straightFingers === 2 && isIndexStraight && isMiddleStraight) { // V字 -> 顺时针旋转
         if (lastRotationAngle === null) {
-            const rotationAngle = Math.PI / 6; 
-            model.rotation.y -= rotationAngle; 
+            model.rotation.y -= Math.PI / 6; 
             showTempStatus("✌️ 顺时针旋转30°");
-            lastRotationAngle = 1; // 标记为已旋转，防止连续触发
+            lastRotationAngle = 1;
         }
-    }
-    // 4. 三指手势 (逆时针旋转)
-    else if (straightFingers === 3 && isIndexStraight && isMiddleStraight && isRingStraight) {
+    } else if (straightFingers === 3 && isIndexStraight && isMiddleStraight && isRingStraight) { // 三指 -> 逆时针旋转
         if (lastRotationAngle === null) {
-            const rotationAngle = Math.PI / 6; 
-            model.rotation.y += rotationAngle;
+            model.rotation.y += Math.PI / 6;
             showTempStatus("🤟 逆时针旋转30°");
-            lastRotationAngle = 1; // 标记为已旋转
+            lastRotationAngle = 1;
         }
-    }
-    // 5. 张手 (放大)
-    else if (straightFingers === 4) {
-        if (model.scale.x < 2.5) {
-             model.scale.multiplyScalar(1.02);
-        }
+    } else if (straightFingers === 4) { // 张手 -> 放大
+        if (model.scale.x < 2.5) model.scale.multiplyScalar(1.02);
         showTempStatus("🖐️ 放大");
         lastRotationAngle = null;
-    }
-    // 6. 中立状态 (重置一次性动作)
-    else {
+    } else { // 其他或无效手势 -> 重置状态
         lastRotationAngle = null;
     }
 }
@@ -661,6 +709,21 @@ function handleHandGestures(landmarks) {
         el.innerText = text; el.style.opacity = '1';
         if(statusTimer) clearTimeout(statusTimer);
         statusTimer = setTimeout(() => { el.style.opacity = '0'; }, 3000);
+    }
+
+    window.toggleGestureRecognition = function() {
+        isGestureRecognitionActive = !isGestureRecognitionActive; // 翻转状态
+        const btn = document.getElementById('arToggleGestureBtn');
+        
+        if (isGestureRecognitionActive) {
+            // 开启识别
+            btn.classList.add('active-yellow'); // 添加黄色激活样式
+            showTempStatus("手势识别已开启");
+        } else {
+            // 关闭识别
+            btn.classList.remove('active-yellow'); // 移除黄色样式
+            showTempStatus("手势识别已暂停");
+        }
     }
 
     window.toggleMirror = function() {
@@ -693,6 +756,7 @@ function handleHandGestures(landmarks) {
     isAiRunning = false;
     if (arStreamObj) arStreamObj.getTracks().forEach(track => track.stop());
     arStreamObj = null;
+    document.body.classList.remove('mobile-device');
     
     // --- ✨ 核心修正：移除拖动事件监听 ---
     if (renderer) {
@@ -755,7 +819,7 @@ function showMascot(isAR) {
 
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         // PC端转速设为 20.0, 手机端转速设为 8.0
-        controls.autoRotateSpeed = isMobile ? 7.0 : 10.0; 
+        controls.autoRotateSpeed = isMobile ? 5.0 : 10.0; 
 
         controls.enableZoom = true;
         controls.maxPolarAngle = Math.PI / 2 + Math.PI / 9;
@@ -941,25 +1005,24 @@ window.toggleVideoRecord = function() {
     // ✨ --- 处理拖动逻辑的函数 --- ✨
 
 function onDragStart(event) {
-    if (!model) return;
+    // ★ 关键：阻止浏览器默认的滚动、缩放等行为
+    event.preventDefault(); 
+    
+    // 检查是触摸还是鼠标
+    const touch = event.touches ? event.touches[0] : event;
+    if (!touch || !model) return;
 
-    // 获取指针在屏幕上的标准化坐标 (-1 to +1)
-    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    // 更新射线发射器
+    isDragging = true;
+    
+    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+    
     raycaster.setFromCamera(pointer, camera);
     const intersects = raycaster.intersectObject(model, true);
-
-    // 如果射线击中了模型
+    
     if (intersects.length > 0) {
-        isDragging = true; // 开始拖动
-
-        // 创建一个虚拟平面，该平面在模型的当前位置并面向相机
         const cameraDirection = camera.getWorldDirection(new THREE.Vector3());
         dragPlane.setFromNormalAndCoplanarPoint(cameraDirection, intersects[0].point);
-
-        // 计算射线与平面的交点，并记录下初始偏移量
         if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
             offset.copy(intersection).sub(model.position);
         }
@@ -967,23 +1030,78 @@ function onDragStart(event) {
 }
 
 function onDragMove(event) {
-    if (isDragging) {
-        // 更新指针坐标
-        pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-        pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(pointer, camera);
+    // ★ 关键：阻止浏览器默认的滚动、缩放等行为
+    event.preventDefault();
 
-        // 计算射线与虚拟平面的新交点
-        if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
-            // 将模型移动到新交点的位置，同时减去初始偏移量，使拖动更自然
-            model.position.copy(intersection.sub(offset));
-        }
+    const touch = event.touches ? event.touches[0] : event;
+    if (!touch || !isDragging) return;
+
+    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+    
+    raycaster.setFromCamera(pointer, camera);
+    if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
+        model.position.copy(intersection.sub(offset));
     }
 }
+
 
 function onDragEnd(event) {
     isDragging = false; // 结束拖动
 }
+
+// --- ★★★ 新增：切换前后摄像头的函数 ★★★ ---
+window.switchCamera = async function() {
+    // 检查是否支持
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        alert("您的浏览器不支持摄像头切换。");
+        return;
+    }
+
+    // 停止当前摄像头
+    if (arStreamObj) {
+        arStreamObj.getTracks().forEach(track => track.stop());
+    }
+    
+    // 切换模式
+    currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+
+    showLoading(true, "切换镜头...");
+    try {
+        const videoConstraints = { 
+            facingMode: currentFacingMode, 
+            width: { ideal: 640 }, 
+            height: { ideal: 480 } 
+        };
+        
+        // 获取新摄像头流
+        const newStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
+        arStreamObj = newStream;
+
+        const bgVideo = document.getElementById('bgVideo');
+        bgVideo.srcObject = newStream;
+        await bgVideo.play();
+
+        // 切换到前置时，通常需要开启镜像，后置则关闭
+        const video = document.getElementById('bgVideo');
+        if (currentFacingMode === 'user' && !isMirrored) {
+            isMirrored = true;
+            video.classList.add('mirrored');
+        } else if (currentFacingMode === 'environment' && isMirrored) {
+            isMirrored = false;
+            video.classList.remove('mirrored');
+        }
+        showTempStatus(`已切换到${currentFacingMode === 'user' ? '前置' : '后置'}镜头`);
+
+    } catch (err) {
+        alert("切换摄像头失败: " + err.message);
+        // 失败了尝试切回去
+        currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+    } finally {
+        showLoading(false);
+    }
+}
+
 
 </script>
 </body>

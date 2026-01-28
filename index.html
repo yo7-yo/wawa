@@ -670,7 +670,8 @@ function handleHandGestures(landmarks) {
         
         // 这个公式将摄像头原始数据(0到1)翻转，并映射到3D空间的(-1到1)，
         // 从而永远提供符合用户直觉的“镜子”操控感。
-        const x = (1 - index_tip.x) * 2 - 1; 
+        let x = index_tip.x * 2 - 1;
+        if (isMirrored) x = -x;  
         const y = -(index_tip.y * 2 - 1);
         
         const vec = new THREE.Vector3(x, y, 0.5);

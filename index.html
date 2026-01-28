@@ -160,13 +160,14 @@
         
         /* 为分享模式下的主舞台设置一个更华丽的背景 */
         body.share-mode #mascotPage {
-            background-color: #8c1d1d; /* 更鲜亮的红色基底 */
-            background-image: 
-                /* 第2层：顶部的金色光环 */
-                radial-gradient(ellipse at center, hsla(45, 100%, 85%, 0.6) 0%, hsla(45, 100%, 85%, 0) 60%),
-                /* 第1层：底部的红色聚光灯 */
-                radial-gradient(ellipse at center, #ff8a8a 0%, #8c1d1d 75%);
-        }
+    background-color: #6a0d23; /* 维持深红基底 */
+    background-image: 
+        radial-gradient(
+            circle at center, /* 将形状改为圆形 */
+            #ff7f50 0%,     /* 中心颜色改为珊瑚红 (更亮，带橙调) */
+            #6a0d23 55%     /* 光束范围缩小到55%，使其更集中 */
+        );
+}
         
         /* 调整模型高度，让它处于屏幕正中 */
         body.share-mode #mascotCanvasWrap {

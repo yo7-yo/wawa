@@ -8,9 +8,9 @@
     <script type="importmap">
     {
         "imports": {
-            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/",
-            "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm"
+            "three": "https://npm.elemecdn.com/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://npm.elemecdn.com/three@0.158.0/examples/jsm/",
+            "@mediapipe/tasks-vision": "https://npm.elemecdn.com/@mediapipe/tasks-vision@0.10.3/+esm"
         }
     }
     </script>
@@ -132,43 +132,22 @@
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* === 7. 纯展示模式 (手机扫码后的专属样式) === */
-        /* 隐藏多余按钮和二维码 */
-        body.share-mode .btn-group,
+        
+        /* 隐藏不需要的元素，但保留 AR 按钮 */
         body.share-mode #qrCodeContainer,
-        body.share-mode #actionSection p,
+        body.share-mode #actionSection p,     /* 隐藏"长按保存"等小字 */
         body.share-mode .instructions-btn,
-        body.share-mode #namingSection {
+        body.share-mode #namingSection,
+        body.share-mode .btn-back {           /* <-- 关键：只隐藏"返回"按钮，AR按钮会留下 */
             display: none !important;
         }
 
-        /* ★★★ 背景美化：博物馆聚光灯效果 ★★★ */
+        /* ★ 1. 背景提亮：使用更亮的红色渐变，告别纯黑 */
         body.share-mode #mascotPage {
-            /* 
-               背景解析：
-               radial-gradient: 径向渐变
-               circle at center: 光源在正中心
-               #500a0a 0%: 中心是暗红色（照亮模型）
-               #000000 80%: 四周完全变黑（沉浸感）
-            */
-            background: radial-gradient(circle at center, #500a0a 0%, #1a0202 50%, #000000 90%) !important;
+            background: radial-gradient(circle at 50% 40%, #8c1d1d 10%, #450a0a 75%, #290606 100%) !important;
         }
 
-        /* 名字美化：金色、大字、沉底 */
-        body.share-mode #finalNameDisplay {
-            position: absolute;
-            bottom: 12%;           /* 稍微往上提一点，适配全面屏手势条 */
-            left: 0;
-            width: 100%;
-            font-size: 26px;       /* 手机屏幕小，26px 已经很大了 */
-            font-weight: 300;      /* 字体细一点，更显高级 */
-            letter-spacing: 4px;   /* 字间距拉大，更有历史文物的呼吸感 */
-            color: #fbbf24;        /* 琥珀金 */
-            text-shadow: 0 0 15px rgba(251, 191, 36, 0.4); /* 柔和的发光 */
-            margin: 0;
-            z-index: 20;
-        }
-
-        /* 移除原来的卡片框，让模型悬浮 */
+        /* ★ 2. 重新布局，为 AR 按钮腾出空间 */
         body.share-mode .result-card {
             background: transparent !important;
             border: none !important;
@@ -178,15 +157,32 @@
             width: 100%;
             height: 100%;
             display: flex;
-            flex-direction: column;
-            justify-content: center; /* 垂直居中 */
+            flex-direction: column; /* 垂直排列：模型、名字、按钮 */
+            justify-content: center; /* 整体垂直居中 */
+            align-items: center;     /* 整体水平居中 */
         }
         
-        /* 调整模型容器 */
+        /* 模型容器 */
         body.share-mode #mascotCanvasWrap {
             width: 100%;
-            height: 70vh; /* 占据屏幕 70% 高度 */
+            height: 60vh; /* 模型占据屏幕主要高度 */
             margin: 0;
+        }
+
+        /* 名字样式 */
+        body.share-mode #finalNameDisplay {
+            font-size: 26px;
+            letter-spacing: 2px;
+            color: #fbbf24;
+            text-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+            margin-top: 20px;    /* 与模型拉开距离 */
+            margin-bottom: 25px; /* 与下面的AR按钮拉开距离 */
+        }
+
+        /* 包含按钮的区域，让它居中 */
+        body.share-mode #actionSection {
+            width: 90%;
+            max-width: 400px; /* 在大屏手机上也不会过宽 */
         }
 
     </style>
@@ -276,8 +272,7 @@
     import { OrbitControls } from 'https://unpkg.com/three@0.158.0/examples/jsm/controls/OrbitControls.js';
     import { KTX2Loader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/KTX2Loader.js';
     import { FilesetResolver, HandLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm';
-    import { MeshoptDecoder } from 'https://unpkg.com/three@0.158.0/examples/jsm/libs/meshopt_decoder.module.js';
-
+    import { MeshoptDecoder } from 'https://npm.elemecdn.com/three@0.158.0/examples/jsm/libs/meshopt_decoder.module.js';
     const ZONE_CONFIG = {
         "博物馆": { 
             models: [ 
@@ -746,7 +741,7 @@ function showMascot(isAR) {
         controls.autoRotate = true;
         if (document.body.classList.contains('share-mode')) {
             // 如果是手机扫码进来的（纯展示模式），速度慢一点，优雅一点
-            controls.autoRotateSpeed = 2.0; 
+            controls.autoRotateSpeed = 10.0; 
         } else {
             // 如果是电脑/盲盒流程（原流程），保持原来的快速度
             controls.autoRotateSpeed = 20.0; 

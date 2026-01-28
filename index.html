@@ -185,7 +185,7 @@
         /* 当 body 带有 share-mode 类时生效 */
         body.share-mode #qrCodeContainer,  /* 隐藏二维码容器 */
         body.share-mode #actionSection p,  /* 隐藏"长按保存"等小字 */
-        body.share-mode .instructions-btn,
+        body.share-mode #mapStartButtonContainer,
         body.share-mode #namingSection,
         body.share-mode .btn-back {         /* ★★★ 新增：只隐藏【返回】按钮 ★★★ */
             display: none !important;
@@ -264,7 +264,7 @@
     <div id="mapStage">
         <img id="mapImg" src="map.png" alt="MAP">
         <!-- 统一启动按钮 -->
-        <div style="position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); text-align: center; width: 100%;">
+        <div id="mapStartButtonContainer" style="position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); text-align: center; width: 100%;">
             <button class="instructions-btn" style="padding: 15px 40px; font-size: 20px; width: auto;" onclick="startBlindBoxFlow()">开启探索之旅</button>
         </div>
     </div>

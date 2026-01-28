@@ -15,13 +15,67 @@
     }
     </script>
     <style>
+        /* --- ★★★ 新增：封面标题样式 ★★★ --- */
+        .cover-title {
+            color: #fcd34d;
+            font-size: 60px; /* 您可以根据喜好调整大小 */
+            font-weight: bold;
+            text-shadow: 0 2px 10px rgba(245, 158, 11, 0.7);
+            margin-bottom: 20px; /* 调整与礼物盒的间距 */
+            animation: fadeInDown 1.5s ease-out; /* 应用入场动画 */
+        }
+
+        /* ★★★ 新增：标题入场动画 ★★★ */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* --- ★★★ 新增：动态光点装饰 ★★★ --- */
+        #sparkles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none; /* 确保装饰不会干扰点击 */
+        }
+
+        .sparkle {
+            position: absolute;
+            bottom: -20px; /* 从底部开始 */
+            background-color: #fcd34d; /* 光点颜色 */
+            border-radius: 50%;
+            opacity: 0;
+            animation: floatUp 10s infinite linear;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0);
+                opacity: 0;
+            }
+            10%, 90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh); /* 向上移动整个屏幕的高度 */
+                opacity: 0;
+            }
+        }
+
         /* --- ★★★ 新增：默认隐藏切换镜头按钮 ★★★ --- */
         #arSwitchCameraBtn {
             display: none; /* ★ 默认是隐藏的 */
             top: 74px; 
             right: 20px;
         }
-
         /* === 基础重置 === */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: "Microsoft YaHei", sans-serif; background: #020617; color: #fff; overflow: hidden; width: 100vw; height: 100vh; }
@@ -53,10 +107,47 @@
             width: 100%; transition: transform 0.2s;
         }
         .instructions-btn:active { transform: scale(0.96); }
-        /* === 2. 地图 (首页) === */
-        #mapPage{ justify-content:center; align-items:center; height:100vh; background:#020617; }
-        #mapStage{position:relative;}
-        #mapImg{ height:96vh; max-width:96vw; border-radius:24px; display:block; }
+
+        /* === 2. 地图 (首页) - 修改后 === */
+        #mapPage {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            /* ★★★ 修改：背景改为亮红色渐变 ★★★ */
+            background: radial-gradient(ellipse at center, #e63946 0%, #8d0812 70%);
+        }
+        #mapStage {
+            position: relative;
+            text-align: center;
+        }
+        #mapImg {
+            display: none; /* 隐藏旧地图 */
+        }
+        
+        /* 新增：礼物盒样式 */
+        #giftBox {
+            font-size: 150px;
+            text-shadow: 0 0 15px #fcd34d, 0 0 30px #f59e0b;
+            animation: float 3s ease-in-out infinite;
+            margin-bottom: 30px;
+            /* ★★★ 修改：移除点击手势 ★★★ */
+            cursor: default; 
+        }
+        
+        /* 新增：浮动动画 */
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(-2deg); }
+            50% { transform: translateY(-25px) rotate(2deg); }
+            100% { transform: translateY(0px) rotate(-2deg); }
+        }
+
+        #mapStartButtonContainer {
+            position: static;
+            transform: none;
+            text-align: center;
+            width: auto;
+        }
         
         /* === 3. 抽取页 === */
         #aiPage { flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle, #5e0a0a, #000); }
@@ -95,11 +186,10 @@
             width: 100%; 
             height: 100%; 
             border-radius: 10px; 
-            /* 原来的 border: 4px solid #fff; 改为下面两行 */
-            padding: 6px;       /* 用内边距留出白边，充当"静区" */
-            background: #fff;   /* 强制白色背景，防止二维码变透明混入深色背景 */
+            padding: 6px;
+            background: #fff;
             display: none; 
-        }        
+        }
         .btn-group { display: flex; gap: 10px; margin-bottom: 15px; margin-top: 15px; }
         .action-btn { padding: 12px 0; width: 100%; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; color: #fff; flex: 1; transition: 0.3s; }
         .btn-ar { background: linear-gradient(135deg, #3b82f6, #2563eb); }
@@ -134,36 +224,23 @@
             transition: all 0.2s;
             white-space: nowrap;
         }
-
         .ar-btn:active {
             transform: scale(0.95);
             background: rgba(255,255,255,0.2);
         }
-
-        /* 2. 识别按钮的激活(黄色)样式 */
         .ar-btn.active-yellow {
             background: rgba(245, 158, 11, 0.9);
             color: #fff;
         }
-
-        /* 3. 按钮的具体定位 - 最终布局 */
-
-        /* --- 左侧区域 --- */
-        #arExitBtn { top: 20px; left: 20px; background: rgba(220, 38, 38, 0.8); } /* 退出 */
-        #arHelpBtn { top: 74px; left: 20px; } /* 帮助 */
-        #arToggleGestureBtn { bottom: 94px; left: 20px; } /* ★ 识别 (在归位上面: 40+44+10) */
-        #arResetBtn { bottom: 40px; left: 20px; } /* 归位 */
-
-        /* --- 右侧区域 --- */
-        #arMirrorBtn { top: 20px; right: 20px; } /* 镜像 */
-        #arSwitchCameraBtn { top: 74px; right: 20px; display: none; } /* ★ 切换镜头 (在镜像下面: 20+44+10) */
-        #arPhotoBtn { bottom: 100px; right: 20px; background: rgba(59, 130, 246, 0.8); } /* 拍照 */
-        #arVideoBtn { bottom: 40px; right: 20px; background: rgba(239, 68, 68, 0.8); } /* 录像 */
-
-        /* 4. 视频录制中的闪烁效果 */
+        #arExitBtn { top: 20px; left: 20px; background: rgba(220, 38, 38, 0.8); }
+        #arHelpBtn { top: 74px; left: 20px; }
+        #arToggleGestureBtn { bottom: 94px; left: 20px; }
+        #arResetBtn { bottom: 40px; left: 20px; }
+        #arMirrorBtn { top: 20px; right: 20px; }
+        #arSwitchCameraBtn { top: 74px; right: 20px; display: none; }
+        #arPhotoBtn { bottom: 100px; right: 20px; background: rgba(59, 130, 246, 0.8); }
+        #arVideoBtn { bottom: 40px; right: 20px; background: rgba(239, 68, 68, 0.8); }
         #arVideoBtn.recording { animation: pulseRed 1s infinite; border: 2px solid #fff; background: red; }
-
-        /* 5. 切换摄像头按钮的显示控制 (仅在手机上显示) */
         body.mobile-device #arSwitchCameraBtn {
             display: flex;
         }
@@ -180,28 +257,21 @@
         #loadingToast { position: fixed; top: 45%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 20px 40px; border-radius: 12px; display: none; flex-direction: column; align-items: center; z-index: 999; pointer-events: none; }
         .spinner { width: 30px; height: 30px; border: 4px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s infinite linear; margin-bottom: 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-                /* === 7. 纯展示模式 (扫码后的页面) === */
-        /* 当 body 带有 share-mode 类时生效 */
-        body.share-mode #qrCodeContainer,  /* 隐藏二维码容器 */
-        body.share-mode #actionSection p,  /* 隐藏"长按保存"等小字 */
+        
+        /* === 7. 纯展示模式 (扫码后的页面) === */
+        body.share-mode #qrCodeContainer,
+        body.share-mode #actionSection p,
         body.share-mode #mapStartButtonContainer,
         body.share-mode #namingSection,
-        body.share-mode .btn-back {         /* ★★★ 新增：只隐藏【返回】按钮 ★★★ */
+        body.share-mode .btn-back {
             display: none !important;
         }
-
-        /* --- ★★★ 关键：让AR按钮在分享模式下也好看 ★★★ --- */
         body.share-mode .btn-group {
-            /* 移除 flex 布局，因为现在只有一个按钮了 */
             display: block; 
         }
         body.share-mode .btn-ar {
-            /* 让AR按钮宽度占满100%，看起来更居中、更协调 */
             width: 100%;
         }
-
-        /* 调整名字的样式，让它更大、更漂亮 */
         body.share-mode #finalNameDisplay {
             font-size: 32px;
             margin-top: 20px;
@@ -209,37 +279,28 @@
             text-shadow: 0 2px 15px rgba(251, 191, 36, 0.6);
             padding-bottom: 20px;
         }
-
-        /* 去掉卡片的边框和背景，让模型看起来悬浮在页面中间 */
         body.share-mode .result-card {
             background: transparent;
             border: none;
             box-shadow: none;
             backdrop-filter: none;
         }
-        
-        /* 为分享模式下的主舞台设置一个更华丽的背景 */
         body.share-mode #mascotPage {
-            background-color: #6a0d23; /* 维持深红基底 */
+            background-color: #6a0d23;
             background-image: 
                 radial-gradient(
-                    circle at center, /* 将形状改为圆形 */
-                    #ff7f50 0%,     /* 中心颜色改为珊瑚红 (更亮，带橙调) */
-                    #6a0d23 55%     /* 光束范围缩小到55%，使其更集中 */
+                    circle at center,
+                    #ff7f50 0%,
+                    #6a0d23 55%
                 );
         }
-        
-        /* 调整模型高度，让它处于屏幕正中 */
         body.share-mode #mascotCanvasWrap {
-            height: 60vh; /* 模型占据屏幕高度的 60% */
+            height: 60vh;
             margin-top: 10vh;
         }
-
-
     </style>
 </head>
 <body>
-
 <!-- AR 操作指南 -->
 <div id="arInstructions">
     <div class="instructions-content">
@@ -254,22 +315,27 @@
         <button class="instructions-btn" onclick="startArExperience()">开启奇妙之旅</button>
     </div>
 </div>
-
 <div id="loadingToast"><div class="spinner"></div><div id="loadingText">处理中...</div></div>
 <video id="bgVideo" autoplay playsinline muted></video>
 <div id="aiStatus"></div>
-
-<!-- 1. 地图页（首页） -->
+<!-- 1. 地图页（首页） - 修改后 -->
 <section id="mapPage" class="active">
+    <div id="sparkles-container"></div>
     <div id="mapStage">
-        <img id="mapImg" src="map.png" alt="MAP">
+       <h1 class="cover-title">古物有灵，待知音唤醒</h1>
+        <!-- 新增的礼物盒 -->
+        <div id="giftBox">🎁</div>
+        
         <!-- 统一启动按钮 -->
-        <div id="mapStartButtonContainer" style="position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); text-align: center; width: 100%;">
-            <button class="instructions-btn" style="padding: 15px 40px; font-size: 20px; width: auto;" onclick="startBlindBoxFlow()">开启探索之旅</button>
+        <div id="mapStartButtonContainer">
+            <!-- ★★★ 修改：按钮文字 ★★★ -->
+            <button class="instructions-btn" style="padding: 15px 40px; font-size: 20px; width: auto;" onclick="startBlindBoxFlow()">抽取文物盲盒</button>
         </div>
+        
+        <!-- 旧的图片，通过CSS隐藏 -->
+        <img id="mapImg" src="map.png" alt="MAP">
     </div>
 </section>
-
 <!-- 2. 抽取页 (拟人化主题) -->
 <section id="aiPage">
     <div class="ai-box">
@@ -279,7 +345,6 @@
         <div class="ai-log" id="aiLog">解析历史印记...</div>
     </div>
 </section>
-
 <!-- 3. 结果页 -->
 <section id="mascotPage">
     <div class="result-card" id="resCard">
@@ -318,7 +383,6 @@
         <button class="ar-btn" id="arVideoBtn" onclick="toggleVideoRecord()">🎥 录像</button>
     </div>
 </section>
-
 <script type="module">
     import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
     import { GLTFLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/GLTFLoader.js';
@@ -326,7 +390,6 @@
     import { KTX2Loader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/KTX2Loader.js';
     import { FilesetResolver, HandLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm';
     import { MeshoptDecoder } from 'https://unpkg.com/three@0.158.0/examples/jsm/libs/meshopt_decoder.module.js';
-
     const ZONE_CONFIG = {
         "博物馆": { 
             models: [ 
@@ -341,45 +404,43 @@
         },
         "默认": { models: [ "model/1_20mb.glb" ] }
     };
-
     // === 花名册 ===
     const MODEL_NAME_MAP = {
-       "model/1_20mb.glb": "引魂官",
-        "model/2_20mb.glb": "帛书",
-        "model/3_20mb.glb": "帛书老子",
-        "model/4_20mb.glb": "楚风通灵巫女",
-        "model/5_20mb.glb": "楚魂安抚灵女",
-        "model/6_20mb.glb": "楚梦祭司",
-        "model/7_20mb.glb": "楚香灵女",
-        "model/8_20mb.glb": "楚羽通魂女",
-        "model/9_20mb.glb": "楚云祭司",
-        "model/10_20mb.glb": "楚云祭天女",
-        "model/11_20mb.glb": "楚云守界女",
-        "model/12_20mb.glb": "错金银青铜器",
-        "model/13_20mb.glb": "导引图",
-        "model/14_20mb.glb": "漢绣灵女",
+       "model/1_20mb.glb": "T形帛画 · 小引魂官",
+        "model/2_20mb.glb": "帛书 · 小书书",
+        "model/3_20mb.glb": "帛书老子 · 小道道",
+        "model/4_20mb.glb": "楚风通灵巫女 ·（楚巫文化）",
+        "model/5_20mb.glb": "楚魂安抚灵女 ·（楚人灵魂观）",
+        "model/6_20mb.glb": "楚梦祭司 ·（楚文化梦魂观）",
+        "model/7_20mb.glb": "楚香灵女 · 小香灵",
+        "model/8_20mb.glb": "楚羽通魂女 ·（楚人羽化观念）",
+        "model/9_20mb.glb": "楚云祭司 · 小云祭",
+        "model/10_20mb.glb": "楚云祭天女 ·（楚文化云纹体系）",
+        "model/11_20mb.glb": "楚云守界女 ·（楚文化天地分界观）",
+        "model/12_20mb.glb": "错金银青铜器 · 小铭铭",
+        "model/13_20mb.glb": "导引图 · 小动动",
+        "model/14_20mb.glb": "漢绣灵女 · 小绣灵",
         "model/15_20mb.glb": "荷花",
-        "model/16_20mb.glb": "简牍",
-        "model/17_20mb.glb": "马王堆墓主人",
-        "model/18_20mb.glb": "漆耳杯",
-        "model/19_20mb.glb": "漆绘食案",
-        "model/20_20mb.glb": "漆奁",
-        "model/21_20mb.glb": "朱砂印章",
-        "model/22_20mb.glb": "漆纹祭守女",
-        "model/23_20mb.glb": "日月引灵女",
-        "model/24_20mb.glb": "神鸟引梦者",
-        "model/25_20mb.glb": "神兽铃使",
-        "model/26_20mb.glb": "素纱襌衣",
+        "model/16_20mb.glb": "简牍 · 小简简",
+        "model/17_20mb.glb": "马王堆墓主人 · 小辛辛",
+        "model/18_20mb.glb": "漆耳杯 · 小酌酌",
+        "model/19_20mb.glb": "漆绘食案 · 小案案",
+        "model/20_20mb.glb": "漆奁 · 小妆妆",
+        "model/21_20mb.glb": "朱砂印章 · 小印安",
+        "model/22_20mb.glb": "漆纹祭守女 ·（马王堆漆器纹样）",
+        "model/23_20mb.glb": "日月引灵女 ·（马王堆帛画日月体系）",
+        "model/24_20mb.glb": "神鸟引梦者 · 小梦鸢",
+        "model/25_20mb.glb": "神兽铃使 · 小铃儿",
+        "model/26_20mb.glb": "素纱襌衣 · 小纱纱",
         "model/27_20mb.glb": "铜镜",
-        "model/28_20mb.glb": "辛追夫人",
-        "model/29_20mb.glb": "引魂帛画祭司",
-        "model/30_20mb.glb": "羽人引路者",
-        "model/31_20mb.glb": "玉璧",
-        "model/32_20mb.glb": "玉舞引灵",
+        "model/28_20mb.glb": "辛追夫人 · 辛辛夫人",
+        "model/29_20mb.glb": "引魂帛画祭司 ·（马王堆+T形帛画）",
+        "model/30_20mb.glb": "羽人引路者 · 小羽引",
+        "model/31_20mb.glb": "玉璧 · 小璧璧",
+        "model/32_20mb.glb": "玉舞引灵 · 小玉舞",
         "model/33_20mb.glb": "岳麓书院门",
-        "model/34_20mb.glb": "云纹玉佩",
+        "model/34_20mb.glb": "云纹玉佩 · 小玉玉",
     };
-
     let selectedModelPath = "";
     let currentArtifactName = ""; // 系统定义的前缀名
     let isDragging = false;
@@ -399,34 +460,44 @@
     let lastVideoTime = -1, isAiRunning = false, aiLoadFailed = false;
     let statusTimer = null;
     let mediaRecorder = null, recordedChunks = [], isRecording = false,recorderAnimationId = null;
-
     window.gotoPage = function(id) {
         document.querySelectorAll('section, div.full-page').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
     }
-
     function getChineseNameFromPath(path) {
         return MODEL_NAME_MAP[path] || "神秘文物";
     }
-
         // --- 核心逻辑修改：初始化或扫码进入 ---
     window.addEventListener('load', () => {
+        // --- ★★★ 新增：动态生成光点 ★★★ ---
+        const sparkleContainer = document.getElementById('sparkles-container');
+        if (sparkleContainer) {
+            const numSparkles = 50; // 您可以调整光点的数量
+            for (let i = 0; i < numSparkles; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'sparkle';
+                const size = Math.random() * 5 + 2; // 随机大小 (2px to 7px)
+                sparkle.style.width = `${size}px`;
+                sparkle.style.height = `${size}px`;
+                sparkle.style.left = `${Math.random() * 100}%`; // 随机水平位置
+                sparkle.style.animationDelay = `${Math.random() * 10}s`; // 随机动画延迟
+                sparkle.style.animationDuration = `${Math.random() * 5 + 8}s`; // 随机动画时长
+                sparkleContainer.appendChild(sparkle);
+            }
+        }
         // 检查 URL 是否带有参数（比如扫码进来的）
         const params = new URLSearchParams(window.location.search);
         const m = params.get('m'); // 获取模型路径
         const n = params.get('n'); // 获取名字
-
         if (m && n) {
             // ★★★ 关键点：给 body 加上 share-mode 标签 ★★★
             // 这会触发上面写的 CSS，把按钮、二维码全隐藏掉
             document.body.classList.add('share-mode');
-
             selectedModelPath = decodeURIComponent(m);
             const fullName = decodeURIComponent(n);
             
             // 直接跳转到结果页
             window.gotoPage('mascotPage');
-
             // 确保输入框隐藏，展示区显示
             document.getElementById('namingSection').style.display = 'none';
             document.getElementById('actionSection').style.display = 'block';
@@ -436,12 +507,9 @@
             
             // 加载模型
             showMascot(false);
-
             // 注意：扫码进来的页面不需要生成二维码，所以去掉了生成二维码的代码
         }
     });
-
-
     window.startBlindBoxFlow = function() {
         let matchedKey = "博物馆"; 
         const pool = ZONE_CONFIG[matchedKey].models;
@@ -450,7 +518,6 @@
         window.gotoPage('aiPage');
         runAIProgress();
     }
-
     function runAIProgress() {
         const bar = document.getElementById('aiBar');
         const log = document.getElementById('aiLog');
@@ -468,7 +535,6 @@
             bar.style.width = width + "%";
         }, 80);
     }
-
     function showResult() {
         window.gotoPage('mascotPage');
         document.getElementById('namingSection').style.display = 'block';
@@ -479,7 +545,6 @@
         document.getElementById('generatedQr').src = "";
         showMascot(false);
     }
-
     window.confirmModelName = function() {
         const input = document.getElementById('customNameInput');
         const name = input.value.trim();
@@ -503,14 +568,12 @@
         qrImg.src = qrApiUrl;
         qrImg.onload = () => { qrImg.style.display = "block"; };
     }
-
     window.backToMap = function() {
         cleanUpThreeJS();
         // 清除 URL 参数，防止刷新又回到结果页
         window.history.replaceState({}, document.title, window.location.pathname);
         window.gotoPage('mapPage');
     }
-
     // === THREE.js & AR Logic ===
     async function loadAiModels() {
         if (handLandmarker) return true;
@@ -533,7 +596,6 @@
             return false;
         }
     }
-
     window.enterARMode = async function() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             alert("⚠️ 请使用 HTTPS 或 Localhost。"); return;
@@ -547,11 +609,9 @@
         btn.onclick = startArExperience;
         document.getElementById('arInstructions').style.display = 'flex';
     }
-
     window.startArExperience = async function() {
         document.getElementById('arInstructions').style.display = 'none';
         showLoading(true, "启动相机...");
-
         try {
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             if (isMobile) {
@@ -559,7 +619,6 @@
             }
             // 如果是手机，就显示切换按钮
             document.getElementById('arSwitchCameraBtn').style.display = isMobile ? 'flex' : 'none';
-
             // 设定初始的摄像头模式
             currentFacingMode = isMobile ? 'environment' : 'user';
             
@@ -570,7 +629,6 @@
                 videoConstraints = { width: { ideal: 640 }, height: { ideal: 480 } };
                 if (!isMirrored) { toggleMirror(); } 
             }
-
             try {
                 arStreamObj = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
             } catch (e) {
@@ -595,7 +653,6 @@
             domElement.addEventListener('pointermove', onDragMove);
             domElement.addEventListener('pointerup', onDragEnd);
             domElement.addEventListener('pointercancel', onDragEnd);
-
             isAiRunning = true;
             isGestureRecognitionActive = true; // 确保每次进入AR都重置为开启
             const gestureBtn = document.getElementById('arToggleGestureBtn');
@@ -603,7 +660,6 @@
             gestureBtn.classList.add('active-yellow'); // 初始设为激活的黄色
             predictWebcam();
             showTempStatus("探索AR模式已开启");
-
         } catch (err) {
             alert("相机启动失败！\n\n错误信息: " + err.message + "\n\n请确认：\n1. 您已授权浏览器使用摄像头。\n2. 摄像头没有被其他程序占用。");
             exitARMode();
@@ -611,14 +667,12 @@
             showLoading(false);
         }
     }
-
     window.showArInstructions = function() {
         const btn = document.querySelector('#arInstructions .instructions-btn');
         btn.textContent = '关闭说明';
         btn.onclick = () => { document.getElementById('arInstructions').style.display = 'none'; };
         document.getElementById('arInstructions').style.display = 'flex';
     }
-
     async function predictWebcam() {
         if (!isAiRunning) return;
         if (!isGestureRecognitionActive) {
@@ -640,7 +694,6 @@
         }
         requestAnimationFrame(predictWebcam);
     }
-
 function handleHandGestures(landmarks) {
     // 1. 如果正在用手指拖动模型，则忽略所有手势
     if (isDragging) return;
@@ -650,7 +703,6 @@ function handleHandGestures(landmarks) {
         lastRotationAngle = null; 
         return;
     }
-
     // 3. 获取所有手指坐标并判断状态
     const [wrist, thumb_cmc, thumb_mcp, thumb_ip, thumb_tip, index_mcp, index_pip, index_dip, index_tip, middle_mcp, middle_pip, middle_dip, middle_tip, ring_mcp, ring_pip, ring_dip, ring_tip, pinky_mcp, pinky_pip, pinky_dip, pinky_tip] = landmarks;
     const isIndexStraight = index_tip.y < index_pip.y;
@@ -658,7 +710,6 @@ function handleHandGestures(landmarks) {
     const isRingStraight = ring_tip.y < ring_pip.y;
     const isPinkyStraight = pinky_tip.y < pinky_pip.y;
     const straightFingers = [isIndexStraight, isMiddleStraight, isRingStraight, isPinkyStraight].filter(Boolean).length;
-
     // 4. 根据手势执行动作
     if (straightFingers === 0) { // 握拳 -> 缩小
         if (model.scale.x > 0.4) model.scale.multiplyScalar(0.98); 
@@ -680,10 +731,8 @@ function handleHandGestures(landmarks) {
         const newPos = camera.position.clone().add(dir.multiplyScalar(3));
         
         model.position.lerp(newPos, 0.05);
-
         showTempStatus("☝️ 贴近");
         lastRotationAngle = null;
-
     } else if (straightFingers === 2 && isIndexStraight && isMiddleStraight) { // V字 -> 顺时针旋转
         if (lastRotationAngle === null) {
             model.rotation.y -= Math.PI / 6; 
@@ -704,14 +753,12 @@ function handleHandGestures(landmarks) {
         lastRotationAngle = null;
     }
 }
-
     function showTempStatus(text) {
         const el = document.getElementById('aiStatus');
         el.innerText = text; el.style.opacity = '1';
         if(statusTimer) clearTimeout(statusTimer);
         statusTimer = setTimeout(() => { el.style.opacity = '0'; }, 3000);
     }
-
     window.toggleGestureRecognition = function() {
         isGestureRecognitionActive = !isGestureRecognitionActive; // 翻转状态
         const btn = document.getElementById('arToggleGestureBtn');
@@ -726,14 +773,12 @@ function handleHandGestures(landmarks) {
             showTempStatus("手势识别已暂停");
         }
     }
-
     window.toggleMirror = function() {
         isMirrored = !isMirrored;
         const v = document.getElementById('bgVideo');
         if (isMirrored) { v.classList.add('mirrored'); showTempStatus("🔁 镜像开启"); }
         else { v.classList.remove('mirrored'); showTempStatus("🔁 镜像关闭"); }
     }
-
     window.resetModelPos = function() {
         if(model) {
             model.position.set(0, -0.5, -3); // 重置到AR默认位置
@@ -751,8 +796,6 @@ function handleHandGestures(landmarks) {
             showTempStatus("📍 已归位");
         }
     }
-
-
     window.exitARMode = function() {
     isAiRunning = false;
     if (arStreamObj) arStreamObj.getTracks().forEach(track => track.stop());
@@ -768,21 +811,17 @@ function handleHandGestures(landmarks) {
         domElement.removeEventListener('pointercancel', onDragEnd);
     }
     // (结束修正)
-
     document.getElementById('bgVideo').style.display = "none";
     document.getElementById('mascotPage').classList.remove('ar-mode-active');
     document.getElementById('arControls').style.display = 'none';
     showMascot(false);
 }
-
-
     function cleanUpThreeJS() {
         if (animationId) cancelAnimationFrame(animationId);
         if (renderer) { renderer.domElement.remove(); renderer.dispose(); }
         if (controls) { controls.dispose(); }
         scene = null; camera = null; renderer = null; model = null; controls = null;
     }
-
 const gltfLoader = new GLTFLoader();
 const ktx2Loader = new KTX2Loader();
 gltfLoader.setMeshoptDecoder(MeshoptDecoder);
@@ -791,20 +830,16 @@ function showMascot(isAR) {
     const wrap = document.getElementById("mascotCanvasWrap");
     if(!wrap) return;
     if(isAR) wrap.innerHTML = "";
-
     const width = isAR ? window.innerWidth : wrap.clientWidth;
     const height = isAR ? window.innerHeight : wrap.clientHeight;
-
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
     camera.position.set(0, 1.2, 3);
     camera.lookAt(0, 0.5, 0);
-
     renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-
     if (isAR) {
         document.body.appendChild(renderer.domElement);
         renderer.domElement.style.position = 'fixed';
@@ -817,32 +852,25 @@ function showMascot(isAR) {
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.autoRotate = true;
-
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        // PC端转速设为 20.0, 手机端转速设为 8.0
+        // PC端转速设为 10.0, 手机端转速设为 5.0
         controls.autoRotateSpeed = isMobile ? 5.0 : 10.0; 
-
         controls.enableZoom = true;
         controls.maxPolarAngle = Math.PI / 2 + Math.PI / 9;
     }
-
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     scene.add(ambientLight);
     const mainLight = new THREE.DirectionalLight(0xffffff, 2.0);
     mainLight.position.set(5, 10, 7);
     scene.add(mainLight);
-
     // --- 💡 关键修正：先配置，后加载 ---
-
     // 1. 设置KTX2解码器路径
     const basisPath = 'https://unpkg.com/three@0.158.0/examples/jsm/libs/basis/';
     ktx2Loader
         .setTranscoderPath(basisPath)
         .detectSupport(renderer); // detectSupport需要传入renderer
-
     // 2. 将配置好的ktx2Loader设置给gltfLoader
     gltfLoader.setKTX2Loader(ktx2Loader);
-
     // 3. 使用已经配置好的 gltfLoader 实例来加载模型（只加载这一次！）
     gltfLoader.load(selectedModelPath, (gltf) => {
         model = gltf.scene;
@@ -850,18 +878,15 @@ function showMascot(isAR) {
         const size = box.getSize(new THREE.Vector3());
         const baseScale = 2.0 / Math.max(size.x, size.y, size.z);
         model.scale.set(baseScale, baseScale, baseScale);
-
         const center = box.getCenter(new THREE.Vector3());
         model.position.x = -center.x * baseScale;
         model.position.y = -center.y * baseScale;
         model.position.z = -center.z * baseScale;
-
         if (isAR) {
             model.position.y = -0.5;
             model.position.z = -3;
             model.rotation.y = Math.PI + (Math.PI / 2);
         }
-
         scene.add(model);
         animate();
     }, undefined, (err) => {
@@ -869,7 +894,6 @@ function showMascot(isAR) {
         alert(`加载失败: ${selectedModelPath}。\n请确认模型文件存在且网络正常。`);
     });
 }
-
     function animate() {
         animationId = requestAnimationFrame(animate);
         // 如果有控制器（结果页），更新控制器
@@ -878,11 +902,10 @@ function showMascot(isAR) {
         } 
         // 如果是AR模式且没有AI控制，保留简单自转
         else if (model && document.getElementById('mascotPage').classList.contains('ar-mode-active')) {
-            // AR 模式下通常由手势控制，这里不设自动旋转，或者你可以加 model.rotation.y += 0.05;
+            // AR 模式下通常由手势控制，这里不设自动旋转
         }
         renderer.render(scene, camera);
     }
-
     // AR模式下拍照
     window.takePhoto = function() {
         const bgVideo = document.getElementById('bgVideo');
@@ -910,7 +933,6 @@ function showMascot(isAR) {
         link.click();
         showTempStatus("📸 照片已保存");
     }
-
 window.toggleVideoRecord = function() {
     if (isRecording) {
         // --- 停止录制 ---
@@ -919,7 +941,6 @@ window.toggleVideoRecord = function() {
         recorderAnimationId = null;
         isRecording = false;
         document.getElementById('arVideoBtn').classList.remove('recording');
-
     } else {
         // --- 开始录制 ---
         const bgVideo = document.getElementById('bgVideo');
@@ -928,12 +949,10 @@ window.toggleVideoRecord = function() {
         compositeCanvas.width = window.innerWidth;
         compositeCanvas.height = window.innerHeight;
         const compositeCtx = compositeCanvas.getContext('2d');
-
         function recordFrame() {
             const vRatio = bgVideo.videoWidth / bgVideo.videoHeight;
             const cRatio = compositeCanvas.width / compositeCanvas.height;
             let sW, sH, sX, sY;
-
             if (vRatio > cRatio) {
                 sH = bgVideo.videoHeight;
                 sW = sH * cRatio;
@@ -959,10 +978,8 @@ window.toggleVideoRecord = function() {
             recorderAnimationId = requestAnimationFrame(recordFrame);
         }
         recordFrame(); 
-
         const stream = compositeCanvas.captureStream(30); // 录制帧率
         recordedChunks = [];
-
         try {
             // --- ✨ 核心修正：设置视频比特率以提高清晰度 ---
             const options = { 
@@ -971,11 +988,9 @@ window.toggleVideoRecord = function() {
             };
             
             mediaRecorder = new MediaRecorder(stream, options);
-
             mediaRecorder.ondataavailable = (e) => { 
                 if (e.data.size > 0) recordedChunks.push(e.data); 
             };
-
             mediaRecorder.onstop = () => {
                 const blob = new Blob(recordedChunks, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
@@ -985,26 +1000,21 @@ window.toggleVideoRecord = function() {
                 a.click();
                 showTempStatus("💾 视频已保存");
             };
-
             mediaRecorder.start();
             isRecording = true;
             document.getElementById('arVideoBtn').classList.add('recording');
             showTempStatus("🎥 录制中...");
-
         } catch(e) { 
             alert("录制不支持或出错: " + e.message);
             if(recorderAnimationId) cancelAnimationFrame(recorderAnimationId); 
         }
     }
 }
-
     function showLoading(show, text) {
         document.getElementById('loadingToast').style.display = show ? 'flex' : 'none';
         if(text) document.getElementById('loadingText').innerText = text;
     }
-
     // ✨ --- 处理拖动逻辑的函数 --- ✨
-
 function onDragStart(event) {
     // ★ 关键：阻止浏览器默认的滚动、缩放等行为
     event.preventDefault(); 
@@ -1012,7 +1022,6 @@ function onDragStart(event) {
     // 检查是触摸还是鼠标
     const touch = event.touches ? event.touches[0] : event;
     if (!touch || !model) return;
-
     isDragging = true;
     
     pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
@@ -1029,14 +1038,11 @@ function onDragStart(event) {
         }
     }
 }
-
 function onDragMove(event) {
     // ★ 关键：阻止浏览器默认的滚动、缩放等行为
     event.preventDefault();
-
     const touch = event.touches ? event.touches[0] : event;
     if (!touch || !isDragging) return;
-
     pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
     
@@ -1045,12 +1051,9 @@ function onDragMove(event) {
         model.position.copy(intersection.sub(offset));
     }
 }
-
-
 function onDragEnd(event) {
     isDragging = false; // 结束拖动
 }
-
 // --- ★★★ 新增：切换前后摄像头的函数 ★★★ ---
 window.switchCamera = async function() {
     // 检查是否支持
@@ -1058,7 +1061,6 @@ window.switchCamera = async function() {
         alert("您的浏览器不支持摄像头切换。");
         return;
     }
-
     // 停止当前摄像头
     if (arStreamObj) {
         arStreamObj.getTracks().forEach(track => track.stop());
@@ -1066,7 +1068,6 @@ window.switchCamera = async function() {
     
     // 切换模式
     currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-
     showLoading(true, "切换镜头...");
     try {
         const videoConstraints = { 
@@ -1078,11 +1079,9 @@ window.switchCamera = async function() {
         // 获取新摄像头流
         const newStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
         arStreamObj = newStream;
-
         const bgVideo = document.getElementById('bgVideo');
         bgVideo.srcObject = newStream;
         await bgVideo.play();
-
         // 切换到前置时，通常需要开启镜像，后置则关闭
         const video = document.getElementById('bgVideo');
         if (currentFacingMode === 'user' && !isMirrored) {
@@ -1093,7 +1092,6 @@ window.switchCamera = async function() {
             video.classList.remove('mirrored');
         }
         showTempStatus(`已切换到${currentFacingMode === 'user' ? '前置' : '后置'}镜头`);
-
     } catch (err) {
         alert("切换摄像头失败: " + err.message);
         // 失败了尝试切回去
@@ -1102,9 +1100,7 @@ window.switchCamera = async function() {
         showLoading(false);
     }
 }
-
-
 </script>
+
 </body>
 </html>
-

@@ -160,14 +160,14 @@
         
         /* 为分享模式下的主舞台设置一个更华丽的背景 */
         body.share-mode #mascotPage {
-    background-color: #6a0d23; /* 维持深红基底 */
-    background-image: 
-        radial-gradient(
-            circle at center, /* 将形状改为圆形 */
-            #ff7f50 0%,     /* 中心颜色改为珊瑚红 (更亮，带橙调) */
-            #6a0d23 55%     /* 光束范围缩小到55%，使其更集中 */
-        );
-}
+            background-color: #6a0d23; /* 维持深红基底 */
+            background-image: 
+                radial-gradient(
+                    circle at center, /* 将形状改为圆形 */
+                    #ff7f50 0%,     /* 中心颜色改为珊瑚红 (更亮，带橙调) */
+                    #6a0d23 55%     /* 光束范围缩小到55%，使其更集中 */
+                );
+        }
         
         /* 调整模型高度，让它处于屏幕正中 */
         body.share-mode #mascotCanvasWrap {
@@ -485,47 +485,68 @@
     }
 
     window.startArExperience = async function() {
-    document.getElementById('arInstructions').style.display = 'none';
-    showLoading(true, "启动相机...");
-    try {
+        document.getElementById('arInstructions').style.display = 'none';
+        showLoading(true, "启动相机...");
+
         try {
-            arStreamObj = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } },
-                audio: false
-            });
-        } catch (e) { 
-            arStreamObj = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); 
+            // 1. 判断当前设备是否为手机或平板
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            let videoConstraints;
+
+            // 2. 根据设备类型，设定不同的摄像头请求参数
+            if (isMobile) {
+                // 如果是移动设备，我们优先请求后置摄像头 (environment)
+                videoConstraints = { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } };
+            } else {
+                // 如果是PC，我们直接请求默认摄像头，不指定 facingMode
+                videoConstraints = { width: { ideal: 640 }, height: { ideal: 480 } };
+                // PC端默认开启镜像，使用起来更直观
+                if (!isMirrored) { toggleMirror(); } 
+            }
+
+            try {
+                // 3. 使用上面设定的参数来请求摄像头
+                arStreamObj = await navigator.mediaDevices.getUserMedia({
+                    video: videoConstraints,
+                    audio: false
+                });
+            } catch (e) {
+                // 4. 如果初次请求失败（例如移动设备没有后置摄像头），则尝试请求任意摄像头作为备用
+                console.warn("请求指定摄像头失败，尝试备用方案...", e);
+                arStreamObj = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            }
+            
+            // --- 接下来的代码与原来保持一致 ---
+            
+            const bgVideo = document.getElementById('bgVideo');
+            bgVideo.srcObject = arStreamObj;
+            bgVideo.style.display = "block";
+            await bgVideo.play();
+            
+            showMascot(true);
+            document.getElementById('mascotPage').classList.add('ar-mode-active');
+            document.getElementById('arControls').style.display = 'block';
+            
+            raycaster = new THREE.Raycaster();
+            const domElement = renderer.domElement;
+            domElement.addEventListener('pointerdown', onDragStart);
+            domElement.addEventListener('pointermove', onDragMove);
+            domElement.addEventListener('pointerup', onDragEnd);
+            domElement.addEventListener('pointercancel', onDragEnd);
+
+            isAiRunning = true;
+            predictWebcam();
+            showTempStatus("探索AR模式已开启");
+
+        } catch (err) {
+            // 5. 优化了错误提示，引导用户检查权限
+            alert("相机启动失败！\n\n错误信息: " + err.message + "\n\n请确认：\n1. 您已授权浏览器使用摄像头。\n2. 摄像头没有被其他程序占用。");
+            exitARMode();
+        } finally {
+            showLoading(false);
         }
-        
-        const bgVideo = document.getElementById('bgVideo');
-        bgVideo.srcObject = arStreamObj;
-        bgVideo.style.display = "block";
-        await bgVideo.play();
-        
-        showMascot(true);
-        document.getElementById('mascotPage').classList.add('ar-mode-active');
-        document.getElementById('arControls').style.display = 'block';
-        
-        // --- ✨ 核心修正：初始化 Raycaster 并添加拖动事件监听 ---
-        raycaster = new THREE.Raycaster();
-        const domElement = renderer.domElement;
-        domElement.addEventListener('pointerdown', onDragStart);
-        domElement.addEventListener('pointermove', onDragMove);
-        domElement.addEventListener('pointerup', onDragEnd);
-        domElement.addEventListener('pointercancel', onDragEnd);
-        // (结束修正)
-
-        isAiRunning = true;
-        predictWebcam();
-        showTempStatus("探索AR模式已开启");
-
-    } catch (err) {
-        alert("相机启动失败: " + err.message);
-        exitARMode();
-    } finally {
-        showLoading(false);
     }
-}
 
     window.showArInstructions = function() {
         const btn = document.querySelector('#arInstructions .instructions-btn');

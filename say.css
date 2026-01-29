@@ -151,18 +151,28 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
 }
 
 #blind-box-btn {
+    /* --- 定位 --- */
     position: fixed;
     top: 20px;
     right: 20px;
     z-index: 1000;
-    border-radius: 50px; /* 将方形变为完美的椭圆形 */
-    background: linear-gradient(to bottom, #E0B25C, #c99a42); /* 明亮的黄铜渐变 */
-    color: #403014; /* 深巧克力色文字 */
-    border: 1px solid #a87d32;
     
+    /* --- 外观 (完整定义，不再依赖其他样式) --- */
+    background: linear-gradient(to bottom, #E0B25C, #c99a42);
+    color: #403014;
+    border: 1px solid #a87d32;
+    border-radius: 50px; /* 椭圆形 */
+    
+    /* --- 字体与尺寸 --- */
     padding: 12px 24px;
     font-size: 18px;
+    font-weight: bold; /* 确保字体是粗体 */
+    font-family: inherit; /* 继承整体字体 */
     
+    /* --- 交互 --- */
+    cursor: pointer; /* 确保是小手光标 */
+    
+    /* --- 动画 --- */
     animation: breathing-brass 3s infinite ease-in-out;
 }
 

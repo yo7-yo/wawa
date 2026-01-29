@@ -1,6 +1,11 @@
 /**
  * 博物馆奇妙夜 - 交互逻辑核心
  */
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+
 let scene, camera, renderer, controls, model;
 
 // 核心：在前端维护对话历史 [{role: 'user', content: '...'}, ...]
@@ -18,13 +23,18 @@ function init3D() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
     camera.position.set(0, 1.5, 5);
+
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.outputEncoding = THREE.sRGBEncoding;
+    
+    // ✅【重要变更】旧版的 outputEncoding 在新版中已变更为 outputColorSpace
+    renderer.outputColorSpace = THREE.SRGBColorSpace; 
+    
     container.appendChild(renderer.domElement);
-
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    
+    // ✅【重要变更】直接使用导入的 OrbitControls
+    controls = new OrbitControls(camera, renderer.domElement); 
     controls.enableDamping = true;
     controls.autoRotate = true;
     controls.autoRotateSpeed = 6.0;
@@ -46,7 +56,11 @@ function animate() {
 function loadModel(modelPath) {
     const loadingOverlay = document.getElementById('loading-overlay');
     loadingOverlay.style.display = 'block';
-    const loader = new THREE.GLTFLoader();
+
+    const loader = new GLTFLoader(); 
+    
+    // ✅【核心修改】在加载之前，设置 Meshopt 解码器
+    loader.setMeshoptDecoder(MeshoptDecoder);
 
     if (model) {
         scene.remove(model);
@@ -56,15 +70,15 @@ function loadModel(modelPath) {
         modelPath,
         function (gltf) {
             model = gltf.scene;
-            model.scale.set(3, 3, 3);
+            model.scale.set(3, 3, 3); 
             model.position.y = 0.2;
             scene.add(model);
             loadingOverlay.style.display = 'none';
         },
-        undefined, 
+        undefined,
         function (error) {
             console.error('模型加载失败:', error);
-            loadingOverlay.innerText = '模型加载失败，请检查文件路径。';
+            loadingOverlay.innerText = '模型加载失败，请检查文件路径或控制台错误。';
         }
     );
 }

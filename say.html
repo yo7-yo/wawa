@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+
+    <title>AI 3D 博物馆奇妙夜</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 引入 Three.js 相关库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>🏛️ 博物馆奇妙夜 · 珍品鉴赏</h1>
+            <p>与千年文物跨时空对话</p>
+        </header>
+
+        <div id="canvas-container">
+            <div id="loading-overlay">文物出库中...</div>
+        </div>
+
+        <div class="chat-panel">
+            
+            <!-- 👇 输入区域 (已移动到顶部) 👇 -->
+            <div class="input-area">
+                <input type="text" id="user-input" placeholder="请在此输入您的对话...">
+                <button id="send-btn" class="primary-btn">发送</button>
+            </div>
+
+            <div id="chat-history">
+                <!-- 消息将在这里动态生成 -->
+                <div class="message system-msg">有兴趣和我一起聊聊天吗,我定知无不言、言无不尽...</div>
+            </div>
+            
+            <!-- 👇 顶部操作栏 (已移动到底部) 👇 -->
+            <div class="controls-bar">
+                <input type="text" id="artifact-name" value="越王勾践剑" placeholder="设定文物名称" title="设定文物身份">
+                <div class="action-buttons">
+                    <button id="undo-btn" class="secondary-btn">↩️ 撤回</button>
+                    <button id="retry-btn" class="secondary-btn">🔄 重试</button>
+                    <button id="clear-btn" class="secondary-btn">🗑️ 清空</button>
+                    <button id="save-btn" class="secondary-btn">💾 保存</button>
+                </div>
+            </div>
+            
+            <!-- 👇 批量删除操作栏 (跟随移动到底部) 👇 -->
+            <div id="selection-controls" class="controls-bar" style="display: none;">
+                <p id="selection-counter">已选中 0 组对话</p>
+                <div class="action-buttons">
+                    <button id="cancel-selection-btn" class="secondary-btn">❌ 取消</button>
+                    <button id="delete-selected-btn" class="primary-btn" style="background: #a33;">🗑️ 删除选中</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="clear-modal" class="modal">
+        <div class="modal-content">
+            <h3>⚠️ 警告：记忆消除</h3>
+            <p>您即将清空与文物的对话记录。</p>
+            <p>为了确认您的操作，请输入：<br><span class="highlight-text">确认清空</span></p>
+            <input type="text" id="verify-input" placeholder="在此输入确认文字...">
+            <div class="modal-buttons">
+                <button id="cancel-clear" class="secondary-btn">取消</button>
+                <button id="confirm-clear" class="primary-btn" style="background: #a33;">强制执行</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+    <a href="home.html" style="font-size: 20px; padding: 10px 20px;">开启盲盒</a>
+</body>
+</html>

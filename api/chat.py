@@ -1,36 +1,29 @@
 import os
-import socket
 import json
 import requests
-from flask import Flask, request, jsonify, send_from_directory # 👈 增加了 send_from_directory
+from flask import Flask, request, jsonify # 👈 增加了 send_from_directory
 from flask_cors import CORS
 import urllib3
 
 # 1. 忽略 SSL 警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 2. 防止中文电脑名崩溃
-socket.getfqdn = lambda name="": "localhost"
-
 # 3. 清除代理
 os.environ["HTTP_PROXY"] = ""
 os.environ["HTTPS_PROXY"] = ""
 
 # 👇👇👇 核心修改：设置当前文件夹为静态资源目录 👇👇👇
-app = Flask(__name__, static_folder='.', static_url_path='')
+app = Flask(__name__)
 CORS(app)
 
 API_KEY = "sk-bxniqkhgfmcbdvghtrnobizbcqhoofbyhzzbdsbtrwfzlmad"
 API_URL = "https://api.siliconflow.cn/v1/chat/completions"
 MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
 
-# 👇👇👇 新增：访问首页时，直接把网页发给用户 👇👇👇
-@app.route('/')
-def serve_index():
-    return send_from_directory('.', 'index.html')
-
-@app.route('/api/chat', methods=['POST'])
+@app.route('/api/chat', methods=['POST', 'OPTIONS'])
 def chat():
+    if request.method == 'OPTIONS':
+        return '', 204
     try:
         data = request.json
         history = data.get('history', [])
@@ -123,14 +116,3 @@ def chat():
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"answer": f"（网络故障: {str(e)}）"}), 500
-
-if __name__ == '__main__':
-    # 获取本机局域网 IP
-    host_ip = socket.gethostbyname(socket.gethostname())
-    print("="*40)
-    print(f"🚀 服务已启动！请在手机浏览器输入以下地址：")
-    print(f"👉 http://{host_ip}:5000") 
-    print("="*40)
-    
-    # host='0.0.0.0' 代表允许局域网内任何人访问
-    app.run(host='0.0.0.0', port=5000, debug=True)

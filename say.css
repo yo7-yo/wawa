@@ -143,32 +143,31 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
     background-color: rgba(0, 123, 255, 0.15);
 }
 
-/* 开启盲盒按钮的高级定制样式 */
+/* --- 盲盒按钮 "呼吸光晕" 限定皮肤 --- */
+@keyframes breathing-brass {
+    0% { box-shadow: 0 0 5px rgba(224, 178, 92, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(224, 178, 92, 0.9); }
+    100% { box-shadow: 0 0 5px rgba(224, 178, 92, 0.5); }
+}
+
 #blind-box-btn {
-    /* --- 定位三件套 --- */
     position: fixed;
     top: 20px;
     right: 20px;
     z-index: 1000;
-
-    /* --- 颜色与外观 --- */
-    background-color: #FFD700; /* 华贵鎏金 */
-    color: #333; /* 深灰色文字，配金色背景更清晰 */
+    border-radius: 50px; /* 将方形变为完美的椭圆形 */
+    background: linear-gradient(to bottom, #E0B25C, #c99a42); /* 明亮的黄铜渐变 */
+    color: #403014; /* 深巧克力色文字 */
+    border: 1px solid #a87d32;
     
-    /* --- 尺寸与字体 --- */
-    padding: 10px 20px;
+    padding: 12px 24px;
     font-size: 18px;
-    font-weight: bold; /* 字体加粗 */
     
-    /* --- 其他细节 --- */
-    text-decoration: none; /* 去掉下划线 */
-    border-radius: 8px; /* 圆角更柔和一点 */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 加一点阴影，更有立体感 */
-    transition: all 0.2s ease; /* 让鼠标悬停效果更丝滑 */
+    animation: breathing-brass 3s infinite ease-in-out;
 }
 
-/* 鼠标悬停时的效果 */
 #blind-box-btn:hover {
-    transform: translateY(-2px); /* 按钮轻微上浮 */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* 阴影加深 */
+    animation-play-state: paused;
+    filter: brightness(1.1);
+    box-shadow: 0 0 25px rgba(224, 178, 92, 1);
 }

@@ -24,7 +24,9 @@ const translations = {
         clearModalConfirmText: '确认清空',
         modalCancel: '取消',
         modalConfirm: '强制执行',
-        langToggle: 'Switch to English'
+        thinking: '思考中...', 
+        langToggle: 'Switch to English',
+        connectionError: '连接断开 (请检查 server.py)'
     },
     'en': {
         pageTitle: 'AI 3D Museum Night',
@@ -44,7 +46,9 @@ const translations = {
         clearModalConfirmText: 'Confirm Clear',
         modalCancel: 'Cancel',
         modalConfirm: 'Execute',
-        langToggle: '切换为中文'
+        langToggle: '切换为中文',
+        thinking: 'Thinking...',
+        connectionError: 'Connection lost (please check server.py)'
     },
     'de': { // ✨ 新增：德语 (完整版)
         pageTitle: 'KI 3D Nacht im Museum',
@@ -64,7 +68,9 @@ const translations = {
         clearModalConfirmText: 'Löschen bestätigen',
         modalCancel: 'Abbrechen',
         modalConfirm: 'Endgültig löschen',
-        langToggle: 'zu Chinesisch wechseln'
+        langToggle: 'zu Chinesisch wechseln',
+        thinking: 'Denkt nach...', // ✨ 新增
+        connectionError: 'Verbindung unterbrochen (bitte server.py prüfen)'
     },
     'ja': { // ✨ 新增：日语 (完整版)
         pageTitle: 'AI 3D 博物館の夜',
@@ -84,7 +90,9 @@ const translations = {
         clearModalConfirmText: '消去を確定',
         modalCancel: 'キャンセル',
         modalConfirm: '実行',
-        langToggle: '中国語に切り替え'
+        langToggle: '中国語に切り替え',
+        thinking: '考え中...', 
+        connectionError: '接続が切れました (server.py を確認してください)'
     }
 };
 
@@ -381,7 +389,10 @@ async function sendChat(overrideText = null) {
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'message ai';
     loadingDiv.id = 'temp-loading';
-    loadingDiv.innerText = "思考中...";
+
+    // ✨ 修改：从翻译字典中获取“思考中”的文本
+    loadingDiv.innerText = translations[currentLang].thinking;
+
     historyDiv.appendChild(loadingDiv);
     historyDiv.scrollTop = historyDiv.scrollHeight;
 
@@ -397,15 +408,18 @@ async function sendChat(overrideText = null) {
         });
         const data = await response.json();
         const aiText = data.answer;
+
         document.getElementById('temp-loading').remove();
         chatHistory.push({ role: "assistant", content: aiText });
         saveHistoryToLocal();
         renderChat();
         speak(aiText);
+
     } catch (error) {
         const loadingElement = document.getElementById('temp-loading');
         if(loadingElement) {
-             loadingElement.innerText = "连接断开 (请检查 server.py)";
+            // ✨ 修改：从翻译字典中获取“网络错误”的文本
+            loadingElement.innerText = translations[currentLang].connectionError;
         }
     }
 }

@@ -1,6 +1,139 @@
 /**
  * 博物馆奇妙夜 - 交互逻辑核心
  */
+
+let currentLang = 'zh';
+
+// ✨ 新增：UI 文本翻译字典
+const translations = {
+    'zh': {
+        pageTitle: 'AI 3D 博物馆奇妙夜',
+        headerTitle: '🏛️ 博物馆奇妙夜 · 珍品鉴赏',
+        headerSubtitle: '与千年文物跨时空对话',
+        loadingArtifact: '文物出库中...',
+        inputPlaceholder: '请在此输入您的对话...',
+        sendButton: '发送',
+        initialMessage: '有兴趣和我一起聊聊天吗,我定知无不言、言无不尽...',
+        undoButton: '↩️ 撤回',
+        retryButton: '🔄 重试',
+        clearButton: '🗑️ 清空',
+        saveButton: '💾 保存',
+        clearModalTitle: '⚠️ 警告：记忆消除',
+        clearModalPrompt: '您即将清空与文物的对话记录。',
+        clearModalInstruction: '为了确认您的操作，请输入：',
+        clearModalConfirmText: '确认清空',
+        modalCancel: '取消',
+        modalConfirm: '强制执行',
+        langToggle: 'Switch to English'
+    },
+    'en': {
+        pageTitle: 'AI 3D Museum Night',
+        headerTitle: '🏛️ A Night at the Museum · Treasure Appreciation',
+        headerSubtitle: 'A timeless dialogue with millennium-old artifacts',
+        loadingArtifact: 'Loading artifact...',
+        inputPlaceholder: 'Type your message here...',
+        sendButton: 'Send',
+        initialMessage: 'Would you like to have a chat with me? I will tell you everything I know...',
+        undoButton: '↩️ Undo',
+        retryButton: '🔄 Retry',
+        clearButton: '🗑️ Clear',
+        saveButton: '💾 Save',
+        clearModalTitle: '⚠️ WARNING: Memory Wipe',
+        clearModalPrompt: 'You are about to clear the conversation history with the artifact.',
+        clearModalInstruction: 'To confirm this action, please type:',
+        clearModalConfirmText: 'Confirm Clear',
+        modalCancel: 'Cancel',
+        modalConfirm: 'Execute',
+        langToggle: '切换为中文'
+    },
+    'de': { // ✨ 新增：德语 (完整版)
+        pageTitle: 'KI 3D Nacht im Museum',
+        headerTitle: '🏛️ Eine Nacht im Museum · Schatzwürdigung',
+        headerSubtitle: 'Ein zeitloser Dialog mit jahrtausendealten Artefakten',
+        loadingArtifact: 'Artefakt wird geladen...',
+        inputPlaceholder: 'Nachricht hier eingeben...',
+        sendButton: 'Senden',
+        initialMessage: 'Möchtest du mit mir plaudern? Ich werde dir alles erzählen, was ich weiß...',
+        undoButton: '↩️ Rückgängig',
+        retryButton: '🔄 Wiederholen',
+        clearButton: '🗑️ Leeren',
+        saveButton: '💾 Speichern',
+        clearModalTitle: '⚠️ WARNUNG: Gedächtnis löschen',
+        clearModalPrompt: 'Du bist dabei, den Gesprächsverlauf mit dem Artefakt zu löschen.',
+        clearModalInstruction: 'Zur Bestätigung bitte eingeben:',
+        clearModalConfirmText: 'Löschen bestätigen',
+        modalCancel: 'Abbrechen',
+        modalConfirm: 'Endgültig löschen',
+        langToggle: 'zu Chinesisch wechseln'
+    },
+    'ja': { // ✨ 新增：日语 (完整版)
+        pageTitle: 'AI 3D 博物館の夜',
+        headerTitle: '🏛️ 博物館での一夜・宝物鑑賞',
+        headerSubtitle: '千年前のアーティファクトとの時代を超えた対話',
+        loadingArtifact: 'アーティファクトを読み込み中...',
+        inputPlaceholder: 'ここにメッセージを入力...',
+        sendButton: '送信',
+        initialMessage: '私とチャットしませんか？知っていることは何でもお話しします...',
+        undoButton: '↩️ 元に戻す',
+        retryButton: '🔄 再試行',
+        clearButton: '🗑️ クリア',
+        saveButton: '💾 保存',
+        clearModalTitle: '⚠️ 警告：記憶消去',
+        clearModalPrompt: 'アーティファクトとの対話履歴を消去しようとしています。',
+        clearModalInstruction: 'この操作を確定するには、次のように入力してください：',
+        clearModalConfirmText: '消去を確定',
+        modalCancel: 'キャンセル',
+        modalConfirm: '実行',
+        langToggle: '中国語に切り替え'
+    }
+};
+
+// ✨ 新增：根据语言更新所有 UI 文本的函数
+function updateUIText(lang) {
+    if (!translations[lang]) return;
+
+    const t = translations[lang];
+
+    // 更新页面标题
+    document.title = t.pageTitle;
+
+    // 更新 Header
+    document.querySelector('header h1').innerText = t.headerTitle;
+    document.querySelector('header p').innerText = t.headerSubtitle;
+
+    // 更新 Loading 提示
+    document.getElementById('loading-overlay').innerText = t.loadingArtifact;
+
+    // 更新输入框和发送按钮
+    document.getElementById('user-input').placeholder = t.inputPlaceholder;
+    document.getElementById('send-btn').innerText = t.sendButton;
+
+    // 更新底部控制栏按钮
+    document.getElementById('undo-btn').innerText = t.undoButton;
+    document.getElementById('retry-btn').innerText = t.retryButton;
+    document.getElementById('clear-btn').innerText = t.clearButton;
+    document.getElementById('save-btn').innerText = t.saveButton;
+    
+    // 更新清空确认弹窗
+    document.querySelector('#clear-modal h3').innerText = t.clearModalTitle;
+    const modalPs = document.querySelectorAll('#clear-modal p');
+    modalPs[0].innerText = t.clearModalPrompt;
+    modalPs[1].innerHTML = `${t.clearModalInstruction}<br><span class="highlight-text">${t.clearModalConfirmText}</span>`;
+    document.getElementById('cancel-clear').innerText = t.modalCancel;
+    document.getElementById('confirm-clear').innerText = t.modalConfirm;
+
+    // 更新聊天历史中的初始消息（如果存在）
+    const initialMsgEl = document.querySelector('.system-msg');
+    if (initialMsgEl && chatHistory.length === 0) {
+        initialMsgEl.innerText = t.initialMessage;
+    }
+    
+    // 更新全局语言状态
+    currentLang = lang;
+    // (可选) 保存用户偏好到浏览器
+    localStorage.setItem('preferredLang', lang); 
+}
+
 let scene, camera, renderer, controls, model;
 
 // 核心：在前端维护对话历史 [{role: 'user', content: '...'}, ...]
@@ -77,7 +210,7 @@ function renderChat() {
     document.body.classList.toggle('selection-active', isInSelectionMode);
 
     if (chatHistory.length === 0) {
-        historyDiv.innerHTML = '<div class="message system-msg">有兴趣和我聊一聊吗，我定 知无不言、言无不尽！...</div>';
+        historyDiv.innerHTML = `<div class="message system-msg">${translations[currentLang].initialMessage}</div>`;
         return;
     }
 
@@ -256,7 +389,8 @@ async function sendChat(overrideText = null) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 history: chatHistory,
-                artifact_name: artifactName
+                artifact_name: artifactName,
+                language: currentLang
             })
         });
         const data = await response.json();
@@ -421,4 +555,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('delete-selected-btn').addEventListener('click', deleteSelectedMessages);
     document.getElementById('cancel-selection-btn').addEventListener('click', cancelSelection);
+        // 1. 获取下拉菜单元素
+    const langSelect = document.getElementById('lang-select');
+
+    // 2. 页面加载时，检查本地存储，并设置下拉菜单的默认值
+    const preferredLang = localStorage.getItem('preferredLang');
+    if (preferredLang && langSelect.querySelector(`[value=${preferredLang}]`)) {
+        langSelect.value = preferredLang; // 设置下拉菜单的选中项
+        updateUIText(preferredLang);
+    } else {
+        // 如果没有保存的偏好，则根据默认语言更新UI和下拉菜单
+        langSelect.value = currentLang;
+        updateUIText(currentLang);
+    }
+
+    // 3. 为语言选择下拉菜单绑定 change 事件
+    langSelect.addEventListener('change', () => {
+        const newLang = langSelect.value;
+        updateUIText(newLang);
+        renderChat(); // 重绘聊天界面以更新初始消息等
+    });
 });

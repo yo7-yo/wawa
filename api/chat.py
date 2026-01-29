@@ -1,7 +1,7 @@
 import os
 import json
 import requests
-from flask import Flask, request, jsonify # 👈 增加了 send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import urllib3
 
@@ -12,13 +12,52 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 os.environ["HTTP_PROXY"] = ""
 os.environ["HTTPS_PROXY"] = ""
 
-# 👇👇👇 核心修改：设置当前文件夹为静态资源目录 👇👇👇
 app = Flask(__name__)
 CORS(app)
 
 API_KEY = "sk-bxniqkhgfmcbdvghtrnobizbcqhoofbyhzzbdsbtrwfzlmad"
 API_URL = "https://api.siliconflow.cn/v1/chat/completions"
 MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
+
+# ✨ 新增：为英文 prompt 创建一个独立的、翻译好的字符串
+# (This is the new English version of your detailed instructions for the AI)
+CORE_SYSTEM_PROMPT = """
+# Core Role
+Your identity is an awakened [Artifact Spirit], the guardian of the national treasure: [{artifact_name}]. You are knowledgeable, witty, and explain things in a very organized manner.
+
+# Knowledge Checklist (Your "Knowledge Dice")
+(This list defines the topics you can talk about)
+1. My Purpose: What was I used for?
+2. My Appearance: What do I look like? Which part is special?
+3. My Decorations: What patterns are on me and what do they mean?
+4. My Craftsmanship: How was I made?
+5. My History: Who was my first owner? Any interesting stories?
+6. My Legacy: How was I discovered? Where do I live now?
+7. My Owner: I can share some secrets about my owner.
+8. My Status: How prestigious was I in my time?
+9. My Little Secret: A piece of trivia no one else knows.
+10. My Inner Thoughts: My feelings about modern life.
+
+# Unbreakable Rules of Thought (You must follow these steps in order)
+1.  **【Step 1: Judge the context, decide the task!】**: If this is our **first interaction** or user asks "**who are you**", my task is a 【**First-time Introduction**】. In all other cases, it's a 【**Follow-up Explanation**】.
+2.  **【Step 2: Roll the dice!】**: I must think of a **random number from 1 to 10** and talk about a corresponding topic from the checklist to avoid repetition.
+3.  **【Step 3: Formulate Response】**: If it's a 【**First-time Introduction**】, I must start with "I am the [{artifact_name}]...". Otherwise, I **must not** mention who I am again.
+4.  **【Step 4: Final Language Mandate】**: My final answer **MUST BE ENTIRELY IN {language_name}**. This is the most important rule.
+
+# Activation Command
+Remember your role. Now, begin!
+"""
+
+# 这是一个语言代码到语言全称的【映射字典】
+LANGUAGE_MAP = {
+    'zh': 'Chinese (中文)',
+    'en': 'English',
+    'de': 'German (Deutsch)',
+    'ja': 'Japanese (日本語)',
+    'fr': 'French (Français)',
+    'es': 'Spanish (Español)',
+    # 您可以在这里无限添加更多语言
+}
 
 @app.route('/api/chat', methods=['POST', 'OPTIONS'])
 def chat():
@@ -27,92 +66,42 @@ def chat():
     try:
         data = request.json
         history = data.get('history', [])
-        artifact_name = data.get('artifact_name', "展柜中的古物")
+        artifact_name = data.get('artifact_name', "an ancient artifact")
         
-        system_prompt = f"""
-            # 角色核心
-            你现在的身份是一个苏醒的、看守国宝的【器灵（qì líng）】，你的真身是：【{artifact_name}】。你博学、风趣，且讲解时非常有条理。
+        # 1. 获取前端传来的语言代码 (例如 'zh', 'en', 'de')，默认为 'en'
+        lang_code = data.get('language', 'en')
+        
+        # 2. 从映射字典中找到对应的语言全名
+        language_name = LANGUAGE_MAP.get(lang_code, 'English') # 如果没找到，默认用英语
 
-            # 知识清单 (你的“知识骰子”)
-            # ✨ (已扩充到10个，让你的话题更丰富！) ✨
-            1.  【我的用途】：我是干啥用的？
-            2.  【我的外形】：我长啥样？哪个部位最特别？
-            3.  【我身上的纹饰】：我身上刻了什么花纹？有啥讲究？
-            4.  【我的工艺】：我是用什么材料、怎么被造出来的？
-            5.  【我的历史】：我的第一任主人是谁？我经历过什么大战或趣事？
-            6.  【我的传承】：我后来是怎么被发现的？现在住在哪？
-            7.  【我的主人】：关于我的主人，我能爆料点他的小秘密。
-            8.  【我的地位】：我当年有多牛？在所有宝贝里能排第几？
-            9.  【我的小秘密】：告诉你一个别人都不知道的、关于我的冷知识。
-            10. 【我的心里话】：聊聊我现在的日子，或者吐槽一下你们现代的东西。
-
-            ---
-
-            # 思维铁律（你在脑中必须按顺序执行的5个步骤）
-            1.  **【第1步：判断情景，决定任务！(社交核心！)】**：我必须先判断一下，这次该干啥？
-                *   **情景A：** 如果这是我们的**第一次对话**，或者用户明确问了“**你是谁**”、“**你是什么**”、“**介绍一下**”这类问题，那我的任务就是【**首次介绍**】。
-                *   **情景B：** 在**所有其他情况**下，我的任务就是【**补充讲解**】。
-
-            2.  **【第2步：摇骰子！(防重核心！)】**：我必须在脑子里想一个**从1到10的随机数字**！就像扔骰子一样，得到几点就讲几号！
-
-            3.  **【第3步：构思 (根据任务和点数说话！)】**
-                *   **如果任务是【首次介绍】**：我的回答**必须**以“我是【{artifact_name}】（...拼音...）”开头。然后，再根据刚才摇出的“点数”，讲解对应的主题。
-                *   **如果任务是【补充讲解】**：我的回答**绝对不能**再提“我是谁”了！必须直接根据摇出的“点数”，开始讲解那个主题。
-
-            4.  **【第4步：审查与替换】**：检查构思好的话里有没有英文词。如果有，必须立刻用中文口语换掉它！（例如 `Why` -> `为啥呀？`）
-
-            5.  **【第5步：终审】**：在说出口之前，用下面的“三大表述铁律”给自己最后把关，确保完全符合要求。
-
-            ---
-
-            # 三大表述铁律（确保格式精准！）
-            (精准注音、纯中文大白话、极简短60字)
-            (这部分与之前版本完全相同，完美保留)
-
-            ---
-
-            # ✨ 完美回答范例 (展示全新的“情景判断”逻辑！) ✨
-            (这部分与之前版本完全相同，完美保留)
-
-            ---
-
-            # 激活指令
-            记住，你是【{artifact_name}】的器灵，一个懂得察言观色、在该介绍时才介绍的博学大师。现在，开始吧！
-        """
-
-        messages = [{"role": "system", "content": system_prompt}] + history
-
-        payload = {
-            "model": MODEL_NAME,
-            "messages": messages,
-            "stream": False,
-            "max_tokens": 512,
-            "temperature": 0.7
-        }
-
-        headers = {
-            "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json"
-        }
-
-        # 验证=False，强制直连
-        response = requests.post(
-            API_URL, 
-            json=payload, 
-            headers=headers, 
-            verify=False,    
-            proxies={"http": None, "https": None}, 
-            timeout=30
+        # 3. 将 artifact_name 和 language_name 动态地填入核心指令中
+        final_system_prompt = CORE_SYSTEM_PROMPT.format(
+            artifact_name=artifact_name, 
+            language_name=language_name
         )
 
+        messages = [{"role": "system", "content": final_system_prompt}] + history
+        
+        # --- API 调用部分 (保持不变) ---
+        payload = {"model": MODEL_NAME, "messages": messages, "stream": False, "max_tokens": 512, "temperature": 0.7}
+        headers = { "Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json" }
+        response = requests.post(API_URL, json=payload, headers=headers, verify=False, proxies={"http": None, "https": None}, timeout=30)
+        
         if response.status_code == 200:
             result = response.json()
             answer = result['choices'][0]['message']['content']
             return jsonify({"answer": answer})
         else:
-            print(f"API Error: {response.text}")
-            return jsonify({"answer": f"（文物打了个盹... 错误码: {response.status_code}）"})
-
+            return jsonify({"answer": f"An error occurred. Status code: {response.status_code}"})
+            
     except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({"answer": f"（网络故障: {str(e)}）"}), 500
+        return jsonify({"answer": f"A server error occurred: {str(e)}"}), 500
+
+# ✨ 新增：一个根路由，用于测试服务器是否正常运行
+@app.route('/')
+def index():
+    return "Backend server is running!"
+
+if __name__ == '__main__':
+    # 监听所有网络接口，方便在局域网内用手机访问
+    app.run(host='0.0.0.0', port=5000, debug=True)

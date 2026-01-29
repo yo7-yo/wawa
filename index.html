@@ -8,14 +8,26 @@
     <title>AI 3D 博物馆奇妙夜</title>
     <link rel="stylesheet" href="say.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r132/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
     <div id="app">
         <header>
             <h1>🏛️ 博物馆奇妙夜 · 珍品鉴赏</h1>
             <p>与千年文物跨时空对话</p>
+            
+            <!-- ✨ 修改：将原来的 button 替换成 select 下拉菜单 -->
+            <select id="lang-select" class="secondary-btn" style="position: absolute; top: 20px; right: 20px; z-index: 10; padding: 5px; border-radius: 5px;">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
+                <option value="ja">日本語</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+                <!-- 在这里可以轻松添加更多语言选项 -->
+            </select>
+
         </header>
 
         <div id="canvas-container">
@@ -45,16 +57,6 @@
                     <button id="save-btn" class="secondary-btn">💾 保存</button>
                 </div>
             </div>
-            
-            <!-- 👇 批量删除操作栏 (跟随移动到底部) 👇 -->
-            <div id="selection-controls" class="controls-bar" style="display: none;">
-                <p id="selection-counter">已选中 0 组对话</p>
-                <div class="action-buttons">
-                    <button id="cancel-selection-btn" class="secondary-btn">❌ 取消</button>
-                    <button id="delete-selected-btn" class="primary-btn" style="background: #a33;">🗑️ 删除选中</button>
-                </div>
-            </div>
-
         </div>
     </div>
 

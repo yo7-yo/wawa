@@ -142,3 +142,33 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
     /* 如果有需要，可以为用户消息单独微调样式 */
     background-color: rgba(0, 123, 255, 0.15);
 }
+
+/* 开启盲盒按钮的高级定制样式 */
+#blind-box-btn {
+    /* --- 定位三件套 --- */
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+
+    /* --- 颜色与外观 --- */
+    background-color: #FFD700; /* 华贵鎏金 */
+    color: #333; /* 深灰色文字，配金色背景更清晰 */
+    
+    /* --- 尺寸与字体 --- */
+    padding: 10px 20px;
+    font-size: 18px;
+    font-weight: bold; /* 字体加粗 */
+    
+    /* --- 其他细节 --- */
+    text-decoration: none; /* 去掉下划线 */
+    border-radius: 8px; /* 圆角更柔和一点 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 加一点阴影，更有立体感 */
+    transition: all 0.2s ease; /* 让鼠标悬停效果更丝滑 */
+}
+
+/* 鼠标悬停时的效果 */
+#blind-box-btn:hover {
+    transform: translateY(-2px); /* 按钮轻微上浮 */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* 阴影加深 */
+}

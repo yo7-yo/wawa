@@ -190,24 +190,29 @@ header {
 #lang-select {
     position: absolute;
     top: 20px;
-    left: 2px;
+    left: 20px;
     z-index: 10;
 }
 
 @media (max-width: 768px) {
-            #blind-box-btn {
-                /* 覆盖默认样式，使其适应手机 */
-                top: 10px;
-                right: 10px;
+    #blind-box-btn {
+        /* 覆盖默认样式，使其适应手机 */
+        top: 15px;
+        right: 13px;
 
-                /* --- 移除错误的定位属性 --- */
-                left: auto;      /* 取消 left 定位 */
-                bottom: auto;    /* 取消 bottom 定位 */
-                transform: none; /* 移除水平居中的 transform */
-                
-                /* --- 尺寸：让按钮“小小的” --- */
-                padding: 6px 12px;   /* 显著减小内边距 */
-                font-size: 13px;     /* 减小字体大小 */
-                border-radius: 20px; /* 圆角也可以相应变小 */
-            }
-        }
+        /* --- 移除错误的定位属性 --- */
+        left: auto;      /* 取消 left 定位 */
+        bottom: auto;    /* 取消 bottom 定位 */
+        transform: none; /* 移除水平居中的 transform */
+        
+        /* --- 尺寸：让按钮“小小的” --- */
+        padding: 6px 12px;   /* 显著减小内边距 */
+        font-size: 13px;     /* 减小字体大小 */
+        border-radius: 20px; /* 圆角也可以相应变小 */
+    }
+    #lang-select {
+        top: 15px;     /* 距离顶部 */
+        left: 4px;    /* 距离左侧 */
+        font-size: 12px; /* 可选：让下拉框更适合手机 */
+    }
+}

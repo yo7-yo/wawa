@@ -181,3 +181,15 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
     filter: brightness(1.1);
     box-shadow: 0 0 25px rgba(224, 178, 92, 1);
 }
+
+header {
+    position: relative;
+}
+
+/* 2. 将语言选择框绝对定位到左上角 */
+#lang-select {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+}

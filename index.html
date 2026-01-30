@@ -1,218 +1,81 @@
-body { margin: 0; background: #1a1a1a; color: #e0c097; font-family: "Songti SC", "SimSun", serif; }
-#app { display: flex; flex-direction: column; height: 100vh; }
-
-header { padding: 15px; text-align: center; border-bottom: 2px solid #5c4d3c; background: #000; }
-header h1 { margin: 0; font-size: 1.5em; text-shadow: 0 2px 5px black; letter-spacing: 2px; }
-header p { margin: 5px 0 0; color: #888; font-size: 0.8em; }
-
-#canvas-container { flex: 1; position: relative; background: radial-gradient(circle at center, #3a3a3a 0%, #000 100%); }
-#loading-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #d4af37; font-size: 1.2em; }
-
-.chat-panel { 
-    height: 320px; 
-    background: rgba(20, 20, 20, 0.95); 
-    border-top: 3px solid #886a1a; 
-    padding: 15px; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 10px;
-}
-
-/* 输入区 (因为之前调整过位置，所以放前面) */
-.input-area { display: flex; gap: 10px; }
-input#user-input { 
-    flex: 1; background: #e0e0e0; border: 2px solid #7a6b5d; color: #000; 
-    padding: 10px; font-weight: bold; font-family: inherit;
-}
-
-/* 聊天记录区域 */
-#chat-history { 
-    flex: 1; overflow-y: auto; 
-    padding: 10px; border: 1px solid #333; background: rgba(0,0,0,0.3); 
-    display: flex; flex-direction: column; gap: 10px;
-}
-
-/* 控制栏样式 (因为之前调整过位置，所以放后面) */
-.controls-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
-#artifact-name { 
-    background: #222; border: 1px solid #5c4d3c; color: #d4af37; 
-    padding: 5px 10px; width: 150px; text-align: center; font-family: inherit;
-}
-.action-buttons { display: flex; gap: 5px; }
-
-/* 消息气泡 */
-.message { padding: 3px 3px; border-radius: 4px; max-width: 70%; line-height: 1.4; }
-.message.user { align-self: flex-end; background-color: #5c4d3c; color: #fff; border: 1px solid #7a6b5d; }
-.message.ai { align-self: flex-start; background-color: #2b2b2b; color: #d4af37; border: 1px solid #555; }
-.message.system-msg { align-self: center; background: none; color: #666; font-size: 0.8em; border: none; }
-
-/* 按钮通用样式 */
-button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; font-family: inherit; transition: 0.2s; }
-.primary-btn { background: linear-gradient(to bottom, #d4af37, #aa8c2c); color: #222; border: 1px solid #886a1a; }
-.primary-btn:hover { filter: brightness(1.1); }
-.secondary-btn { background: #444; color: #ccc; border: 1px solid #666; padding: 5px 10px; font-size: 0.9em; }
-.secondary-btn:hover { background: #555; }
-
-/* 弹窗样式 */
-.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); justify-content: center; align-items: center; }
-.modal-content { background: #1a1a1a; border: 2px solid #d4af37; padding: 20px; border-radius: 8px; text-align: center; width: 300px; box-shadow: 0 0 20px rgba(212, 175, 55, 0.2); }
-.modal-content h3 { color: #d4af37; margin-top: 0; }
-.highlight-text { color: #ff4444; font-weight: bold; font-size: 1.2em; display: inline-block; margin: 10px 0; }
-#verify-input { width: 90%; margin-bottom: 15px; text-align: center; background: #333; color: white; }
-.modal-buttons { display: flex; justify-content: space-around; }
-
-/* 单个删除按钮 */
-.delete-btn { position: absolute; top: 50%; transform: translateY(-50%); background: none; border: none; color: #555; font-size: 16px; cursor: pointer; opacity: 0; transition: opacity 0.2s, color 0.2s; padding: 5px; }
-.message.user .delete-btn { left: -15px; }
-.message.ai .delete-btn { right: -15px; }
-.message:hover .delete-btn { opacity: 1; }
-.delete-btn:hover { color: #ff4444; }
-
-/* 批量选择模式样式 */
-#selection-counter { color: #d4af37; margin: 0; font-size: 0.9em; flex: 1; text-align: left; }
-.message.selected { background-color: #5c4d3c99 !important; border: 1px solid #d4af37 !important; box-shadow: 0 0 8px #d4af37a0 !important; }
-.selection-active .message:hover .delete-btn { opacity: 0; }
-.selection-active .message { cursor: pointer; }
-
-
-/* 👇👇👇 (新增) 响应式布局：针对手机等小屏幕设备 👇👇👇 */
-@media (max-width: 768px) {
-    /* 核心改动：让 3D视图 和 聊天面板 各占一半高度 */
-    #app {
-        height: 100vh; /* 确保 app 容器占满整个屏幕高度 */
-    }
-
-    #canvas-container {
-        flex: 1;       /* 分配一份弹性空间 (50%) */
-        min-height: 0; /* (重要) 移除最小高度限制，让flexbox自由分配 */
-    }
-
-    .chat-panel {
-        flex: 1;       /* 同样分配一份弹性空间 (50%)，实现 50/50 划分 */
-        height: auto;  /* (重要) 移除 !important，让flexbox接管高度控制 */
-        min-height: 0; /* (重要) 移除最小高度限制 */
-        padding: 10px;
-    }
-
-    /* 优化字体和间距，让界面在小屏幕上更协调 */
-    header { padding: 8px; }
-    header h1 { font-size: 1.1em; }
-    header p { font-size: 0.7em; margin: 2px 0 0; }
-    
-    .message {
-        max-width: 92%;
-        padding: 8px 12px;
-        font-size: 0.9em;
-        line-height: 1.4;
-    }
-    
-    #user-input {
-        font-size: 1em; /* 保证输入框字体不会太小 */
-    }
-
-    /* 调整底部控制栏的布局 */
-    .controls-bar {
-        flex-wrap: wrap; /* 允许按钮换行 */
-        gap: 8px;
-    }
-
-    #artifact-name {
-        order: 1; /* 强制文物名称在第一位 */
-        flex-basis: 100%; /* 占据一整行 */
-        text-align: center;
-        margin-bottom: 5px;
-    }
-
-    .action-buttons {
-        order: 2; /* 按钮组在第二位 */
-        flex-basis: 100%; /* 让按钮组占据一整行 */
-        justify-content: space-evenly; /* 均匀分布按钮 */
-    }
-}
-
-/* --- 新增代码：用于消息选中的荧光效果 --- */
-.chat-turn.selected {
-    background-color: rgba(0, 123, 255, 0.15);
-    border-radius: 8px; /* 给高亮一个圆角，更好看 */
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
-}
-
-/* 让用户消息的选中效果也生效 */
-.user-message .chat-turn.selected {
-    /* 如果有需要，可以为用户消息单独微调样式 */
-    background-color: rgba(0, 123, 255, 0.15);
-}
-
-/* --- 盲盒按钮 "呼吸光晕" 限定皮肤 --- */
-@keyframes breathing-brass {
-    0% { box-shadow: 0 0 5px rgba(224, 178, 92, 0.5); }
-    50% { box-shadow: 0 0 20px rgba(224, 178, 92, 0.9); }
-    100% { box-shadow: 0 0 5px rgba(224, 178, 92, 0.5); }
-}
-
-#blind-box-btn {
-    /* --- 定位 --- */
-    position: fixed;
-    top: 25px;
-    right: 2px;
-    z-index: 1000;
-    
-    /* --- 外观 (完整定义，不再依赖其他样式) --- */
-    background: linear-gradient(to bottom, #E0B25C, #c99a42);
-    color: #403014;
-    border: 1px solid #a87d32;
-    border-radius: 50px; /* 椭圆形 */
-    
-    /* --- 字体与尺寸 --- */
-    padding: 9px 18px;
-    font-size: 16px;
-    font-weight: bold; /* 确保字体是粗体 */
-    font-family: inherit; /* 继承整体字体 */
-    
-    /* --- 交互 --- */
-    cursor: pointer; /* 确保是小手光标 */
-    
-    /* --- 动画 --- */
-    animation: breathing-brass 3s infinite ease-in-out;
-}
-
-#blind-box-btn:hover {
-    animation-play-state: paused;
-    filter: brightness(1.1);
-    box-shadow: 0 0 25px rgba(224, 178, 92, 1);
-}
-
-header {
-    position: relative;
-}
-
-/* 2. 将语言选择框绝对定位到左上角 */
-#lang-select {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    z-index: 10;
-}
-
-@media (max-width: 768px) {
-    #blind-box-btn {
-        /* 覆盖默认样式，使其适应手机 */
-        top: 25px;
-        right: 14px;
-
-        /* --- 移除错误的定位属性 --- */
-        left: auto;      /* 取消 left 定位 */
-        bottom: auto;    /* 取消 bottom 定位 */
-        transform: none; /* 移除水平居中的 transform */
-        
-        /* --- 尺寸：让按钮“小小的” --- */
-        padding: 6px 12px;   /* 显著减小内边距 */
-        font-size: 13px;     /* 减小字体大小 */
-        border-radius: 20px; /* 圆角也可以相应变小 */
-    }
-    #lang-select {
-        top: 34px;     /* 距离顶部 */
-        left: 4px;    /* 距离左侧 */
-        font-size: 12px; /* 可选：让下拉框更适合手机 */
-    }
-}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 3D 博物馆奇妙夜</title>
+    <link rel="stylesheet" href="say.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r132/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/meshoptimizer@0.17.0/meshopt_decoder.js"></script>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>🏛️ 博物馆奇妙夜 · 珍品鉴赏</h1>
+            <p>与千年文物跨时空对话</p>
+            
+            <select id="lang-select" class="secondary-btn">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
+                <option value="ja">日本語</option>
+            </select>
+        </header>
+        <div id="canvas-container">
+            <div id="loading-overlay">文物出库中...</div>
+        </div>
+        <div class="chat-panel">
+            
+            <div class="input-area">
+                <input type="text" id="user-input" placeholder="请在此输入您的对话...">
+                <button id="send-btn" class="primary-btn">发送</button>
+            </div>
+            <div id="chat-history">
+                <div class="message system-msg">有兴趣和我一起聊聊天吗,我定知无不言、言无不尽...</div>
+            </div>
+            
+            <div class="controls-bar">
+                <!-- ★★★ 修改点：添加了灰色背景和边框 ★★★ -->
+                <input type="text" id="artifact-name" value="皿方罍" placeholder="设定文物名称" title="设定文物身份" readonly style="color: #B8860B; background-color: #2c2c2e; border: 1px solid #444; border-radius: 5px; padding: 5px; font-weight: bold; font-size: 1.1em; text-align: center;">
+                <div class="action-buttons">
+                    <button id="undo-btn" class="secondary-btn">↩️ 撤回</button>
+                    <button id="retry-btn" class="secondary-btn">🔄 重试</button>
+                    <button id="clear-btn" class="secondary-btn">🗑️ 清空</button>
+                    <button id="save-btn" class="secondary-btn">💾 保存</button>
+                </div>
+            </div>
+            
+            <div id="selection-controls" class="controls-bar" style="display: none;">
+                <p id="selection-counter">已选中 0 组对话</p>
+                <div class="action-buttons">
+                    <button id="cancel-selection-btn" class="secondary-btn">❌ 取消</button>
+                    <button id="delete-selected-btn" class="primary-btn" style="background: #a33;">🗑️ 删除选中</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="clear-modal" class="modal">
+        <div class="modal-content">
+            <h3>⚠️ 警告：记忆消除</h3>
+            <p>您即将清空与文物的对话记录。</p>
+            <p>为了确认您的操作，请输入：<br><span class="highlight-text">确认清空</span></p>
+            <input type="text" id="verify-input" placeholder="在此输入确认文字...">
+            <div class="modal-buttons">
+                <button id="cancel-clear" class="secondary-btn">取消</button>
+                <button id="confirm-clear" class="primary-btn" style="background: #a33;">强制执行</button>
+            </div>
+        </div>
+    </div>
+    <script src="say.js"></script>
+    <button 
+        onclick="window.location.href='wawa.html'" 
+        id="blind-box-btn"
+        data-lang-zh="请君启藏"
+        data-lang-en="Draw Box"
+        data-lang-de="Box Ziehen"
+        data-lang-ja="盲箱引く"
+        请君启藏
+    </button>
+    </html>

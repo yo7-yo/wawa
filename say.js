@@ -95,6 +95,24 @@ const translations = {
         connectionError: '接続が切れました (server.py を確認してください)'
     }
 };
+function updateLanguage(lang) {
+    // 查找页面上所有包含 "data-lang-zh" 属性的元素
+    // 我们使用 'zh' 作为基准，假设所有可翻译元素都至少有中文版
+    const elementsToTranslate = document.querySelectorAll('[data-lang-zh]');
+
+    elementsToTranslate.forEach(element => {
+        // 构建当前语言对应的 data 属性名，例如 "data-lang-en"
+        const attributeName = `data-lang-${lang}`;
+        
+        // 从元素的 data 属性中获取翻译文本
+        const translatedText = element.getAttribute(attributeName);
+
+        if (translatedText) {
+            // 如果找到了翻译，则更新元素的显示文本
+            element.innerText = translatedText;
+        }
+    });
+}
 
 // ✨ 新增：根据语言更新所有 UI 文本的函数
 function updateUIText(lang) {
@@ -140,6 +158,7 @@ function updateUIText(lang) {
     currentLang = lang;
     // (可选) 保存用户偏好到浏览器
     localStorage.setItem('preferredLang', lang); 
+    updateLanguage(lang);
 }
 
 let scene, camera, renderer, controls, model;
@@ -586,7 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 3. 为语言选择下拉菜单绑定 change 事件
-    langSelect.addEventListener('change', () => {
+    langSelect.addEventListener('change', (event) => {
         const newLang = langSelect.value;
         updateUIText(newLang);
         renderChat(); // 重绘聊天界面以更新初始消息等

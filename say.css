@@ -211,7 +211,7 @@ header {
         border-radius: 20px; /* 圆角也可以相应变小 */
     }
     #lang-select {
-        top: 35px;     /* 距离顶部 */
+        top: 34px;     /* 距离顶部 */
         left: 4px;    /* 距离左侧 */
         font-size: 12px; /* 可选：让下拉框更适合手机 */
     }

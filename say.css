@@ -190,7 +190,7 @@ header {
 #lang-select {
     position: absolute;
     top: 20px;
-    left: 20px;
+    left: 2px;
     z-index: 10;
 }
 

@@ -154,7 +154,7 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
     /* --- 定位 --- */
     position: fixed;
     top: 20px;
-    right: 20px;
+    right: 2px;
     z-index: 1000;
     
     /* --- 外观 (完整定义，不再依赖其他样式) --- */
@@ -164,8 +164,8 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
     border-radius: 50px; /* 椭圆形 */
     
     /* --- 字体与尺寸 --- */
-    padding: 12px 24px;
-    font-size: 18px;
+    padding: 9px 18px;
+    font-size: 16px;
     font-weight: bold; /* 确保字体是粗体 */
     font-family: inherit; /* 继承整体字体 */
     

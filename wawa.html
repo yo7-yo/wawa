@@ -15,6 +15,59 @@
     }
     </script>
     <style>
+        #lang-select {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 2001; /* 确保在最上层 */
+
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.6); /* 半透明黑色背景 */
+        color: #fcd34d;                  /* 金色文字 */
+        border: 1px solid #fcd34d;      /* 金色边框 */
+        
+        font-weight: bold;
+        cursor: pointer;
+        -webkit-appearance: none;
+        appearance: none;
+
+        /* 添加自定义的下拉箭头 */
+        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FCD34D%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E');
+        background-repeat: no-repeat;
+        background-position: right 12px top 50%;
+        background-size: .65em auto;
+        padding-right: 30px;
+    }
+
+    #lang-select:hover {
+        background-color: rgba(20, 20, 20, 0.8);
+    }
+        /* --- ★★★ 新增：右上角返回按钮的样式 ★★★ --- */
+        #back-to-index-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2001; /* 确保在最上层 */
+            
+            background: rgba(0, 0, 0, 0.6);   /* 半透明黑色背景 */
+            color: #fcd34d;                  /* 金色文字 */
+            border: 1px solid #fcd34d;      /* 金色边框 */
+            
+            padding: 8px 16px;
+            border-radius: 20px;             /* 圆角 */
+            text-decoration: none;           /* 移除链接下划线 */
+            font-weight: bold;
+            font-size: 14px;
+            
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #back-to-index-btn:hover {
+            background: rgba(252, 211, 77, 0.2); /* 悬浮时增加金色辉光效果 */
+            box-shadow: 0 0 10px rgba(252, 211, 77, 0.5);
+        }
         /* --- ★★★ 新增：封面标题样式 ★★★ --- */
         .cover-title {
             color: #fcd34d;
@@ -300,6 +353,15 @@
     </style>
 </head>
 <body>
+<a href="index.html" id="back-to-index-btn">返回 ↩</a>
+<select id="lang-select">
+    <option value="zh">中文</option>
+    <option value="en">English</option>
+    <option value="de">Deutsch</option>
+    <option value="ja">日本語</option>
+    <option value="fr">Français</option>
+    <option value="es">Español</option>
+</select>
 <!-- AR 操作指南 -->
 <div id="arInstructions">
     <div class="instructions-content">
@@ -390,6 +452,7 @@
     import { KTX2Loader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/KTX2Loader.js';
     import { FilesetResolver, HandLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm';
     import { MeshoptDecoder } from 'https://unpkg.com/three@0.158.0/examples/jsm/libs/meshopt_decoder.module.js';
+    const translations = {}
     const ZONE_CONFIG = {
         "博物馆": { 
             models: [ 
@@ -427,11 +490,55 @@
         document.querySelectorAll('section, div.full-page').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
     }
+        function switchLanguage(lang) {
+        const t = translations[lang] || translations.zh; // 如果找不到语言，则使用中文
+        
+        // 更新页面标题
+        document.title = t.docTitle;
+
+        // 更新封面页
+        const coverTitleEl = document.querySelector('.cover-title');
+        if (coverTitleEl) coverTitleEl.innerText = t.coverTitle;
+        const blindBoxBtnEl = document.querySelector('#mapPage .instructions-btn');
+        if (blindBoxBtnEl) blindBoxBtnEl.innerText = t.blindBoxBtn;
+        
+        // 更新唤醒页
+        const awakeningTitleEl = document.querySelector('.ai-title');
+        if (awakeningTitleEl) awakeningTitleEl.innerText = t.awakeningTitle;
+        
+        // 更新结果页
+        const congratsTitleEl = document.querySelector('.congrats-title');
+        if (congratsTitleEl) congratsTitleEl.innerText = t.awakenSuccess;
+        const youAwakenedEl = document.querySelector('#namingSection p');
+        if (youAwakenedEl) youAwakenedEl.innerHTML = `${t.youAwakened}<span id="artifactNameDisplay" style="color:#fff;font-weight:bold;font-size:18px;"></span>`;
+        const generateCardEl = document.querySelector('.btn-confirm');
+        if (generateCardEl) generateCardEl.innerText = t.generateCard;
+        const arPhotoEl = document.querySelector('.btn-ar');
+        if (arPhotoEl) arPhotoEl.innerText = t.arPhoto;
+        const goBackEl = document.querySelector('.btn-back');
+        if (goBackEl) goBackEl.innerText = t.goBack;
+
+        // 更新AR控制按钮
+        const exitArEl = document.getElementById('arExitBtn');
+        if (exitArEl) exitArEl.innerText = t.exitAr;
+        const arHelpEl = document.getElementById('arHelpBtn');
+        if (arHelpEl) arHelpEl.innerText = t.arHelp;
+
+        // ... 在这里更新其他您想翻译的元素
+    }
     function getChineseNameFromPath(path) {
         return MODEL_NAME_MAP[path] || "神秘文物";
     }
         // --- 核心逻辑修改：初始化或扫码进入 ---
     window.addEventListener('load', () => {
+        const langSelect = document.getElementById('lang-select');
+        if (langSelect) {
+            langSelect.addEventListener('change', (event) => {
+                switchLanguage(event.target.value);
+            });
+            // 可以在这里设置默认语言或从浏览器读取偏好
+            // switchLanguage('zh'); 
+        }
         // --- ★★★ 新增：动态生成光点 ★★★ ---
         const sparkleContainer = document.getElementById('sparkles-container');
         if (sparkleContainer) {
@@ -448,6 +555,11 @@
                 sparkleContainer.appendChild(sparkle);
             }
         }
+
+
+        // 初始化默认语言
+        switchLanguage('zh');
+
         // 检查 URL 是否带有参数（比如扫码进来的）
         const params = new URLSearchParams(window.location.search);
         const m = params.get('m'); // 获取模型路径
@@ -537,16 +649,13 @@
         qrImg.onload = () => { qrImg.style.display = "block"; };
     }
     window.backToMap = function() {
-        cleanUpThreeJS();
+        // 如果需要，可以保留清理 Three.js 场景的函数
+        cleanUpThreeJS(); 
         
-        // ★★★ 修改：返回时也移除class ★★★
-        document.getElementById('mascotPage').classList.remove('naming-active');
-        
-        // window.history.replaceState({}, document.title, window.location.pathname);
-        // window.gotoPage('mapPage');
-        // --- 核心修改：跳转到 index.html ---
-        window.location.href = 'index.html';
+        // 使用 location.href 来跳转到另一个页面
+        window.location.href = 'index.html'; 
     }
+
     // === THREE.js & AR Logic ===
     async function loadAiModels() {
         if (handLandmarker) return true;

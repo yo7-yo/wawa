@@ -2,15 +2,12 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 3D 博物馆奇妙夜</title>
     <link rel="stylesheet" href="say.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r132/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/meshoptimizer@0.17.0/meshopt_decoder.js"></script>
 </head>
 <body>
@@ -19,39 +16,29 @@
             <h1>🏛️ 博物馆奇妙夜 · 珍品鉴赏</h1>
             <p>与千年文物跨时空对话</p>
             
-            <!-- ✨ 修改：将原来的 button 替换成 select 下拉菜单 -->
-            <select id="lang-select" class="secondary-btn" style="position: absolute; top: 20px; right: 20px; z-index: 10; padding: 5px; border-radius: 5px;">
+            <select id="lang-select" class="secondary-btn">
                 <option value="zh">中文</option>
                 <option value="en">English</option>
                 <option value="de">Deutsch</option>
                 <option value="ja">日本語</option>
-                <option value="fr">Français</option>
-                <option value="es">Español</option>
-                <!-- 在这里可以轻松添加更多语言选项 -->
             </select>
-
         </header>
-
         <div id="canvas-container">
             <div id="loading-overlay">文物出库中...</div>
         </div>
-
         <div class="chat-panel">
             
-            <!-- 👇 输入区域 (已移动到顶部) 👇 -->
             <div class="input-area">
                 <input type="text" id="user-input" placeholder="请在此输入您的对话...">
                 <button id="send-btn" class="primary-btn">发送</button>
             </div>
-
             <div id="chat-history">
-                <!-- 消息将在这里动态生成 -->
                 <div class="message system-msg">有兴趣和我一起聊聊天吗,我定知无不言、言无不尽...</div>
             </div>
             
-            <!-- 👇 顶部操作栏 (已移动到底部) 👇 -->
             <div class="controls-bar">
-                <input type="text" id="artifact-name" value="皿方罍" placeholder="设定文物名称" title="设定文物身份">
+                <!-- ★★★ 修改点：添加了灰色背景和边框 ★★★ -->
+                <input type="text" id="artifact-name" value="皿方罍" placeholder="设定文物名称" title="设定文物身份" readonly style="color: #B8860B; background-color: #2c2c2e; border: 1px solid #444; border-radius: 5px; padding: 5px; font-weight: bold; font-size: 1.1em; text-align: center;">
                 <div class="action-buttons">
                     <button id="undo-btn" class="secondary-btn">↩️ 撤回</button>
                     <button id="retry-btn" class="secondary-btn">🔄 重试</button>
@@ -59,7 +46,7 @@
                     <button id="save-btn" class="secondary-btn">💾 保存</button>
                 </div>
             </div>
-             
+            
             <div id="selection-controls" class="controls-bar" style="display: none;">
                 <p id="selection-counter">已选中 0 组对话</p>
                 <div class="action-buttons">
@@ -67,10 +54,8 @@
                     <button id="delete-selected-btn" class="primary-btn" style="background: #a33;">🗑️ 删除选中</button>
                 </div>
             </div>
-
         </div>
     </div>
-
     <div id="clear-modal" class="modal">
         <div class="modal-content">
             <h3>⚠️ 警告：记忆消除</h3>
@@ -83,7 +68,6 @@
             </div>
         </div>
     </div>
-
     <script src="say.js"></script>
     <button onclick="window.location.href='wawa.html'" id="blind-box-btn">请君启藏</button>
 </html>

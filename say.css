@@ -197,8 +197,8 @@ header {
 @media (max-width: 768px) {
     #blind-box-btn {
         /* 覆盖默认样式，使其适应手机 */
-        top: 15px;
-        right: 13px;
+        top: 25px;
+        right: 14px;
 
         /* --- 移除错误的定位属性 --- */
         left: auto;      /* 取消 left 定位 */
@@ -211,7 +211,7 @@ header {
         border-radius: 20px; /* 圆角也可以相应变小 */
     }
     #lang-select {
-        top: 15px;     /* 距离顶部 */
+        top: 30px;     /* 距离顶部 */
         left: 4px;    /* 距离左侧 */
         font-size: 12px; /* 可选：让下拉框更适合手机 */
     }

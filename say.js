@@ -121,7 +121,6 @@ function updateUIText(lang) {
 
     // 更新 Header
     document.querySelector('header h1').innerText = t.headerTitle;
-    document.querySelector('header p').innerText = t.headerSubtitle;
 
     // 更新 Loading 提示
     document.getElementById('loading-overlay').innerText = t.loadingArtifact;

@@ -15,7 +15,6 @@ os.environ["HTTPS_PROXY"] = ""
 app = Flask(__name__)
 CORS(app)
 
-API_KEY = "sk-bxniqkhgfmcbdvghtrnobizbcqhoofbyhzzbdsbtrwfzlmad"
 API_URL = "https://api.siliconflow.cn/v1/chat/completions"
 MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
 

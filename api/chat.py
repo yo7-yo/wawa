@@ -5,6 +5,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import urllib3
 
+# 从环境变量读取 Key
+API_KEY = os.getenv("API_KEY")
 # 1. 忽略 SSL 警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

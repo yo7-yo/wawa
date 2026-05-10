@@ -6,7 +6,7 @@ from flask_cors import CORS
 import urllib3
 
 # 从环境变量读取 Key
-API_KEY = os.getenv("API_KEY")
+API_KEY = "sk-bxniqkhgfmcbdvghtrnobizbcqhoofbyhzzbdsbtrwfzlmad"
 # 1. 忽略 SSL 警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

@@ -7,9 +7,8 @@ let currentLang = 'zh';
 // ✨ 新增：UI 文本翻译字典
 const translations = {
     'zh': {
-        pageTitle: 'AI 3D 博物馆奇妙夜',
-        headerTitle: '🏛️ 博物馆奇妙夜 · 珍品鉴赏',
-        headerSubtitle: '与千年文物跨时空对话',
+        pageTitle: 'AI文物探索',
+        headerTitle: '文物秘语',
         loadingArtifact: '文物出库中...',
         inputPlaceholder: '请在此输入您的对话...',
         sendButton: '发送',
@@ -29,9 +28,8 @@ const translations = {
         connectionError: '连接断开 (请检查 server.py)'
     },
     'en': {
-        pageTitle: 'AI 3D Museum Night',
-        headerTitle: '🏛️ A Night at the Museum · Treasure Appreciation',
-        headerSubtitle: 'A timeless dialogue with millennium-old artifacts',
+        pageTitle: 'AI Artifact Explorer',
+        headerTitle: 'Artifact Secrets',
         loadingArtifact: 'Loading artifact...',
         inputPlaceholder: 'Type your message here...',
         sendButton: 'Send',
@@ -51,9 +49,8 @@ const translations = {
         connectionError: 'Connection lost (please check server.py)'
     },
     'de': { // ✨ 新增：德语 (完整版)
-        pageTitle: 'KI 3D Nacht im Museum',
-        headerTitle: '🏛️ Eine Nacht im Museum · Schatzwürdigung',
-        headerSubtitle: 'Ein zeitloser Dialog mit jahrtausendealten Artefakten',
+        pageTitle: 'KI Artefakt-Explorer',
+        headerTitle: 'Artefakt-Geheimnisse',
         loadingArtifact: 'Artefakt wird geladen...',
         inputPlaceholder: 'Nachricht hier eingeben...',
         sendButton: 'Senden',
@@ -72,10 +69,9 @@ const translations = {
         thinking: 'Denkt nach...', // ✨ 新增
         connectionError: 'Verbindung unterbrochen (bitte server.py prüfen)'
     },
-    'ja': { // ✨ 新增：日语 (完整版)
-        pageTitle: 'AI 3D 博物館の夜',
-        headerTitle: '🏛️ 博物館での一夜・宝物鑑賞',
-        headerSubtitle: '千年前のアーティファクトとの時代を超えた対話',
+    'ja': { // ✨ 新増：日語 (完整版)
+        pageTitle: 'AIアーティファクト探索',
+        headerTitle: 'アーティファクトの秘密',
         loadingArtifact: 'アーティファクトを読み込み中...',
         inputPlaceholder: 'ここにメッセージを入力...',
         sendButton: '送信',
@@ -442,7 +438,52 @@ async function sendChat(overrideText = null) {
         }
     }
 }
+// ✨ 新增：翻译对话历史的函数
+async function translateChatHistory(targetLang) {
+    if (chatHistory.length === 0) {
+        return; // 如果没有对话，无需翻译
+    }
 
+    // 显示翻译中的提示
+    const historyDiv = document.getElementById('chat-history');
+    const originalHTML = historyDiv.innerHTML;
+    const translatingDiv = document.createElement('div');
+    translatingDiv.className = 'message system-msg';
+    translatingDiv.id = 'translating-msg';
+    translatingDiv.innerText = `翻译中... (Translating to ${translations[targetLang]?.headerTitle || targetLang})`;
+    historyDiv.appendChild(translatingDiv);
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+
+    try {
+        const response = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                messages: chatHistory,
+                target_lang: targetLang
+            })
+        });
+
+        const data = await response.json();
+        
+        // 移除翻译提示
+        const translatingMsg = document.getElementById('translating-msg');
+        if (translatingMsg) translatingMsg.remove();
+
+        // 更新 chatHistory 为翻译后的版本
+        if (data.translated_messages && data.translated_messages.length > 0) {
+            chatHistory = data.translated_messages;
+            saveHistoryToLocal();
+            renderChat();
+        }
+    } catch (error) {
+        console.error('Translation error:', error);
+        const translatingMsg = document.getElementById('translating-msg');
+        if (translatingMsg) {
+            translatingMsg.innerText = '翻译失败，保持原语言。';
+        }
+    }
+}
 function speak(text) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -615,6 +656,12 @@ document.addEventListener('DOMContentLoaded', () => {
     langSelect.addEventListener('change', (event) => {
         const newLang = langSelect.value;
         updateUIText(newLang);
-        renderChat(); // 重绘聊天界面以更新初始消息等
+        
+        // ✨ 新增：如果有对话历史，则翻译所有对话
+        if (chatHistory.length > 0) {
+            translateChatHistory(newLang);
+        } else {
+            renderChat(); // 如果没有对话，仅重绘界面
+        }
     });
 });

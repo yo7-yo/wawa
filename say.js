@@ -446,8 +446,14 @@ async function sendChat(overrideText = null) {
 function speak(text) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'zh-CN';
-    utterance.rate = 1.0; 
+    const speechLangMap = {
+        zh: 'zh-CN',
+        en: 'en-US',
+        de: 'de-DE',
+        ja: 'ja-JP'
+    };
+    utterance.lang = speechLangMap[currentLang] || 'en-US';
+    utterance.rate = 1.0;
     window.speechSynthesis.speak(utterance);
 }
 
@@ -501,11 +507,12 @@ function showClearModal() {
 
 function verifyAndClear() {
     const input = document.getElementById('verify-input').value;
-    if (input === "确认清空") {
+    const confirmText = translations[currentLang].clearModalConfirmText;
+    if (input === confirmText) {
         clearAll();
         closeClearModal();
     } else {
-        alert("输入错误！请输入：确认清空");
+        alert(`${translations[currentLang].modalConfirm}失败！请输入：${confirmText}`);
     }
 }
 

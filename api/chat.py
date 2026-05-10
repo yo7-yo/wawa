@@ -94,6 +94,64 @@ def chat():
     except Exception as e:
         return jsonify({"answer": f"A server error occurred: {str(e)}"}), 500
 
+# ✨ 新增：翻译接口
+@app.route('/api/translate', methods=['POST'])
+def translate():
+    try:
+        data = request.json
+        messages = data.get('messages', [])  # 对话消息列表
+        target_lang = data.get('target_lang', 'en')
+        
+        # 获取目标语言名称
+        language_config = LANGUAGE_MAP.get(target_lang, LANGUAGE_MAP['en'])
+        language_name = language_config['name']
+        
+        # 创建翻译提示
+        translation_prompt = f"""Please translate the following dialogue to {language_name}. 
+Preserve the original meaning and tone. Return ONLY the translated text in JSON format with "user" and "assistant" messages.
+Format: {{"translated_messages": [{{"role": "user", "content": "..."}}, {{"role": "assistant", "content": "..."}}]}}
+
+Original dialogue:
+"""
+        # 构建消息内容
+        for msg in messages:
+            role = "User" if msg['role'] == 'user' else "Assistant"
+            translation_prompt += f"{role}: {msg['content']}\n"
+        
+        # 调用大模型翻译
+        payload = {
+            "model": MODEL_NAME,
+            "messages": [{"role": "system", "content": "You are a professional translator."}, 
+                        {"role": "user", "content": translation_prompt}],
+            "stream": False,
+            "max_tokens": 2048,
+            "temperature": 0.3
+        }
+        headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+        response = requests.post(API_URL, json=payload, headers=headers, verify=False, proxies={"http": None, "https": None}, timeout=30)
+        
+        if response.status_code == 200:
+            result = response.json()
+            translated_text = result['choices'][0]['message']['content']
+            
+            # 尝试解析 JSON 响应
+            try:
+                # 如果响应包含 JSON 格式
+                if 'translated_messages' in translated_text:
+                    json_match = translated_text[translated_text.find('{'):translated_text.rfind('}')+1]
+                    parsed = json.loads(json_match)
+                    return jsonify({"translated_messages": parsed.get('translated_messages', messages)})
+            except:
+                pass
+            
+            # 如果无法解析，返回原始消息
+            return jsonify({"translated_messages": messages, "raw_translation": translated_text})
+        else:
+            return jsonify({"translated_messages": messages, "error": f"Status code: {response.status_code}"})
+            
+    except Exception as e:
+        return jsonify({"translated_messages": [], "error": f"A server error occurred: {str(e)}"}), 500
+
 # ✨ 新增：一个根路由，用于测试服务器是否正常运行
 @app.route('/')
 def index():

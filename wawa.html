@@ -61,19 +61,45 @@ div.full-page.active { display:block; z-index:100; }
 .ai-log { margin-top:15px; color:#fbbf24; font-family:monospace; font-size:14px; }
 
 /* ================= 结果页 ================= */
-#mascotPage { flex-direction:column; justify-content:center; align-items:center; background:linear-gradient(135deg,#7f1d1d 0%,#991b1b 50%,#7f1d1d 100%); }
-.result-card { width:90%; max-width:400px; padding:25px; border:2px solid #fcd34d; border-radius:24px; background:rgba(140,20,20,0.6); backdrop-filter:blur(10px); transition:transform 0.3s; text-align:center; overflow:visible !important; position:relative; z-index:10; }
-#mascotCanvasWrap { width:100%; height:300px; position:relative; z-index:2; transition:transform 0.3s; margin-bottom:10px; }
+#mascotPage { flex-direction:column; justify-content:center; align-items:center; background:linear-gradient(135deg,#7f1d1d 0%,#991b1b 50%,#7f1d1d 100%); overflow-y:auto; padding:20px 0; }
+.result-card { width:90%; max-width:400px; padding:25px; border:2px solid #fcd34d; border-radius:24px; background:rgba(140,20,20,0.6); backdrop-filter:blur(10px); transition:all 0.5s; text-align:center; overflow:visible !important; position:relative; z-index:10; flex-shrink:0; margin:auto; }
+#mascotCanvasWrap { width:100%; height:300px; position:relative; z-index:2; transition:transform 0.3s; margin-bottom:10px; flex-shrink:0; }
+.model-info, .btn-group { flex-shrink:0; }
+
+/* ================= info 按钮 ================= */
+#infoBtn { position:fixed; top:80px; right:20px; width:36px; height:36px; z-index:2000; border-radius:50%; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.6); color:#fcd34d; border:1px solid #fcd34d; cursor:pointer; transition:top 0.3s; }
+body.ar-mode-global #infoBtn { top:120px; right:20px; }
+
+/* ================= 输入框聚焦时上移 ================= */
+#mascotPage.input-focused #mascotCanvasWrap,
+#mascotPage.input-focused .result-card { transform:translateY(-100px); }
+
+/* ================= QR 码容器 ================= */
+#qrCodeContainer { width:140px; height:140px; background:rgba(255,255,255,0.1); border-radius:12px; display:flex; justify-content:center; align-items:center; border:2px dashed #fcd34d; margin:15px auto; }
+#generatedQr { width:100%; height:100%; border-radius:10px; background:#fff; display:block; }
 
 /* ================= AR 控制按钮 ================= */
 #arControls { display:none; position:fixed; inset:0; z-index:100; pointer-events:none; }
 .ar-btn { position:absolute; height:44px; min-width:44px; padding:0 16px; border-radius:22px; border:none; background:rgba(0,0,0,0.6); backdrop-filter:blur(5px); color:#fff; font-size:14px; font-weight:bold; display:flex; justify-content:center; align-items:center; cursor:pointer; pointer-events:auto; box-shadow:0 2px 10px rgba(0,0,0,0.3); transition:all 0.2s; white-space:nowrap; }
 .ar-btn:active { transform:scale(0.95); background:rgba(255,255,255,0.2); }
+#arExitBtn { top:20px; left:20px; background:rgba(220,38,38,0.8); }
+#arHelpBtn { top:74px; left:20px; }
+#arMirrorBtn { top:20px; right:20px; }
+#arResetBtn { bottom:40px; left:20px; }
+#arToggleGestureBtn { bottom:94px; left:20px; }
+#arSwitchCameraBtn { top:74px; right:20px; display:none; }
+#arPhotoBtn { bottom:100px; right:20px; background:rgba(59,130,246,0.8); }
+#arVideoBtn { bottom:40px; right:20px; background:rgba(239,68,68,0.8); }
 
-/* ================= Loading / 状态提示 ================= */
-#loadingToast { position:fixed; top:45%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.8); color:#fff; padding:20px 40px; border-radius:12px; display:none; flex-direction:column; align-items:center; z-index:999; pointer-events:none; }
-.spinner { width:30px; height:30px; border:4px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 1s infinite linear; margin-bottom:10px; }
-@keyframes spin { to{transform:rotate(360deg);} }
+/* ================= 阶段信息弹窗 ================= */
+#stageModal { position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:3000; display:none; justify-content:center; align-items:center; text-align:center; padding:20px; overflow-y:auto; }
+.stage-modal-content { background:rgba(20,20,20,0.9); border:2px solid #fcd34d; border-radius:16px; padding:30px; width:100%; max-width:500px; box-shadow:0 0 40px rgba(212,175,55,0.3); }
+.stage-modal-content h3 { color:#fcd34d; font-size:24px; margin-bottom:20px; text-shadow:0 0 10px #f59e0b; }
+.stage-section { margin-bottom:20px; text-align:left; }
+.stage-section h4 { color:#fbbf24; font-size:16px; margin-bottom:10px; }
+.stage-section p { color:#e0c097; font-size:14px; line-height:1.6; white-space:pre-wrap; margin-bottom:15px; }
+.stage-close-btn { background:linear-gradient(to bottom,#fcd34d,#d97706); color:#450a0a; font-weight:900; padding:12px 30px; border-radius:25px; border:none; box-shadow:0 4px 0 #92400e; cursor:pointer; font-size:16px; transition:transform 0.2s; }
+.stage-close-btn:active { transform:scale(0.96); }
 </style>
 </head>
 <body>
@@ -106,6 +132,26 @@ div.full-page.active { display:block; z-index:100; }
 <div id="loadingToast">
   <div class="spinner"></div>
   <div id="loadingText">处理中...</div>
+</div>
+
+<!-- ================= 阶段信息弹窗 ================= -->
+<div id="stageModal">
+  <div class="stage-modal-content">
+    <h3 id="stageTitle">文物的故事</h3>
+    <div class="stage-section">
+      <h4 id="stageHistoryLabel">历史背景</h4>
+      <p id="stageHistory"></p>
+    </div>
+    <div class="stage-section">
+      <h4 id="stageFunctionLabel">功能用途</h4>
+      <p id="stageFunction"></p>
+    </div>
+    <div class="stage-section">
+      <h4 id="stageSignificanceLabel">历史意义</h4>
+      <p id="stageSignificance"></p>
+    </div>
+    <button class="stage-close-btn" onclick="closeStageModal()">关闭</button>
+  </div>
 </div>
 
 <video id="bgVideo" autoplay playsinline muted></video>
@@ -145,10 +191,12 @@ div.full-page.active { display:block; z-index:100; }
     <div class="model-info">
       <div id="namingSection">
         <h2 class="congrats-title">🎉 唤醒成功！</h2>
+        <input type="text" id="artifactNameInput" placeholder="为TA赐名..." style="width: 80%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #fcd34d; background: rgba(0,0,0,0.5); color: #fff; text-align: center; font-size: 16px;">
       </div>
       <div id="actionSection">
         <h2 id="finalNameDisplay"></h2>
         <p>文物拟人化形态已生成</p>
+        <div id="artifactInfoContainer" class="artifact-info"></div>
         <div id="qrCodeContainer">
           <img id="generatedQr" src="" alt="QR Code">
         </div>
@@ -321,6 +369,118 @@ const translations = {
 };
 
 let currentLang = 'zh';
+let currentStage = '1_soft'; // 当前阶段，根据模型名称动态设置
+
+/* ================= 文物阶段历史数据 ================= */
+const artifactStages = {
+  "1_soft": {
+    zh: {
+      title: "阶段 1 — 铸造诞生期（商末 / 西周初）",
+      history: "商末至西周初，青铜冶炼技术高度成熟，青铜器不仅是日常用品，更是祭祀和权力象征。皿方罍作为方形礼器在王室或贵族青铜作坊铸造，承载宗族与王权的庄重使命。",
+      function: "• 盛放酒水，用于祖先祭祀和重大典礼。\n• 方形腹体、四足、高颈设计稳固庄重，适合礼仪场合。\n• 器身饰饕餮纹、几何纹及铭文，记录祭祀程序、家族关系及王室功绩。",
+      significance: "• 象征权力、尊贵与威严，反映社会等级和宗法制度。\n• 铭文与纹饰为研究商周政治、宗族和礼制提供重要资料。"
+    },
+    en: {
+      title: "Stage 1 — Casting Birth Period (Late Shang / Early Western Zhou)",
+      history: "During the late Shang to early Western Zhou, bronze metallurgy was highly developed. Bronze vessels were not only everyday objects but also symbols of ritual and power. The square ritual vessel was cast in royal or aristocratic workshops, carrying solemn social and royal significance.",
+      function: "• Used for holding wine in ancestral sacrifices and major ceremonies.\n• Square body with four legs and high neck for stability and solemnity.\n• Decorated with taotie and geometric patterns; inscriptions record rituals, family relations, and royal achievements.",
+      significance: "• Symbolizes power, prestige, and authority, reflecting social hierarchy and clan system.\n• Inscriptions and decorations provide important references for studying Shang-Zhou politics, clan, and ritual system."
+    },
+    de: {
+      title: "Phase 1 — Guss-Entstehungsphase (Späte Shang / Frühe Westliche Zhou)",
+      history: "Von der späten Shang- bis zur frühen Westlichen Zhou-Zeit war die Bronzeverarbeitung hochentwickelt. Bronzen dienten nicht nur im Alltag, sondern auch als Symbol für Ritual und Macht. Der quadratische Ritualbehälter wurde in königlichen oder adeligen Werkstätten gegossen und trug gesellschaftliche und königliche Bedeutung.",
+      function: "• Zum Aufbewahren von Wein für Ahnenrituale und große Zeremonien.\n• Quadratischer Körper mit vier Beinen und hohem Hals für Stabilität.\n• Verziert mit Taotie- und geometrischen Mustern; Inschriften dokumentieren Rituale, Familienbeziehungen und königliche Leistungen.",
+      significance: "• Symbolisiert Macht, Prestige und Autorität und spiegelt die soziale Hierarchie und das Clansystem wider.\n• Inschriften und Verzierungen bieten wichtige Hinweise zum Studium der Shang-Zhou-Politik, Clanstrukturen und Ritualsysteme."
+    },
+    ja: {
+      title: "第1段階 — 鋳造誕生期（商末/西周初）",
+      history: "商末から西周初期にかけて、青銅冶金技術は高度に発展しており、青銅器は日用品だけでなく、儀式や権力の象徴でもありました。方形礼器は王室や貴族の作業場で鋳造され、宗族や王権の重要な使命を担っていました。",
+      function: "• 酒を盛り、先祖祭祀や重要な儀式に使用。\n• 四足の方形胴体と高い首で安定と厳粛さを確保。\n• 饕餮文や幾何学模様、銘文で儀式、家族関係、王室の功績を記録。",
+      significance: "• 権力、尊貴、威厳を象徴し、社会階級と宗法制度を反映。\n• 銘文と文様は商周の政治、宗族、礼制の研究に重要な資料を提供。"
+    }
+  },
+
+  "2_soft": {
+    zh: {
+      title: "阶段 2 — 使用期（商末–西周早期）",
+      history: "商末至西周早期，皿方罍成为王室和贵族祭祀、宴会及礼仪的核心青铜器，礼器规格、纹饰和铭文体现社会等级和礼制规范。",
+      function: "• 盛放酒水，参与祭祀、宴会及重大典礼。\n• 祭祀者小心奉献酒水，体现对祖先和神灵的敬意。\n• 铭文记录礼制、家族关系及王室功绩，是礼仪和宗法制度的重要凭证。",
+      significance: "• 象征权威、尊贵和家族荣耀，是贵族和王室礼仪不可或缺的器物。\n• 反映社会等级和政治秩序，展现礼制在贵族生活中的核心地位。"
+    },
+    en: {
+      title: "Stage 2 — Usage Period (Late Shang – Early Western Zhou)",
+      history: "During the late Shang to early Western Zhou, the vessel became a core ritual bronze for royal and aristocratic sacrifices, banquets, and ceremonies. Specifications, decorations, and inscriptions reflected social hierarchy and ritual norms.",
+      function: "• Used for holding wine in rituals, banquets, and major ceremonies.\n• Ritualists carefully offered wine, showing respect to ancestors and deities.\n• Inscriptions record rituals, family relations, and royal achievements, serving as evidence for ceremonial and clan systems.",
+      significance: "• Symbolizes authority, prestige, and family honor; indispensable for aristocratic and royal rituals.\n• Reflects social hierarchy and political order, showing the centrality of rituals in noble life."
+    },
+    de: {
+      title: "Phase 2 — Nutzungsphase (Späte Shang – Frühe Westliche Zhou)",
+      history: "Von der späten Shang- bis zur frühen Westlichen Zhou-Zeit wurde das Gefäß zum Kernritualbronzeobjekt für königliche und adlige Zeremonien. Größe, Verzierungen und Inschriften spiegelten die soziale Hierarchie und rituelle Normen wider.",
+      function: "• Zur Aufbewahrung von Wein in Ritualen, Festen und Zeremonien.\n• Ritualisten brachten Wein sorgfältig dar, um Respekt gegenüber Ahnen und Göttern zu zeigen.\n• Inschriften dokumentieren Rituale, Familienbeziehungen und königliche Leistungen.",
+      significance: "• Symbolisiert Autorität, Prestige und Familienehre; unverzichtbar für aristokratische und königliche Rituale.\n• Spiegeln soziale Hierarchie und politische Ordnung wider."
+    },
+    ja: {
+      title: "第2段階 — 使用期（商末–西周早期）",
+      history: "商末から西周初期にかけて、礼器は王室や貴族の祭祀、宴会、儀式における重要な青銅器となりました。礼器の仕様、装飾、銘文は社会階級や儀礼規範を反映しています。",
+      function: "• 酒を盛り、祭祀、宴会、重要な儀式に使用。\n• 祭祀者は慎重に酒を捧げ、先祖や神々への敬意を示す。\n• 銘文は儀礼、家族関係、王室の功績を記録する重要な証拠です。",
+      significance: "• 権力と尊貴、家族の栄誉を象徴；貴族や王族の儀式に不可欠です。"
+    }
+  },
+
+  "3_soft": {
+    zh: {
+      title: "阶段 3 — 沉寂期（西周中晚期–春秋战国）",
+      history: "西周中期后，礼制变化，新的祭祀器型替代了古老的方形礼器，皿方罍逐渐淡出历史舞台。器物被保存在贵族家族的宝库中，或埋入地下作为陪葬品，开始了漫长的沉寂。",
+      function: "• 不再活跃使用，但作为珍贵遗产保留在贵族家族中。\n• 有些被埋入墓葬，成为永恒的陪伴。\n• 其他则封存在密室或宝库中，等待被发现。",
+      significance: "• 代表一个时代的终结与转变。\n• 见证了礼制的演进和社会的发展。"
+    },
+    en: {
+      title: "Stage 3 — Silent Period (Mid-Late Western Zhou – Spring-Autumn Warring States)",
+      history: "After the middle Western Zhou, ritual systems changed and new sacrifice vessel types replaced the ancient square vessels. The artifact gradually faded from history and was preserved in aristocratic family treasuries or buried underground as grave goods, entering a long period of silence.",
+      function: "• No longer actively used but preserved as a precious family heirloom.\n• Some were buried in tombs as eternal companions.\n• Others were sealed in vaults or treasuries, waiting to be discovered.",
+      significance: "• Represents the end and transition of an era.\n• Witnesses the evolution of rituals and social development."
+    },
+    de: {
+      title: "Phase 3 — Stille Periode (Mitte-Späte Westliche Zhou – Frühling und Herbst Kriegreiche)",
+      history: "Nach der mittleren Westlichen Zhou-Zeit änderten sich die Ritualsysteme. Das Objekt verschwand allmählich aus der Geschichte und wurde in aristokratischen Familienschätzen aufbewahrt oder als Grabbeigabe vergraben.",
+      function: "• Nicht mehr aktiv verwendet, aber als kostbares Familienerbe bewahrt.\n• Einige wurden in Gräbern begraben als ewige Begleiter.\n• Andere wurden in Gewölben oder Schatzkammern versiegelt.",
+      significance: "• Repräsentiert das Ende und den Übergang einer Ära.\n• Zeuge der rituellen Entwicklung und gesellschaftlichen Veränderung."
+    },
+    ja: {
+      title: "第3段階 — 沈黙の期間（西周中期–春秋戦国時代）",
+      history: "西周中期後、礼制が変わり、新しい祭祀器がこの古い方形礼器に取って代わりました。器物は貴族家族の宝庫に保存されるか、埋葬品として地下に埋められ、長い沈黙の時代に入りました。",
+      function: "• 積極的に使用されることはなくなりましたが、貴族家族の貴重な遺産として保存されました。\n• 一部は墓に埋葬され、永遠の伴侶となりました。\n• その他はヴォールトや宝庫に密閉されました。",
+      significance: "• ある時代の終わりと転換を表しています。\n• 儀礼の進化と社会の発展の証人となりました。"
+    }
+  },
+
+  "4_soft": {
+    zh: {
+      title: "阶段 4 — 重生期（现代–今日）",
+      history: "经过数千年的沉寂，皿方罍终于被现代考古学家发现。通过现代科技和学术研究，这件古老的文物被唤醒，重新讲述它的故事，成为连接过去与现在的桥梁。",
+      function: "• 展出于博物馆，供世人瞻仰和学习。\n• 通过AR和数字技术，让文物以新的方式与现代人互动。\n• 成为文化传承和历史教育的重要工具。",
+      significance: "• 象征文化遗产的永恒价值和生命力。\n• 通过现代技术实现古物与现代社会的对话与融合。\n• 提醒我们尊重历史，保护文明。"
+    },
+    en: {
+      title: "Stage 4 — Rebirth Period (Modern Age – Today)",
+      history: "After thousands of years of silence, the artifact was finally discovered by modern archaeologists. Through modern technology and academic research, this ancient relic has been awakened, retelling its story and becoming a bridge connecting the past and present.",
+      function: "• Exhibited in museums for people to admire and learn from.\n• Through AR and digital technology, the artifact interacts with modern people in new ways.\n• Serves as an important tool for cultural heritage preservation and historical education.",
+      significance: "• Symbolizes the eternal value and vitality of cultural heritage.\n• Achieves dialogue and integration between ancient objects and modern society through modern technology.\n• Reminds us to respect history and protect civilization."
+    },
+    de: {
+      title: "Phase 4 — Wiedergeburt (Moderne Zeit – Heute)",
+      history: "Nach Tausenden von Jahren der Stille wurde das Objekt endlich von modernen Archäologen entdeckt. Durch moderne Technologie und akademische Forschung wurde dieses alte Relikt erweckt und erzählt seine Geschichte neu.",
+      function: "• In Museen ausgestellt zur Bewunderung und zum Lernen.\n• Durch AR und digitale Technologie interagiert das Objekt auf neue Weise mit modernen Menschen.\n• Dient als wichtiges Werkzeug für Kulturerbschutz und historische Bildung.",
+      significance: "• Symbolisiert den ewigen Wert und die Vitalität des Kulturerbes.\n• Ermöglicht Dialog und Integration zwischen antiken Objekten und der modernen Gesellschaft.\n• Erinnert uns daran, die Geschichte zu respektieren und die Zivilisation zu schützen."
+    },
+    ja: {
+      title: "第4段階 — 再生期（現代時代–今日）",
+      history: "数千年の沈黙の後、この古い器物は遂に現代の考古学者に発見されました。現代技術と学術研究を通じて、この古い遺物は目覚めさせられ、その物語を語り直し、過去と現在を結ぶ橋となりました。",
+      function: "• 博物館に展示され、人々に鑑賞と学習の機会を提供。\n• AR と デジタル技術を通じて、器物は現代人と新しい方法でインタラクション。\n• 文化遺産保護と歴史教育の重要な手段です。",
+      significance: "• 文化遺産の永遠の価値と生命力を象徴。\n• 現代技術を通じて古い器物と現代社会の対話と融合を実現。\n• 私たちに歴史を尊重し、文明を保護することを思い出させます。"
+    }
+  }
+};
 
 /* ==============================
    多语言应用函数
@@ -329,12 +489,10 @@ function updateLanguage(lang) {
   currentLang = lang;
   const t = translations[lang];
 
-  // 顶部与图鉴按钮
   document.getElementById('back-to-index-btn').textContent = t['back-to-index'];
   document.getElementById('galleryBtn').textContent = t['gallery-btn'];
   document.getElementById('loadingText').textContent = t['loading-text'];
 
-  // AR 指南
   const guideItems = document.querySelectorAll('#arInstructions li');
   document.querySelector('#arInstructions h2').textContent = t['ar-guide-title'];
   guideItems[0].innerHTML = `<span class="icon">☝️</span><b>${t['ar-guide-1']}:</b> ${t['ar-guide-1-desc']}`;
@@ -344,20 +502,15 @@ function updateLanguage(lang) {
   guideItems[4].innerHTML = `<span class="icon">🤟</span><b>${t['ar-guide-5']}:</b> ${t['ar-guide-5-desc']}`;
   document.querySelector('#arInstructions button').textContent = t['ar-guide-btn'];
 
-  // 首页地图页标题与盲盒按钮
   document.querySelector('.cover-title').textContent = t['title'];
   document.querySelector('.blind-box-btn').textContent = t['blind-box-btn'];
-
-  // AI 页面
   document.querySelector('.ai-title').textContent = t['ai-title'];
 
-  // 结果页
   document.getElementById('infoBtn').textContent = t['info-btn'];
   document.querySelector('.congrats-title').textContent = t['congrats'];
   document.querySelector('#actionSection p').textContent = t['model-desc'];
   document.querySelector('.btn-ar').textContent = t['ar-photo-btn'];
 
-  // AR 控制按钮
   document.getElementById('arExitBtn').textContent = t['ar-exit'];
   document.getElementById('arHelpBtn').textContent = t['ar-help'];
   document.getElementById('arMirrorBtn').textContent = t['ar-mirror'];
@@ -366,6 +519,42 @@ function updateLanguage(lang) {
   document.getElementById('arSwitchCameraBtn').textContent = t['ar-camera'];
   document.getElementById('arPhotoBtn').textContent = t['ar-photo'];
   document.getElementById('arVideoBtn').textContent = t['ar-video'];
+
+  // 更新阶段信息弹窗的标签文字
+  updateStageModalLabels(lang);
+}
+
+/* ==============================
+   阶段信息函数
+   ============================== */
+function updateStageModalLabels(lang) {
+  const labels = {
+    zh: { history: '历史背景', function: '功能用途', significance: '历史意义' },
+    en: { history: 'Historical Background', function: 'Function & Use', significance: 'Historical Significance' },
+    de: { history: 'Historischer Hintergrund', function: 'Funktion & Verwendung', significance: 'Historische Bedeutung' },
+    ja: { history: '歴史的背景', function: '機能と用途', significance: '歴史的重要性' }
+  };
+  const l = labels[lang] || labels['zh'];
+  document.getElementById('stageHistoryLabel').textContent = l.history;
+  document.getElementById('stageFunctionLabel').textContent = l.function;
+  document.getElementById('stageSignificanceLabel').textContent = l.significance;
+}
+
+function showStageInfo() {
+  const stage = artifactStages[currentStage];
+  if (!stage) return;
+
+  const stageData = stage[currentLang] || stage['zh'];
+  document.getElementById('stageTitle').textContent = stageData.title;
+  document.getElementById('stageHistory').textContent = stageData.history;
+  document.getElementById('stageFunction').textContent = stageData.function;
+  document.getElementById('stageSignificance').textContent = stageData.significance;
+  
+  document.getElementById('stageModal').style.display = 'flex';
+}
+
+function closeStageModal() {
+  document.getElementById('stageModal').style.display = 'none';
 }
 
 /* ==============================
@@ -377,6 +566,34 @@ document.addEventListener('DOMContentLoaded', () => {
   const langSelect = document.getElementById('lang-select');
   if (langSelect) {
     langSelect.addEventListener('change', (e) => updateLanguage(e.target.value));
+  }
+
+  // 处理键盘弹出时的画面推移
+  const inputEl = document.getElementById('artifactNameInput');
+  if (inputEl) {
+    inputEl.addEventListener('focus', () => {
+      setTimeout(() => {
+        inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    });
+  }
+
+  // 绑定"经历"按钮点击事件
+  const infBtn = document.getElementById('infoBtn');
+  if (infBtn) {
+    infBtn.addEventListener('click', () => {
+      showStageInfo();
+    });
+  }
+
+  // 点击弹窗外部关闭
+  const stageModal = document.getElementById('stageModal');
+  if (stageModal) {
+    stageModal.addEventListener('click', (e) => {
+      if (e.target === stageModal) {
+        closeStageModal();
+      }
+    });
   }
 });
 
@@ -412,11 +629,13 @@ function startBlindBoxFlow(){
 function enterARMode(){
   document.body.classList.add('ar-mode-global');
   document.getElementById('arControls').style.display='block';
+  document.getElementById('infoBtn').style.display = 'none';
 }
 
 function exitARMode(){
   document.body.classList.remove('ar-mode-global');
   document.getElementById('arControls').style.display='none';
+  document.getElementById('infoBtn').style.display = 'block';
 }
 
 function takePhoto(){
@@ -427,16 +646,7 @@ function backToMap(){
   document.querySelector('#mascotPage').classList.remove('active');
   document.querySelector('#mapPage').classList.add('active');
 }
-
-/* ==============================
-   输入框聚焦事件
-   ============================== */
-function setupInputFocusHandlers(){
-  const mascotInput = document.getElementById('mascotNameInput');
-  if(!mascotInput) return;
-  mascotInput.addEventListener('focus', ()=>document.getElementById('mascotPage').classList.add('input-focused'));
-  mascotInput.addEventListener('blur', ()=>document.getElementById('mascotPage').classList.remove('input-focused'));
-}
-
-setupInputFocusHandlers();
 </script>
+
+</body>
+</html>

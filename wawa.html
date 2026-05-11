@@ -380,14 +380,21 @@ function updateLanguage(lang) {
   document.getElementById('arVideoBtn').textContent = t['ar-video'];
 }
 
-// 初始化语言选择器
-document.getElementById('lang-select').addEventListener('change', (e) => {
-  updateLanguage(e.target.value);
-});
-
-// 页面加载时初始化为中文
+// 页面加载时初始化
 document.addEventListener('DOMContentLoaded', () => {
+  // 初始化为中文
   updateLanguage('zh');
+  
+  // 初始化语言选择器
+  const langSelect = document.getElementById('lang-select');
+  if (langSelect) {
+    langSelect.addEventListener('change', (e) => {
+      updateLanguage(e.target.value);
+    });
+  }
+  
+  // 处理输入框聚焦事件
+  setupInputFocusHandlers();
 });
 
 // 这里写 JS：控制页面切换、AI 进度条、AR 拍照、infoBtn隐藏逻辑
@@ -445,11 +452,6 @@ function setupInputFocusHandlers(){
     document.getElementById('mascotPage').classList.remove('input-focused');
   });
 }
-
-// 初始化输入框处理
-document.addEventListener('DOMContentLoaded', ()=>{
-  setupInputFocusHandlers();
-});
 
 </script>
 

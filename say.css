@@ -261,142 +261,31 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
 .role-desc { font-size: 0.8em; color: #ccc; }
 
 @media (max-width: 768px) {
-/* 1. 让控制栏容器撑满 100% 宽度 */
-    .controls-bar {
-        width: 100% !important;
-        margin-top: 8px !important;
-        display: block !important; /* 取消原来的 flex，让内部的 action-buttons 独占一行 */
-    }
-
-    /* 2. 让按钮组容器撑满，并开启 Flex 排版 */
-    .action-buttons {
-        display: flex !important;
-        width: 100% !important;
-        gap: 6px !important; /* 按钮之间的缝隙，觉得挤可以改成 4px */
-        margin: 0 !important;
-    }
-
-    /* 3. ★核心★：让四个按钮平分宽度，一行塞下 */
-    .action-buttons button {
-        flex: 1 !important;           /* 平分剩下的所有空间 */
-        min-width: 0 !important;      /* 防止文字过长时撑破布局 */
-        padding: 10px 0 !important;   /* 增加上下高度，取消左右内边距 */
-        text-align: center !important;/* 文字绝对居中 */
-        font-size: 12px !important;   /* 稍微调小一点字号适应屏幕 */
-        white-space: nowrap !important; /* 强制文字不换行 */
-        border-radius: 6px !important;
-    }
-    /* 1. 顶部 Header：按钮离顶部有距离，且最高处对齐 */
-    header {
-        display: flex !important;
-        flex-wrap: wrap !important;
-        /* ★ 核心修改：改为 flex-end，让这一行的所有元素对齐底边 ★ */
-        align-items: flex-end !important; 
-        justify-content: space-between !important;
-        padding: 10px 8px 0 8px !important; /* 取消底部内边距，让它贴底 */
-        height: auto !important;
-        min-height: 80px; /* 给一个最小高度，防止太挤 */
-    }
-
-    #lang-select, #blind-box-btn {
-        margin: 0 !important;
-        position: static !important;
-        transform: none !important;
-        height: 32px !important;
-        font-size: 12px !important;
-    }
-
-    header h1 {
-        flex: 1;
-        font-size: 1.05em !important;
-        text-align: center;
-        margin: 0 5px !important;
-        padding-top: 4px; /* 视觉微调对齐 */
-    }
-
-    /* 文物名称：header最底部居中 */
-    #artifact-name {
-        flex: 0 0 100% !important;
-        background: transparent !important;
-        border: none !important;
-        color: #B8860B !important;
-        font-weight: bold;
-        text-align: center;
-        font-size: 0.95em !important;
-        margin: 8px 0 0 0 !important;
-        order: 4;
-    }
-
-    /* 2. 中间模型区域回缩 */
-    #canvas-container {
-        margin-top: -20px !important; 
-        height: 42vh !important;
-        min-height: 300px !important;
-    }
-
-    /* 3. 对话面板向上平移 15px，紧贴模型 */
-    .chat-panel {
-        margin-top: -15px !important; 
-        background: #141414;
-        padding: 10px 6px !important; /* 稍微收缩左右内边距给按钮腾空间 */
-    }
-
-    /* 4. 底部四个按钮强行挤在一行 */
-    .controls-bar {
-        width: 100% !important;
-        margin-top: 5px !important;
-    }
-
-    .action-buttons { 
-        display: flex; 
-        gap: 5px; 
-    }
-
-    .action-buttons button {
-        flex: 1 !important;           /* ★ 每个按钮平分空间 ★ */
-        min-width: 0 !important;      /* 允许按钮缩得比内容小 */
-        padding: 8px 2px !important;  /* 极小的内边距 */
-        font-size: 11px !important;   /* 较小的字体以适应德语 */
-        white-space: nowrap !important;/* 禁止文字换行 */
-        overflow: hidden;             /* 超出部分隐藏 */
-        text-overflow: clip;          /* 直接切断或不显示省略号，保证挤得下 */
-        text-align: center;
-        border-radius: 4px !important;
-        letter-spacing: -0.5px;       /* 微调字间距，挤一挤 */
-    }
-
-    /* 长按菜单也同样处理 */
-    #selection-controls .action-buttons button {
-        font-size: 11px !important;
-    }
-
+    /* 顶部 Header 两行布局 */
     .app-header {
         display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 10px 20px;
+        flex-direction: column; /* 两行垂直排列 */
+        gap: 8px;               /* 两行间距 */
+        padding: 8px 12px;
     }
 
+    /* 第一行：标题单独一行 */
     .title-row h1 {
         margin: 0;
-        font-size: 28px;
+        font-size: 1.2em;
         text-align: center;
     }
 
+    /* 第二行：语言选择框 + 按钮 + 文物名称 */
     .top-row {
         display: flex;
-        align-items: center;
-        gap: 10px;
-        justify-content: flex-start;
+        align-items: center;       /* 垂直居中 */
+        justify-content: flex-start; /* 左对齐，可改 center */
+        gap: 8px;                  /* 元素间水平间距 */
+        flex-wrap: wrap;           /* 太窄自动换行 */
     }
 
-    @media (max-width: 768px) {
-        .top-row {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-    }
-
+    /* 去掉绝对定位 */
     #lang-select,
     #blind-box-btn,
     #artifact-name {
@@ -405,18 +294,66 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
         margin: 0 !important;
     }
 
-    #lang-select, #blind-box-btn {
+    /* 微调控件高度和字体 */
+    #lang-select,
+    #blind-box-btn {
         height: 32px;
-        font-size: 13px;
+        font-size: 12px;
     }
 
     #artifact-name {
-        width: 150px;
+        flex: 1;                  /* 占剩余空间 */
+        min-width: 80px;
         text-align: center;
         background: #222;
         border: 1px solid #5c4d3c;
         color: #d4af37;
         padding: 5px 10px;
         font-family: inherit;
+        order: 3;                 /* 保证在按钮之后显示 */
+    }
+
+    /* 模型区域微调 */
+    #canvas-container {
+        margin-top: -20px !important;
+        height: 42vh !important;
+        min-height: 300px !important;
+    }
+
+    /* 对话面板向上 */
+    .chat-panel {
+        margin-top: -15px !important;
+        background: #141414;
+        padding: 10px 6px !important;
+    }
+
+    /* 底部按钮一行 */
+    .controls-bar {
+        width: 100% !important;
+        margin-top: 5px !important;
+    }
+
+    .action-buttons {
+        display: flex !important;
+        gap: 5px !important;
+        width: 100% !important;
+    }
+
+    .action-buttons button {
+        flex: 1 !important;
+        min-width: 0 !important;
+        padding: 8px 2px !important;
+        font-size: 11px !important;
+        white-space: nowrap !important;
+        overflow: hidden;
+        text-overflow: clip;
+        text-align: center;
+        border-radius: 4px !important;
+        letter-spacing: -0.5px;
+    }
+
+    /* 长按菜单按钮微调 */
+    #selection-controls .action-buttons button {
+        font-size: 11px !important;
     }
 }

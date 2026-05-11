@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI文物探索</title>
     <link rel="stylesheet" href="say.css">
+
+    <!-- ================= THREE.js & 模型加载相关 ================= -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r132/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
@@ -12,48 +14,61 @@
 </head>
 <body>
     <div id="app">
-    <header class="app-header">
 
-        <div class="title-row">
-            <h1>🏛️文物秘语</h1>
-        </div>
+        <!-- ================= 顶部标题与工具栏 ================= -->
+        <header class="app-header">
+            <!-- 标题行 -->
+            <div class="title-row">
+                <h1>🏛️文物秘语</h1>
+            </div>
 
-        <div class="top-row"></div>
-            <select id="lang-select" class="secondary-btn">
-                <option value="zh">中文</option>
-                <option value="en">English</option>
-                <option value="de">Deutsch</option>
-                <option value="ja">日本語</option>
-            </select>
+            <!-- 顶部控件行 -->
+            <div class="top-row">
+                <!-- 语言选择 -->
+                <select id="lang-select" class="secondary-btn">
+                    <option value="zh">中文</option>
+                    <option value="en">English</option>
+                    <option value="de">Deutsch</option>
+                    <option value="ja">日本語</option>
+                </select>
 
-            <!-- 修改后的代码 -->
-            <button 
-                onclick="window.location.href='wawa.html?lang=' + (localStorage.getItem('app_language') || 'zh')" 
-                id="blind-box-btn"
-                class="primary-btn blind-box-btn"
-                data-lang-zh="请君启藏"
-                data-lang-en="Draw Box"
-                data-lang-de="Box Ziehen"
-                data-lang-ja="盲箱引く">
-                请君启藏
-            </button>
+                <!-- 盲盒按钮 -->
+                <button 
+                    onclick="window.location.href='wawa.html?lang=' + (localStorage.getItem('app_language') || 'zh')" 
+                    id="blind-box-btn"
+                    class="primary-btn blind-box-btn"
+                    data-lang-zh="请君启藏"
+                    data-lang-en="Draw Box"
+                    data-lang-de="Box Ziehen"
+                    data-lang-ja="盲箱引く">
+                    请君启藏
+                </button>
 
-            <input type="text" id="artifact-name" value="皿方罍" readonly>
-        </div>
-    </header>
+                <!-- 文物名称 -->
+                <input type="text" id="artifact-name" value="皿方罍" readonly>
+            </div>
+        </header>
+
+        <!-- ================= 3D 模型画布容器 ================= -->
         <div id="canvas-container">
             <div id="loading-overlay">文物出库中...</div>
         </div>
+
+        <!-- ================= 聊天面板 ================= -->
         <div class="chat-panel">
+
+            <!-- 用户输入区 -->
             <div class="input-area">
                 <input type="text" id="user-input" placeholder="请在此输入您的对话...">
                 <button id="send-btn" class="primary-btn">发送</button>
             </div>
-            
+
+            <!-- 聊天记录区 -->
             <div id="chat-history">
                 <div class="message system-msg" id="dynamic-greeting">文物之灵苏醒中...</div>
             </div>
-            
+
+            <!-- 常规控制栏 -->
             <div class="controls-bar">
                 <div class="action-buttons">
                     <button id="undo-btn" class="secondary-btn">↩️ 撤回</button>
@@ -62,7 +77,8 @@
                     <button id="save-btn" class="secondary-btn">💾 保存</button>
                 </div>
             </div>
-            
+
+            <!-- 选择对话控制栏（隐藏默认） -->
             <div id="selection-controls" class="controls-bar" style="display: none !important;">
                 <p id="selection-counter">已选中 0 组对话</p>
                 <div class="action-buttons">
@@ -70,8 +86,11 @@
                     <button id="delete-selected-btn" class="primary-btn" style="background: #a33;">🗑️ 删除</button>
                 </div>
             </div>
+
         </div>
     </div>
+
+    <!-- ================= 清空聊天记录模态框 ================= -->
     <div id="clear-modal" class="modal">
         <div class="modal-content">
             <h3>⚠️ 警告：记忆消除</h3>
@@ -84,31 +103,33 @@
             </div>
         </div>
     </div>
+
+    <!-- ================= 页面脚本 ================= -->
     <script src="say.js"></script>
 
+    <!-- ================= 文物名称位置自适应脚本 ================= -->
     <script>
         function adjustArtifactNamePosition() {
             const artifactName = document.getElementById('artifact-name');
             const header = document.querySelector('.app-header');
-            // 获取第一个 controls-bar（也就是常规按钮那一栏）
             const controlsBar = document.querySelector('.controls-bar'); 
             
             if (window.innerWidth > 768) {
-                // 【PC端】如果屏幕大于768px，把它挪到底部控制栏的最左边
+                // PC端：移至底部控制栏最左边
                 if (artifactName.parentNode !== controlsBar) {
                     controlsBar.insertBefore(artifactName, controlsBar.firstChild);
                 }
             } else {
-                // 【移动端】如果屏幕小于等于768px，把它放回 header 里面，保持你的完美移动端排版
+                // 移动端：移回 header
                 if (artifactName.parentNode !== header) {
                     header.appendChild(artifactName);
                 }
             }
         }
 
-        // 页面加载完成、以及用户拉伸窗口大小时，自动执行
         window.addEventListener('DOMContentLoaded', adjustArtifactNamePosition);
         window.addEventListener('resize', adjustArtifactNamePosition);
     </script>
+
 </body>
 </html>

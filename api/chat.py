@@ -1,6 +1,6 @@
 from http.server import BaseHTTPRequestHandler
 
-from api._mimo import BASE_URL, MODEL_NAME, API_KEY, build_chat_messages, extract_message_content, parse_json_text, post_mimo, read_json_body, write_json, write_no_content
+from _mimo import BASE_URL, MODEL_NAME, API_KEY, build_chat_messages, extract_message_content, parse_json_text, post_mimo, read_json_body, write_json, write_no_content
 
 
 class handler(BaseHTTPRequestHandler):

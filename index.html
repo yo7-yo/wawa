@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>选择对话模式</title>
+    
     <style>
-        /* ================= 基础样式 ================= */
+        /* =========================================
+           1. 基础重置与全局样式
+           ========================================= */
         body {
             margin: 0;
             padding: 0;
@@ -16,7 +19,9 @@
             min-height: 100vh;
         }
 
-        /* ================= 顶部标题区 ================= */
+        /* =========================================
+           2. 顶部标题区域
+           ========================================= */
         .header {
             position: relative;
             background-color: #000;
@@ -40,24 +45,48 @@
             letter-spacing: 1px;
         }
 
-        .header-controls {
+        /* =========================================
+           3. 主体内容布局容器
+           ========================================= */
+        .main-content {
+            flex: 1;
             display: flex;
-            justify-content: flex-start;
-            margin-top: 20px;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box; 
+        }
+
+        /* 语言控制区容器 */
+        .lang-controls {
             width: 100%;
         }
 
-        /* ================= 语言选择框 ================= */
+        /* 按钮组外层包裹（处理移动端与PC端的间距差异） */
+        .content-wrapper {
+            margin: 0 auto;
+            margin-top: 50px; /* 移动端默认下移 50px */
+            width: 100%;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* =========================================
+           4. 语言选择器样式 (Select)
+           ========================================= */
         #lang-select {
             padding: 6px 10px;
-            border-radius: 4px;
-            background: rgba(60, 60, 60, 0.8);
-            color: #e5e5e5;
-            border: 1px solid #666;
+            border-radius: 4px;            
+            background: rgba(60, 60, 60, 0.8); 
+            color: #e5e5e5;                
+            border: 1px solid #666;        
             font-size: 14px;
+            font-weight: normal;           
             cursor: pointer;
             -webkit-appearance: none;
             appearance: none;
+
+            /* 自定义下拉箭头 */
             background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E');
             background-repeat: no-repeat;
             background-position: right 10px top 50%;
@@ -70,58 +99,21 @@
             border-color: #888;
         }
 
-        @media screen and (min-width: 1024px) {
-            #lang-select {
-                font-size: 16px !important;
-                padding: 8px 30px 8px 10px !important;
-            }
-        }
-
         .lang-select option {
             background-color: #1a1a1c;
             color: #d4af37;
         }
 
-        /* ================= 主内容区 ================= */
-        .main-content {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 40px 20px;
-        }
-
+        /* =========================================
+           5. 模式选择按钮通用样式
+           ========================================= */
         .button-group {
             display: flex;
             flex-direction: column;
             gap: 25px;
             width: 100%;
-            max-width: 320px;
-            margin: 0 auto;
         }
 
-        @media (min-width: 768px) {
-            .button-group {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 60px;
-                max-width: 800px;
-            }
-            .role-btn {
-                padding: 30px 20px;
-                transition: all 0.2s ease-in-out;
-            }
-            .role-btn:hover {
-                transform: translateY(-5px);
-                box-shadow: 
-                    inset 0 2px 2px rgba(255, 255, 255, 0.5),
-                    0 10px 20px rgba(0, 0, 0, 0.8),
-                    0 4px 8px rgba(0, 0, 0, 0.6);
-                filter: brightness(1.1);
-            }
-        }
-
-        /* ================= 按钮样式 ================= */
         .role-btn {
             display: flex;
             flex-direction: column;
@@ -134,7 +126,7 @@
             border: 1px solid #b88a35;
             background: linear-gradient(to bottom, #dfb967 0%, #be8d29 100%);
             box-shadow: 
-                inset 0 2px 2px rgba(255, 255, 255, 0.4),
+                inset 0 2px 2px rgba(255, 255, 255, 0.4), 
                 0 6px 15px rgba(0, 0, 0, 0.7),
                 0 2px 4px rgba(0, 0, 0, 0.5);
             transition: all 0.1s ease-in-out;
@@ -144,7 +136,7 @@
         .role-btn:active {
             transform: translateY(4px);
             box-shadow: 
-                inset 0 1px 1px rgba(255, 255, 255, 0.2),
+                inset 0 1px 1px rgba(255, 255, 255, 0.2), 
                 0 2px 5px rgba(0, 0, 0, 0.6);
         }
 
@@ -163,15 +155,59 @@
             opacity: 0.9;
             text-align: center;
         }
+
+        /* =========================================
+           6. 响应式布局 (PC端大屏适配)
+           ========================================= */
+        @media (min-width: 768px) {
+            .content-wrapper {
+                max-width: 800px; 
+                margin-top: 0;    /* PC端取消固定顶部边距 */
+                flex: 1;          /* 占据剩余空间以实现垂直居中 */
+                justify-content: center; 
+            }
+
+            #lang-select {
+                font-size: 16px !important;
+                padding: 8px 30px 8px 10px !important;
+            }
+
+            .button-group {
+                display: grid;            
+                grid-template-columns: repeat(2, 1fr); /* 2x2 网格排版 */
+                gap: 60px;                                           
+            }
+            
+            .role-btn {
+                max-width: 100%;          
+                padding: 30px 20px;       
+                transition: all 0.2s ease-in-out;
+            }
+
+            .role-btn:hover {
+                transform: translateY(-5px); 
+                box-shadow: 
+                    inset 0 2px 2px rgba(255, 255, 255, 0.5), 
+                    0 10px 20px rgba(0, 0, 0, 0.8),
+                    0 4px 8px rgba(0, 0, 0, 0.6);
+                filter: brightness(1.1); 
+            }
+        }
     </style>
 </head>
 <body>
 
-    <!-- ================= 顶部标题区 ================= -->
+    <!-- 头部区域 -->
     <div class="header">
         <h1 data-i18n="mainTitle">选择对话模式</h1>
-        <p data-i18n="subTitle"></p>
-        <div class="header-controls">
+        <p data-i18n="subTitle"> </p>
+    </div>
+
+    <!-- 中间交互区域 -->
+    <div class="main-content">
+        
+        <!-- 语言切换选择器 -->
+        <div class="lang-controls">
             <select id="lang-select" class="lang-select">
                 <option value="zh">中文</option>
                 <option value="en">English</option>
@@ -179,54 +215,123 @@
                 <option value="ja">日本語</option>
             </select>
         </div>
-    </div>
 
-    <!-- ================= 主内容区按钮 ================= -->
-    <div class="main-content">
-        <div class="button-group">
-            <a href="chat.html?role=child" class="role-btn">
-                <span class="role-title" data-i18n="modeChildTitle">童心模式</span>
-                <span class="role-desc" data-i18n="modeChildDesc">纯真活泼，用童话视角讲述历史</span>
-            </a>
-            <a href="chat.html?role=student" class="role-btn">
-                <span class="role-title" data-i18n="modeStudentTitle">探索模式</span>
-                <span class="role-desc" data-i18n="modeStudentDesc">通俗易懂，像同窗好友般科普交流</span>
-            </a>
-            <a href="chat.html?role=storyteller" class="role-btn">
-                <span class="role-title" data-i18n="modeStoryTitle">畅聊模式</span>
-                <span class="role-desc" data-i18n="modeStoryDesc">风趣幽默，听说书人侃野史秘闻</span>
-            </a>
-            <a href="chat.html?role=scholar" class="role-btn">
-                <span class="role-title" data-i18n="modeScholarTitle">专家模式</span>
-                <span class="role-desc" data-i18n="modeScholarDesc">严谨考究，使用专业术语深度探讨</span>
-            </a>
+        <!-- 模式按钮组 -->
+        <div class="content-wrapper">
+            <div class="button-group">
+                <!-- 童心模式 -->
+                <a href="chat.html?role=child" class="role-btn">
+                    <span class="role-title" data-i18n="modeChildTitle">童心模式</span>
+                    <span class="role-desc" data-i18n="modeChildDesc">纯真活泼，用童话视角讲述历史</span>
+                </a>
+                <!-- 探索模式 -->
+                <a href="chat.html?role=student" class="role-btn">
+                    <span class="role-title" data-i18n="modeStudentTitle">探索模式</span>
+                    <span class="role-desc" data-i18n="modeStudentDesc">通俗易懂，像同窗好友般科普交流</span>
+                </a>
+                <!-- 畅聊模式 -->
+                <a href="chat.html?role=storyteller" class="role-btn">
+                    <span class="role-title" data-i18n="modeStoryTitle">畅聊模式</span>
+                    <span class="role-desc" data-i18n="modeStoryDesc">风趣幽默，听说书人侃野史秘闻</span>
+                </a>
+                <!-- 专家模式 -->
+                <a href="chat.html?role=scholar" class="role-btn">
+                    <span class="role-title" data-i18n="modeScholarTitle">专家模式</span>
+                    <span class="role-desc" data-i18n="modeScholarDesc">严谨考究，使用专业术语深度探讨</span>
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- ================= 多语言脚本 ================= -->
+    <!-- =========================================
+         7. 核心 JavaScript 逻辑 (多语言与状态管理)
+         ========================================= -->
     <script>
+        // 【数据定义】多语言翻译词典
         const translations = {
-            zh: { mainTitle: "选择对话模式", subTitle: "开启一场跨越时空的对话", modeChildTitle: "童心模式", modeChildDesc: "纯真活泼，用童话视角讲述历史", modeStudentTitle: "探索模式", modeStudentDesc: "通俗易懂，像同窗好友般科普交流", modeStoryTitle: "畅聊模式", modeStoryDesc: "风趣幽默，听说书人侃野史秘闻", modeScholarTitle: "专家模式", modeScholarDesc: "严谨考究，使用专业术语深度探讨" },
-            en: { mainTitle: "Choose Dialogue Mode", subTitle: "Start a conversation across time and space", modeChildTitle: "Childlike Mode", modeChildDesc: "Innocent and lively, telling history from a fairy tale perspective", modeStudentTitle: "Explore Mode", modeStudentDesc: "Easy to understand, chatting like a classmate", modeStoryTitle: "Chat Mode", modeStoryDesc: "Humorous, sharing unofficial history like a storyteller", modeScholarTitle: "Expert Mode", modeScholarDesc: "Rigorous research, deep discussion using professional terms" },
-            de: { mainTitle: "Dialogmodus wählen", subTitle: "Beginne ein Gespräch über Raum und Zeit hinweg", modeChildTitle: "Kindlicher Modus", modeChildDesc: "Unschuldig und lebhaft, Geschichte aus einer Märchenperspektive", modeStudentTitle: "Erkundungsmodus", modeStudentDesc: "Leicht verständlich, plaudern wie ein Mitschüler", modeStoryTitle: "Plaudermodus", modeStoryDesc: "Humorvoll, wie ein Geschichtenerzähler", modeScholarTitle: "Expertenmodus", modeScholarDesc: "Streng und tiefgehend, mit Fachterminologie" },
-            ja: { mainTitle: "対話モードを選択", subTitle: "時空を超えた対話を始めよう", modeChildTitle: "童心モード", modeChildDesc: "無邪気で活発、おとぎ話の視点で歴史を語る", modeStudentTitle: "探索モード", modeStudentDesc: "分かりやすい、同級生のように楽しく交流", modeStoryTitle: "おしゃべりモード", modeStoryDesc: "ユーモラス、講談師のように野史を語る", modeScholarTitle: "専門家モード", modeScholarDesc: "厳密な考証、専門用語を用いた深い議論" }
+            zh: {
+                mainTitle: "选择对话模式",
+                subTitle: "开启一场跨越时空的对话",
+                modeChildTitle: "童心模式",
+                modeChildDesc: "纯真活泼，用童话视角讲述历史",
+                modeStudentTitle: "探索模式",
+                modeStudentDesc: "通俗易懂，像同窗好友般科普交流",
+                modeStoryTitle: "畅聊模式",
+                modeStoryDesc: "风趣幽默，听说书人侃野史秘闻",
+                modeScholarTitle: "专家模式",
+                modeScholarDesc: "严谨考究，使用专业术语深度探讨"
+            },
+            en: {
+                mainTitle: "Choose Dialogue Mode",
+                subTitle: "Start a conversation across time and space",
+                modeChildTitle: "Childlike Mode",
+                modeChildDesc: "Innocent and lively, telling history from a fairy tale perspective",
+                modeStudentTitle: "Explore Mode",
+                modeStudentDesc: "Easy to understand, chatting like a classmate",
+                modeStoryTitle: "Chat Mode",
+                modeStoryDesc: "Humorous, sharing unofficial history like a storyteller",
+                modeScholarTitle: "Expert Mode",
+                modeScholarDesc: "Rigorous research, deep discussion using professional terms"
+            },
+            de: {
+                mainTitle: "Dialogmodus wählen",
+                subTitle: "Beginne ein Gespräch über Raum und Zeit hinweg",
+                modeChildTitle: "Kindlicher Modus",
+                modeChildDesc: "Unschuldig und lebhaft, Geschichte aus einer Märchenperspektive",
+                modeStudentTitle: "Erkundungsmodus",
+                modeStudentDesc: "Leicht verständlich, plaudern wie ein Mitschüler",
+                modeStoryTitle: "Plaudermodus",
+                modeStoryDesc: "Humorvoll, wie ein Geschichtenerzähler",
+                modeScholarTitle: "Expertenmodus",
+                modeScholarDesc: "Streng und tiefgehend, mit Fachterminologie"
+            },
+            ja: {
+                mainTitle: "対話モードを選択",
+                subTitle: "時空を超えた対話を始めよう",
+                modeChildTitle: "童心モード",
+                modeChildDesc: "無邪気で活発、おとぎ話の視点で歴史を語る",
+                modeStudentTitle: "探索モード",
+                modeStudentDesc: "分かりやすい、同級生のように楽しく交流",
+                modeStoryTitle: "おしゃべりモード",
+                modeStoryDesc: "ユーモラス、講談師のように野史を語る",
+                modeScholarTitle: "専門家モード",
+                modeScholarDesc: "厳密な考証、専門用語を用いた深い議論"
+            }
         };
 
+        // 【初始化与事件绑定】
         document.addEventListener('DOMContentLoaded', () => {
             const langSelect = document.getElementById('lang-select'); 
             const roleButtons = document.querySelectorAll('.role-btn');
             const i18nElements = document.querySelectorAll('[data-i18n]');
-            const savedLang = localStorage.getItem('app_language');
-            if (savedLang && translations[savedLang]) langSelect.value = savedLang;
 
+            // 1. 读取本地存储，恢复之前的语言设置
+            const savedLang = localStorage.getItem('app_language');
+            if (savedLang && translations[savedLang]) {
+                langSelect.value = savedLang;
+            }
+
+            /**
+             * 2. 核心函数：更新界面文本、HTML语言属性及跳转链接
+             */
             function updateLanguageAndLinks() {
                 const currentLang = langSelect.value;
+                
+                // (1) 遍历带有 data-i18n 属性的元素并更新文字
                 i18nElements.forEach(el => {
                     const key = el.getAttribute('data-i18n');
-                    if (translations[currentLang][key]) el.textContent = translations[currentLang][key];
+                    if (translations[currentLang] && translations[currentLang][key]) {
+                        el.textContent = translations[currentLang][key];
+                    }
                 });
+
+                // (2) 更新 <html> 标签的 lang 属性
                 document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : currentLang;
+
+                // (3) 持久化语言选择到 localStorage
                 localStorage.setItem('app_language', currentLang);
+
+                // (4) 动态更新按钮链接中的 lang 参数，确保状态传递到 chat.html
                 roleButtons.forEach(btn => {
                     const url = new URL(btn.href, window.location.origin);
                     url.searchParams.set('lang', currentLang);
@@ -234,9 +339,13 @@
                 });
             }
 
+            // 3. 执行一次初始化翻译
             updateLanguageAndLinks();
+
+            // 4. 监听下拉框变化事件
             langSelect.addEventListener('change', updateLanguageAndLinks);
         });
     </script>
+
 </body>
 </html>

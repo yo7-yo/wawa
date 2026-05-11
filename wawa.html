@@ -1,10 +1,12 @@
+
+/* 第三个页面：盲盒页面 */
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8" />
     <title>数字潇湘 · 灵境</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <!-- 引入库 -->
     <script type="importmap">
     {
         "imports": {
@@ -16,13 +18,12 @@
     </script>
     <style>
 
-        /* 1. 强制弹窗在最顶层，完全遮盖 3D 场景 */
         .modal-overlay {
             position: fixed; 
             inset: 0; 
-            background: rgba(0, 0, 0, 0.9); /* 加深背景，彻底隔绝 3D 干扰 */
-            backdrop-filter: blur(10px); 
-            z-index: 5000; /* 必须高于所有元素 */
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px); 
+            z-index: 5000;
             display: none; 
             justify-content: center; 
             align-items: center; 
@@ -35,7 +36,7 @@
             right: 15px;
             width: 32px;
             height: 32px;
-            z-index: 200; /* 确保在 3D Canvas 之上 */
+            z-index: 200; 
             border-radius: 50% !important;
             display: flex;
             justify-content: center;
@@ -46,20 +47,74 @@
             cursor: pointer;
         }
 
-        /* 3. 结果卡片的溢出处理 */
         .result-card {
-            overflow: visible !important; /* 允许模型稍微超出边框而不被截断 */
+            background: rgba(140, 20, 20, 0.6);
+            border: 4px solid #fcd34d;
+            border-radius: 30px;
+            padding: 25px;
+            width: 92%;
+            max-width: 450px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            
+            /* 核心：黄框高度围着屏幕走 (88%屏幕高度) */
+            height: 88vh; 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; 
+            position: relative;
+            z-index: 10;
         }
 
         /* 4. 文字内容容器 */
         .info-text-container {
-            padding: 20px;
+            padding: 20px 20px 40px 20px; /* ★ 底部加厚 40px，防止最后一行字被吞掉 */
             color: #fde68a;
-            font-size: 16px;
+            font-size: 16px; 
             text-align: left;
             max-height: 50vh;
             overflow-y: auto;
+            line-height: 1.6;
+            
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
         }
+
+        /* --- 新增：详情弹窗内的标题和列表排版 --- */
+        .info-text-container h3 {
+            color: #fcd34d;
+            font-size: 20px; /* 比正文 16px 大两个字号（4px） */
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(252, 211, 77, 0.3);
+            padding-bottom: 5px;
+        }
+
+        /* 阶段大标题单独居中且稍微再大一点 */
+        .info-text-container .phase-title {
+            text-align: center;
+            color: #fff;
+            font-size: 22px;
+            margin-bottom: 20px;
+            border-bottom: none;
+        }
+
+        .info-text-container p {
+            margin-bottom: 10px;
+            text-indent: 2em; /* 首行缩进 */
+        }
+
+        .info-text-container ul {
+            margin-bottom: 15px;
+            padding-left: 20px;
+        }
+
+        .info-text-container li {
+            margin-bottom: 8px;
+            list-style-type: disc; /* 圆点列表 */
+        }
+
         body.ar-mode-global #back-to-index-btn,
         body.ar-mode-global #lang-select {
             display: none !important;
@@ -73,7 +128,7 @@
         padding: 8px 12px;
         border-radius: 8px;
         background: rgba(0, 0, 0, 0.6); /* 半透明黑色背景 */
-        color: #fcd34d;                  /* 金色文字 */
+        color: #fcd34d;                 /* 金色文字 */
         border: 1px solid #fcd34d;      /* 金色边框 */
         
         font-weight: bold;
@@ -89,23 +144,72 @@
         padding-right: 30px;
     }
 
-    /* --- 解决软键盘穿模的视觉修正 --- */
-    /* 当 mascotPage 激活 input-focused 类时 */
-    #mascotPage.input-focused .result-card {
-        transform: translateY(-120px); /* 向上移动更多一点，避开键盘 */
-        transition: transform 0.3s ease;
+    /* --- 解决手机端软键盘遮挡的完美方案 --- */
+    /* 仅在屏幕宽度小于 768px（手机端）时，激活输入框才会触发形变 */
+    @media screen and (max-width: 768px) {
+        /* 手机端返回按钮放大 */
+        #back-to-index-btn {
+            font-size: 12px !important;
+            padding: 6px 14px !important;
+            border-radius: 25px !important;
+            top: 15px !important;
+            right: 15px !important;
+        }
+        
+        /* 输入时：彻底隐藏模型区域，输入框和按钮紧密往上 */
+        #mascotPage.input-focused #mascotCanvasWrap {
+            display: none !important;    /* 彻底隐藏模型 */
+        }
+        
+        /* 隐藏所有不必要的文字，为输入框腾出空间 */
+        #mascotPage.input-focused .congrats-title,
+        #mascotPage.input-focused #namingSection p:first-of-type,
+        #mascotPage.input-focused #nameErrorMsg {
+            display: none !important;
+        }
+        
+        /* namingSection 紧密排列 */
+        #mascotPage.input-focused #namingSection {
+            gap: 0 !important;
+            margin: 0 !important;
+            padding: 10px 15px !important;
+        }
+        
+        /* 输入框容器（flex）：消除所有间隔 */
+        #mascotPage.input-focused div[style*="display: flex"][style*="gap"] {
+            gap: 0 !important;
+            margin: 0 !important;
+        }
+        
+        /* 输入框：贴边，无外边距 */
+        #mascotPage.input-focused #mascotNameInput {
+            margin: 0 !important;
+            padding: 10px 12px !important;
+        }
+        
+        /* 经历按钮：紧贴输入框，无间隔 */
+        #mascotPage.input-focused #infoBtn {
+            margin: 0 !important;
+            flex-shrink: 0;
+            height: 40px !important;
+            padding: 0 14px !important;
+        }
+    }
+    /* PC端完全不受影响，不发生任何形变 */
+
+    #mascotPage {
+        position: relative;      /* 相对定位，限制子元素绝对定位范围 */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;        /* 限制子元素不能溢出 */
+        height: 100vh;           /* 整个结果页高度 */
+        width: 100%;
     }
 
-    /* 强制缩小模型高度，防止挤占输入框空间 */
-    #mascotPage.input-focused #mascotCanvasWrap {
-        height: 35vh !important; 
-        transition: height 0.3s ease;
-    }
-
-    /* 键盘弹出时，隐藏标题节省空间 */
-    #mascotPage.input-focused .congrats-title,
-    #mascotPage.input-focused #namingSection p {
-        display: none;
+    #arControls .ar-btn {
+        z-index: 3000;   /* 控件总是最上层 */
     }
 
     #lang-select:hover {
@@ -122,11 +226,11 @@
             color: #fcd34d;                  /* 金色文字 */
             border: 1px solid #fcd34d;      /* 金色边框 */
             
-            padding: 8px 16px;
+            padding: 3px 11px;
             border-radius: 20px;             /* 圆角 */
             text-decoration: none;           /* 移除链接下划线 */
             font-weight: bold;
-            font-size: 14px;
+            font-size: 9px;
             
             cursor: pointer;
             transition: all 0.2s ease;
@@ -168,15 +272,27 @@
             font-size: clamp(35px, 8vw, 38px);
         }
 
-        /* --- ★★★ 仅在 PC 端生效 (屏幕宽度大于 1024px) ★★★ --- */
+        /* 移动端"经历"按钮增大 */
+        #infoBtn {
+            height: 42px !important;
+            padding: 0 20px !important;
+            font-size: 13px !important;
+            line-height: 42px;
+        }
+
         /* --- ★★★ 仅在 PC 端生效 (屏幕宽度大于 1024px) ★★★ --- */
         @media screen and (min-width: 1024px) {
+            /* PC端调整布局防止文字与模型重叠 */
+            #mascotCanvasWrap {
+                max-height: 45vh !important;
+                flex: 0 0 45vh !important;
+            }
 
             /* 1. 标题：强制一行，字号依然保持大气 */
             .cover-title {
                 font-size: 70px !important; 
                 white-space: nowrap !important; 
-                margin-top: 70px !important;   
+                margin-top: 70px !important;    
                 margin-bottom: 30px !important;
                 letter-spacing: 3px !important;
             }
@@ -188,8 +304,8 @@
 
             /* 2. 返回按钮：缩小 4px (从 26px 调至 22px) */
             #back-to-index-btn {
-                font-size: 22px !important; 
-                padding: 12px 30px !important; /* 填充也同步微调，显得更精致 */
+                font-size: 14px !important; 
+                padding: 4px 22px !important; /* 填充也同步微调，显得更精致 */
                 border-radius: 35px !important;
                 top: 25px !important; 
                 right: 25px !important;
@@ -216,17 +332,56 @@
             .blind-box-btn {
                 max-width: 320px !important;
             }
+
+            /* 5. PC端经历按钮定位到右上角 */
+            .result-card {
+                position: relative !important;
+            }
+
+            #infoBtn,
+            #infoBtnAction {
+                position: absolute !important;
+                top: 15px !important;
+                right: 15px !important;
+                width: 50px !important;
+                height: 50px !important;
+                border-radius: 50% !important;
+                padding: 0 !important;
+                font-size: 14px !important;
+                z-index: 100 !important;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background: linear-gradient(to bottom, #fcd34d, #d97706);
+                color: #450a0a;
+                font-weight: 900;
+                border: none;
+                box-shadow: 0 4px 0 #92400e;
+                cursor: pointer;
+                transition: transform 0.2s;
+            }
+
+            #infoBtn:active,
+            #infoBtnAction:active {
+                transform: scale(0.96);
+            }
+
+            /* PC端二维码区域上移 */
+            .qr-action-wrapper {
+                margin: -20px 0 15px 0 !important; /* 负margin让二维码整体上移 */
+            }
         }
         /* 5. 修正起名字环节的文字排版，防止它们太靠近屏幕边缘 */
         #namingSection p, #actionSection p {
             padding: 0 15px;
             line-height: 1.6;
-            margin-bottom: 15px;
+            /* ★★★ 缩小边距，为在一页内显示留空间 */
+            margin-bottom: 8px;
             font-size: 15px;
         }
 
         #namingSection p, #actionSection p {
-            margin: 10px 0;
+            margin: 5px 0;
             line-height: 1.5;
         }
 
@@ -254,9 +409,9 @@
         /* 图鉴按钮：宽度自适应字数，高度和字号与盲盒按钮一致 */
         #galleryBtn {
             width: auto !important;         /* 宽度自适应 */
-            padding: 15px 40px !important;  /* 左右边距撑开宽度 */
-            font-size: 20px !important;
-            margin: 0;
+            padding: 10px 28px !important;  /* 左右边距撑开宽度 */
+            font-size: 16px !important;
+            margin: 0 0 30px 0;             /* 手机端：增加底部距离 */
         }
 
         /* --- ★★★ PC 端专属适配 ★★★ --- */
@@ -269,7 +424,8 @@
             /* PC端图鉴按钮：固定到左下角 */
             #galleryBtn {
                             padding: 10px 28px !important; 
-                            font-size: 16px !important; 
+                            font-size: 16px !important;
+                            margin: 0 !important;           /* PC端：取消底部距离 */
                         }
         }
         /* ★★★ 新增：标题入场动画 ★★★ */
@@ -418,22 +574,91 @@
         .ai-log { margin-top: 15px; color: #fbbf24; font-family: monospace; font-size: 14px; }
         /* === 4. 结果页 === */
         #mascotPage { flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #7f1d1d 100%); }
-        .result-card { background: rgba(140, 20, 20, 0.6); border: 2px solid #fcd34d; border-radius: 24px; padding: 25px; width: 90%; max-width: 400px; text-align: center; backdrop-filter: blur(10px); transition: all 0.5s; position: relative; z-index: 10; }
-        #mascotCanvasWrap { width: 100%; height: 300px; margin-bottom: 10px; position: relative; z-index: 2; }
+
+        /* ★★★ 修改：结果卡片包裹整个屏幕高度，并采用 Flex 上下布局 ★★★ */
+        .result-card { 
+            background: rgba(140, 20, 20, 0.6); 
+            border: 2px solid #fcd34d; 
+            border-radius: 24px; 
+            padding: 15px 20px; 
+            width: 90%; 
+            max-width: 400px; 
+            text-align: center; 
+            backdrop-filter: blur(10px); 
+            transition: all 0.5s; 
+            position: relative; 
+            z-index: 10; 
+            
+            /* 新增：高度贴满屏幕，保证所有内容都有独立空间 */
+            height: 88vh; 
+            max-height: 850px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
         
-        /* ★★★ 新增：当处于命名阶段时，模型画布变大 ★★★ */
-        #mascotPage.naming-active #mascotCanvasWrap {
-            height: 60vh;
+        /* 键盘弹出时只在 PC 端向上滑动（手机端不移动背景） */
+        #mascotPage.input-focused {
+            transform: none;  /* 手机端不移动 */
+        }
+        
+        @media screen and (min-width: 768px) {
+            /* PC 端保持原来的向上滑动 */
+            #mascotPage.input-focused {
+                transform: translateY(-20vh);
+            }
         }
 
-        .model-info h2 { color: #fcd34d; font-size: 26px; margin-bottom: 8px; }
-        .model-info p { color: #fed7aa; font-size: 14px; margin-bottom: 15px; }
+        #mascotPage.naming-active #mascotCanvasWrap {
+            height: auto; /* 废弃固定高度，交给 Flex 接管 */
+        }
+
+        /* ★★★ 新增：底部文字区独立，绝对不被压缩，永远在最上层 ★★★ */
+        .model-info {
+            flex-shrink: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding-bottom: 5px;
+            z-index: 20;
+        }
+
+        .model-info h2 { color: #fcd34d; font-size: 24px; margin-bottom: 5px; }
+        .model-info p { color: #fed7aa; font-size: 14px; margin-bottom: 10px; }
         
-        #namingSection { display: none; margin-top: 10px; animation: fadeIn 0.5s; }
-        .btn-confirm { background: linear-gradient(to bottom, #fcd34d, #d97706); color: #450a0a; font-weight: 900; padding: 12px 40px; border-radius: 30px; border: none; box-shadow: 0 4px 0 #92400e; cursor: pointer; font-size: 18px; margin-top: 20px; }
+        #namingSection { display: none; margin-top: 5px; animation: fadeIn 0.5s; }
+        .btn-confirm { background: linear-gradient(to bottom, #fcd34d, #d97706); color: #450a0a; font-weight: 900; padding: 12px 40px; border-radius: 30px; border: none; box-shadow: 0 4px 0 #92400e; cursor: pointer; font-size: 18px; margin-top: 15px; }
         
-        #actionSection { display: none; margin-top: 15px; animation: fadeIn 0.5s; }
-        #qrCodeContainer { margin: 15px auto; width: 140px; height: 140px; background: rgba(255,255,255,0.1); border-radius: 12px; display: flex; justify-content: center; align-items: center; border: 2px dashed #fcd34d; }
+        #actionSection { display: none; margin-top: 5px; animation: fadeIn 0.5s; }
+        
+        /* ★★★ 修改：3D 模型画布改为自动填满上方空间 ★★★ */
+        #mascotCanvasWrap {
+            position: relative;      /* canvas 在父容器内 */
+            z-index: 2;              
+            width: 100%;
+            
+            /* 重点：让画布伸缩，不抢占底部文字的高度 */
+            flex: 1;                 
+            min-height: 30vh;
+            height: auto;
+            max-height: none;
+            
+            transition: height 0.3s ease, transform 0.3s ease, flex 0.3s ease;
+        }
+
+        /* ★★★ 修改：二维码尺寸放大 ★★★ */
+        #qrCodeContainer { 
+            margin: 0; 
+            width: 130px; /* 变大 */
+            height: 130px; 
+            background: rgba(255,255,255,0.1); 
+            border-radius: 12px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            border: 2px dashed #fcd34d; 
+        }
         #generatedQr { 
             width: 100%; 
             height: 100%; 
@@ -442,17 +667,21 @@
             background: #fff;
             display: none; 
         }
-        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; margin-top: 15px; }
-        .action-btn { padding: 12px 0; width: 100%; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; color: #fff; flex: 1; transition: 0.3s; }
+        /* ★★★ 修改按钮组的外边距，更紧凑 ★★★ */
+        .btn-group { display: flex; gap: 10px; margin-bottom: 3px; margin-top: 8px; }
+        .action-btn { padding: 8px 0; width: 100%; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; color: #fff; flex: 1; transition: 0.3s; }
         .btn-ar { background: linear-gradient(135deg, #3b82f6, #2563eb); }
         .btn-back { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fcd34d; width: 100%; }
         @keyframes fadeIn { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+        
         /* === 5. AR 界面 === */
         #bgVideo { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; display: none; transform: scaleX(1); transition: transform 0.3s; }
         #bgVideo.mirrored { transform: scaleX(-1); }
         #mascotPage.ar-mode-active { background: none !important; pointer-events: none; }
         .ar-mode-active .result-card { background: transparent !important; border: none !important; backdrop-filter: none !important; box-shadow: none !important; }
         .ar-mode-active .model-info, .ar-mode-active .btn-group, .ar-mode-active .btn-back, .ar-mode-active #actionSection, .ar-mode-active #namingSection { display: none !important; }
+        .ar-mode-active #infoBtn { display: none !important; } /* ★ 新增：在AR模式下强制隐藏详情按钮 */
+
         #arControls { display: none; position: fixed; inset: 0; z-index: 100; pointer-events: none; }
         .ar-btn {
             position: absolute;
@@ -516,16 +745,17 @@
         body.share-mode #mapStartButtonContainer,
         body.share-mode #namingSection,
         body.share-mode .btn-group,
-        body.share-mode #back-to-index-btn {
+        body.share-mode #back-to-index-btn,
+        body.share-mode #infoBtnAction /* ★ 分享模式也隐藏经历按钮 */ {
             display: none !important;
         }
         
         body.share-mode #finalNameDisplay {
-            font-size: 32px;
-            margin-top: 20px;
+            font-size: 24px;
+            margin-top: 15px;
             color: #fcd34d;
             text-shadow: 0 2px 15px rgba(251, 191, 36, 0.6);
-            padding-bottom: 20px;
+            padding-bottom: 15px;
         }
         
         body.share-mode .result-card {
@@ -536,9 +766,17 @@
             /* ★ 取消宽度限制并移除内边距，使其撑满屏幕 */
             width: 100vw;
             max-width: none;
+            height: 100vh;
             padding: 0;
         }
         
+        /* 保证拍照按钮在 AR 模式下可见 */
+        #arPhotoBtn {
+            display: flex !important;       /* 解除隐藏 */
+            pointer-events: auto !important;/* 允许点击 */
+            z-index: 3000;                  /* 高于 canvas 或覆盖元素 */
+        }
+
         body.share-mode #mascotPage {
             background-color: #6a0d23;
             background-image: 
@@ -551,12 +789,54 @@
         
         body.share-mode #mascotCanvasWrap {
             /* ★ 宽度设为满屏 */
-            width: 100vw;
-            /* ★ 高度增加 50px */
-            height: calc(60vh + 60px);
-            /* ★ 顶部边距减少 50px，实现“只向上加长，不向下延伸”的效果 */
-            margin-top: calc(10vh - 60px);
+            flex: 1; /* 占据上半部分所有空间 */
+            width: 100%;
+            min-height: 40vh; /* 保证模型有足够的展示区域 */
+            z-index: 1;
         }
+
+        /* 3. 底部 UI 区域：稳固在底部 */
+.model-info {
+    flex-shrink: 0; /* 严禁被压缩 */
+    padding-top: 10px;
+    z-index: 20;
+}
+
+/* 4. 二维码与按钮容器：强制垂直居中排版 */
+.qr-action-wrapper {
+    display: flex;
+    flex-direction: column; /* 改为垂直排列，更容易居中 */
+    align-items: center;    /* 水平居中 */
+    justify-content: center;
+    gap: 8px;              /* 二维码和按钮的间距 */
+    margin: 10px 0;
+}
+
+/* 5. 二维码容器：保持原样，不放大 */
+#qrCodeContainer {
+    width: 110px;  /* 回归标准尺寸，不放大 */
+    height: 110px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px dashed #fcd34d;
+}
+
+/* 6. “经历”按钮：进一步缩小，精致化 */
+#infoBtnAction {
+    width: auto;
+    height: 32px;        /* 显著缩小高度 */
+    padding: 0 18px;     /* 窄一点 */
+    font-size: 12px;     /* 字体调小 */
+    line-height: 32px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.4);
+    color: #fcd34d;
+    border: 1px solid rgba(252, 211, 77, 0.5);
+    flex: none;
+}
 
 /* === 通用黑底金边按钮（和右上角返回按钮一模一样） === */
         .dark-gold-btn {
@@ -585,8 +865,36 @@
             justify-content: center; align-items: center; color: #fff;
             text-align: center; padding: 20px;
         }
+
+        /* --- ★★★ 美化文字容器的滚动条 ★★★ --- */
+        
+        /* 针对 Chrome, Safari, Edge 等 Webkit 内核浏览器 */
+        .info-text-container::-webkit-scrollbar {
+            width: 6px; /* 让滚动条变得非常纤细 */
+        }
+        
+        .info-text-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1); /* 轨道背景几乎透明 */
+            border-radius: 4px;
+        }
+        
+        .info-text-container::-webkit-scrollbar-thumb {
+            background: rgba(252, 211, 77, 0.4); /* 使用半透明的暗金色作为滑块 */
+            border-radius: 4px;
+        }
+        
+        .info-text-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(252, 211, 77, 0.8); /* 鼠标放上去时提亮成金色 */
+        }
+
+        /* 针对 Firefox 浏览器的优雅降级 */
+        .info-text-container {
+            scrollbar-width: thin; /* 变细 */
+            scrollbar-color: rgba(252, 211, 77, 0.5) transparent; /* 滑块颜色 轨道颜色 */
+        }
         .gallery-content {
-            background: rgba(20, 20, 20, 0.8); padding: 25px 30px;
+            background: transparent;
+            padding: 25px 30px;
             border-radius: 20px; border: 1px solid #fcd34d;
             width: 100%; max-width: 380px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);
         }
@@ -630,6 +938,54 @@
             transition: opacity 0.3s;
             pointer-events: none;
         }
+
+        /* ★★★ 修改：将排版改为水平居中，让缩小后的按钮和二维码对齐 ★★★ */
+        .qr-action-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px; /* 稍微拉开间距显得更精致 */
+            margin: 15px 0;
+        }
+/* --- ★★★ PC端详情弹窗专属优化：右侧侧边栏设计 ★★★ --- */
+        @media screen and (min-width: 1024px) {
+            /* 1. 将详情遮罩层的内容推到最右侧，降低变黑程度露出左侧模型 */
+            #infoModal {
+                justify-content: flex-end !important;
+                background: rgba(0, 0, 0, 0.5) !important; 
+                backdrop-filter: blur(4px) !important;
+            }
+
+            /* 2. 将弹窗盒子改造成通顶的侧边栏 */
+            #infoModal .gallery-content {
+                height: 100vh;
+                max-width: 450px; 
+                border-radius: 30px 0 0 30px; /* 只有左侧有圆角 */
+                border: none;
+                border-left: 2px solid #fcd34d; /* 左侧加金边过渡 */
+                margin: 0;
+                display: flex;
+                flex-direction: column;
+                
+                /* 增加右侧滑入的动态效果 */
+                animation: slideInRight 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+            }
+
+            /* 3. 让文字容器自然占据剩余高度，解除最大高度限制 */
+            #infoModal .info-text-container {
+                flex: 1;
+                max-height: none; 
+                padding: 10px 10px 40px 10px; /* 侧边栏较宽，内边距可以自由呼吸 */
+                overflow-y: auto;
+            }
+        }
+
+        /* 右侧滑入动画关键帧 */
+        @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
     </style>
 </head>
 <body>
@@ -640,7 +996,6 @@
     <option value="de">Deutsch</option>
     <option value="ja">日本語</option>
 </select>
-<!-- AR 操作指南 -->
 <div id="arInstructions">
     <div class="instructions-content">
         <h2>AR 互动指南</h2>
@@ -657,7 +1012,6 @@
 <div id="loadingToast"><div class="spinner"></div><div id="loadingText">处理中...</div></div>
 <video id="bgVideo" autoplay playsinline muted></video>
 <div id="aiStatus"></div>
-<!-- 1. 地图页（首页） -->
 <section id="mapPage" class="active">
     <div id="sparkles-container"></div>
     
@@ -675,28 +1029,22 @@
     </div>
 </section>
 
-<!-- 图鉴弹窗 -->
 <div id="galleryModal">
     <div class="gallery-content">
         <h2>文物图鉴</h2>
-        <!-- 图片容器 -->
         <div id="galleryContainer" style="position:relative; margin-bottom: 25px;">
-            <!-- 左箭头 -->
             <button id="prevImg" class="dark-gold-btn" style="position: absolute; top: 50%; transform: translateY(-50%); left: -15px; padding: 8px 12px; z-index: 10;">◀</button>
             
             <img id="galleryImg" src="picture/1.png" 
                 style="max-width:100%; height: 300px; object-fit: contain; border-radius:12px; display: block; margin: 0 auto; background: rgba(0,0,0,0.4); padding: 5px;" />
             
-            <!-- 右箭头 -->
             <button id="nextImg" class="dark-gold-btn" style="position: absolute; top: 50%; transform: translateY(-50%); right: -15px; padding: 8px 12px; z-index: 10;">▶</button>
         </div>
         
-        <!-- 返回按钮 -->
         <button id="closeGallery" class="instructions-btn" style="width: auto; padding: 12px 40px; font-size: 18px; margin-top: 10px;">返回</button>
     </div>
 </div>
 
-<!-- 2. 抽取页 (拟人化主题) -->
 <section id="aiPage">
     <div class="ai-box">
         <div class="shake-jar">🏺</div>
@@ -705,44 +1053,48 @@
         <div class="ai-log" id="aiLog">解析历史印记...</div>
     </div>
 </section>
-<!-- 3. 结果页 -->
 <section id="mascotPage">
     <div class="result-card" id="resCard">
-        <button id="infoBtn" class="dark-gold-btn info-sphere-btn">i</button>
-        <div id="mascotCanvasWrap"></div>
-        <div id="infoModal" class="modal-overlay">
+            <div id="mascotCanvasWrap"></div>
+            <div id="infoModal" class="modal-overlay">
             <div class="gallery-content">
                 <h2>详情</h2>
                 <div class="info-text-container">
-                    <p id="infoTextContent">111</p>
+                    <div id="infoTextContent"></div>
                 </div>
                 <button id="closeInfo" class="instructions-btn" style="width: auto; padding: 12px 40px; font-size: 18px; margin-top: 10px;">返回</button>
             </div>
         </div>
         <div class="model-info">
-            <!-- ★★★ 修改：移除赐名和输入框 ★★★ -->
             <div id="namingSection">
                 <h2 class="congrats-title">🎉 唤醒成功！</h2>
-                <p style="color:#fde68a; font-size:14px; margin-bottom:15px;">您唤醒了：<span id="artifactNameDisplay" style="color:#fff;font-weight:bold;font-size:18px;"></span></p>
+                <p style="color:#fde68a; font-size:14px; margin-bottom:10px;">您唤醒了：<span id="artifactNameDisplay" style="color:#fff;font-weight:bold;font-size:18px;"></span></p>
                 
-                <!-- 新增：输入框 -->
-                <input type="text" id="mascotNameInput" placeholder="赐予TA一个名字..." maxlength="10" oninput="document.getElementById('nameErrorMsg').style.opacity = '0'">
-                <!-- 新增：红色错误提示 -->
+                <div style="display: flex; justify-content: center; align-items: center; gap: 8px; width: 90%; margin: 5px auto 0;">
+                    <input type="text" id="mascotNameInput" style="width: 100%; margin-top: 0;" placeholder="赐予TA一个名字..." maxlength="10" oninput="document.getElementById('nameErrorMsg').style.opacity = '0'">
+                    <button id="infoBtn" class="dark-gold-btn" style="height: 46px; padding: 0 16px; border-radius: 12px; white-space: nowrap; font-size: 15px;">经历</button>
+                </div>
                 <div id="nameErrorMsg">起个名字，让它真正属于你吧~</div>
                 
                 <button class="btn-confirm" onclick="confirmModelName()">✨ 生成专属名片 ✨</button>
             </div>
 
             <div id="actionSection">
-                <h2 id="finalNameDisplay" style="color:#fcd34d; font-size:24px; margin-bottom:5px; white-space: normal; line-height: 1.2;"></h2>
-                <p style="color:#fca5a5; font-size:12px; margin-bottom:10px;">文物拟人化形态已生成</p>
+                <h2 id="finalNameDisplay" style="color:#fcd34d; font-size:16px; margin-bottom:3px; white-space: normal; line-height: 1.2;"></h2>
+                <p style="color:#fca5a5; font-size:10px; margin-bottom:5px;">文物拟人化形态已生成</p>
                 
-                <div id="qrCodeContainer">
-                    <img id="generatedQr" src="" alt="QR Code">
+                <div class="qr-action-wrapper">
+                    <div id="qrCodeContainer">
+                        <img id="generatedQr" src="" alt="QR Code">
+                    </div>
+                    <!-- ★★★ 修改：将经历按钮做小一些，保持美观且避免喧宾夺主 ★★★ -->
+                    <button class="action-btn dark-gold-btn" id="infoBtnAction" style="width: auto; height: 38px; padding: 0 16px; font-size: 13px; flex: none;">经历</button>
                 </div>
-                <p style="font-size:10px; color:#aaa; margin-bottom:15px;">长按二维码保存专属名片</p>
+
+                <p style="font-size:8px; color:#aaa; margin-bottom:8px;" data-lang-key="qrSaveHint">长按二维码保存专属名片</p>
                 <div class="btn-group">
                     <button class="action-btn btn-ar" onclick="enterARMode()">📸 与TA合影</button>
+                    <!-- 原来的经历按钮已移除 -->
                     <button class="action-btn btn-back" onclick="backToMap()">↺ 返回</button>
                 </div>
             </div>
@@ -769,20 +1121,22 @@
     import { FilesetResolver, HandLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm';
     import { MeshoptDecoder } from 'https://unpkg.com/three@0.158.0/examples/jsm/libs/meshopt_decoder.module.js';
     let currentLang = 'zh';
-    const translations = {
+const translations = {
         'zh': {
             docTitle: '数字潇湘 · 灵境',
             coverTitle: '古物有灵，<br>待知音唤醒',
             blindBoxBtn: '抽取文物盲盒',
+            galleryBtn: '图鉴',
+            namingPlaceholder: '为ta取一个名字吧~',
             awakeningTitle: '正在唤醒文物之灵...',
             awakenLog1: '解析历史印记...',
             awakenLog2: '描绘人形轮廓...',
-            awakenLog3: '赋予文物灵性...', // 对应你说的“赋予灵犀”
+            awakenLog3: '赋予文物灵性...',
             exclusiveText: '文物拟人形态已生成，现专属于你',
             nameErrorMsg: '起个名字，让它真正属于你吧~',
             awakenSuccess: '🎉 唤醒成功！',
             youAwakened: '您唤醒了：',
-            generateCard: '带TA回家',           // 改为最通俗的表述
+            generateCard: '带TA回家',
             cardGenerated: '缘分已定，TA现在归你了',
             saveQrHint: '长按保存，让TA永远陪伴你',
             arPhoto: '📸 与TA合影',
@@ -799,21 +1153,39 @@
             resetPosToast: '模型已归位',
             arGestureOn: '✋ 手势开启',
             arGestureOff: '🚫 手势关闭',
-            nameErrorMsg: '起个名字，让它真正属于你吧~',
             gestureOnToast: '手势识别已启动',
-            gestureOffToast: '手势识别已关闭'
+            gestureOffToast: '手势识别已关闭',
+            infoBtnText: '经历', 
+            exitAr: '❌ 退出',
+            arHelp: '❓ 帮助',
+            arMirror: '🔁 镜像',
+            arReset: '📍 归位',
+            arSwitchCam: '🔄 切换镜头',
+            arPhotoBtn: '📷 拍照',
+            arVideoBtn: '🎥 录像',
+            qrSaveHint: '长按二维码保存专属名片',
+            arTitle: 'AR 互动指南',
+            arInst1: '单指跟随：伸出食指，模型将跟随您的指尖。',
+            arInst2: '张开手掌：放大模型。',
+            arInst3: '握紧拳头：缩小模型。',
+            arInst4: '"V"字手势：顺时针旋转30°。',
+            arInst5: '三指手势：逆时针旋转30°。',
+            arBtnStart: '开启奇妙之旅',
+            arBtnClose: '返回'
         },
         'en': {
             docTitle: 'Digital Hunan · Spirit Realm',
             coverTitle: 'Ancient Spirits<br>Await Your Call',
             blindBoxBtn: 'Open Mystery Box',
+            galleryBtn: 'Gallery',
+            namingPlaceholder: 'Give it a name~',
             awakeningTitle: 'Awakening the Spirit...',
             awakenLog1: 'Analyzing history...',
             awakenLog2: 'Shaping the form...',
             awakenLog3: 'Granting spirituality...',
             awakenSuccess: '🎉 Awakening Success!',
             youAwakened: 'You awakened: ',
-            generateCard: 'Bring TA Home',      // 通俗的英文表述
+            generateCard: 'Bring TA Home',
             exclusiveText: 'Spirit form generated, now yours alone',
             nameErrorMsg: 'Please give it a name!',
             cardGenerated: 'The pact is sealed!',
@@ -832,21 +1204,39 @@
             resetPosToast: 'Position Reset',
             arGestureOn: '✋ Gestures ON',
             arGestureOff: '🚫 Gestures OFF',
-            nameErrorMsg: 'Give it a name first!',
             gestureOnToast: 'Gestures enabled',
-            gestureOffToast: 'Gestures disabled'
+            gestureOffToast: 'Gestures disabled',
+            infoBtnText: 'Story', 
+            exitAr: '❌ Exit',
+            arHelp: '❓ Help',
+            arMirror: '🔁 Mirror',
+            arReset: '📍 Reset',
+            arSwitchCam: '🔄 Switch Cam',
+            arPhotoBtn: '📷 Photo',
+            arVideoBtn: '🎥 Video',
+            qrSaveHint: 'Long press QR code to save',
+            arTitle: 'AR Guide',
+            arInst1: 'Point with finger: Your finger controls the model.',
+            arInst2: 'Open palm: Enlarge the model.',
+            arInst3: 'Closed fist: Shrink the model.',
+            arInst4: 'V gesture: Rotate 30° clockwise.',
+            arInst5: 'Three fingers: Rotate 30° counter-clockwise.',
+            arBtnStart: 'Start AR Experience',
+            arBtnClose: 'Back'
         },
         'ja': {
             docTitle: 'デジタル湖南 · 霊境',
             coverTitle: '古き遺物に霊あり<br>知音を待つ',
             blindBoxBtn: 'ボックスを引く',
+            galleryBtn: '図鑑',
+            namingPlaceholder: '名前をつけてあげてて~',
             awakeningTitle: '霊を呼び覚ましています...',
             awakenLog1: '歴史を分析中...',
             awakenLog2: '姿を描いています...',
             awakenLog3: '霊性を付与中...',
             awakenSuccess: '🎉 覚醒成功！',
             youAwakened: 'あなたが呼び覚ましたのは：',
-            generateCard: '連れて帰る',         // 日语通俗表述：带回家
+            generateCard: '連れて帰る',
             exclusiveText: '擬人化完了、あなたの専属です',
             nameErrorMsg: '名前を付けてください！',
             cardGenerated: '契約が結ばれました！',
@@ -865,21 +1255,39 @@
             resetPosToast: '位置を戻しました',
             arGestureOn: '✋ ジェスチャーON',
             arGestureOff: '🚫 ジェスチャーOFF',
-            nameErrorMsg: '名前を付けてください！',
             gestureOnToast: '起動しました',
-            gestureOffToast: '停止しました'
+            gestureOffToast: '停止しました',
+            infoBtnText: '経歴', 
+            exitAr: '❌ 終了',
+            arHelp: '❓ ヘルプ',
+            arMirror: '🔁 ミラー',
+            arReset: '📍 リセット',
+            arSwitchCam: '🔄 カメラ切替',
+            arPhotoBtn: '📷 撮影',
+            arVideoBtn: '🎥 録画',
+            qrSaveHint: 'QRコードを長押しして保存',
+            arTitle: 'AR ガイド',
+            arInst1: '一本指で指す：モデルが指に従います。',
+            arInst2: '手のひらを広げる：モデルを拡大します。',
+            arInst3: '拳を握る：モデルを縮小します。',
+            arInst4: 'V字ジェスチャー：時計回りに30°回転します。',
+            arInst5: '3本指ジェスチャー：反時計回りに30°回転します。',
+            arBtnStart: 'AR体験を開始',
+            arBtnClose: '戻る'
         },
         'de': {
             docTitle: 'Digitales Hunan · Geisterreich',
-            coverTitle: 'Alte Geister<br>Warten auf dich', // 德语长单词多，必须换行
+            coverTitle: 'Alte Geister<br>Warten auf dich',
             blindBoxBtn: 'Überraschungsbox',
+            galleryBtn: 'Galerie',
+            namingPlaceholder: 'Geben Sie ihm einen Namen~',
             awakeningTitle: 'Geist wird erweckt...',
             awakenLog1: 'Geschichte analysieren...',
             awakenLog2: 'Form gestalten...',
             awakenLog3: 'Leben einhauchen...',
             awakenSuccess: '🎉 Erwachen erfolgreich!',
             youAwakened: 'Du hast erweckt: ',
-            generateCard: 'Mit nach Hause',      // 德语通俗表述：带回家
+            generateCard: 'Mit nach Hause',
             cardGenerated: 'Verbindung hergestellt!',
             exclusiveText: 'Form erstellt, jetzt dein Begleiter',
             nameErrorMsg: 'Gib ihm einen Namen!',
@@ -898,9 +1306,25 @@
             resetPosToast: 'Position zurückgesetzt',
             arGestureOn: '✋ Gesten AN',
             arGestureOff: '🚫 Gesten AUS',
-            nameErrorMsg: 'Gib ihm einen Namen!',
             gestureOnToast: 'Gesten aktiviert',
-            gestureOffToast: 'Gesten deaktiviert'
+            gestureOffToast: 'Gesten deaktiviert',
+            infoBtnText: 'Historie', 
+            exitAr: '❌ Beenden',
+            arHelp: '❓ Hilfe',
+            arMirror: '🔁 Spiegeln',
+            arReset: '📍 Reset',
+            arSwitchCam: '🔄 Kamera',
+            arPhotoBtn: '📷 Foto',
+            arVideoBtn: '🎥 Video',
+            qrSaveHint: 'QR-Code drücken zum Speichern',
+            arTitle: 'AR Anleitung',
+            arInst1: 'Mit Finger zeigen: Das Modell folgt Ihrem Finger.',
+            arInst2: 'Handfläche öffnen: Modell vergrößern.',
+            arInst3: 'Faust ballen: Modell verkleinern.',
+            arInst4: 'V-Geste: Um 30° im Uhrzeigersinn drehen.',
+            arInst5: 'Drei-Finger-Geste: Um 30° gegen den Uhrzeigersinn drehen.',
+            arBtnStart: 'AR-Erlebnis starten',
+            arBtnClose: 'Zurück'
         }
     };
     const ZONE_CONFIG = {
@@ -918,6 +1342,11 @@
         "modell/3_soft.glb": "皿方罍",
         "modell/4_soft.glb": "皿方罍",
     };
+    
+    function getChineseNameFromPath(path) {
+        return MODEL_NAME_MAP[path] || "神秘文物";
+    }
+    
     let selectedModelPath = "";
     let currentArtifactName = ""; // 系统定义的前缀名
     let isDragging = false;
@@ -941,6 +1370,36 @@
         document.getElementById(id).classList.add('active');
     }
 
+    // 确保 video 元素引用正确
+    const videoElement = document.getElementById('bgVideo'); 
+    const arPhotoBtn = document.getElementById('arPhotoBtn');
+    let arModeActive = true; // 你的 AR 模式状态变量，原文件里可能已有
+
+    // 拍照功能
+    function takePhoto() {
+        if (!arModeActive || !videoElement.srcObject) {
+            alert('请先进入AR模式并允许摄像头');
+            return;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+        // 生成下载
+        const dataURL = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = dataURL;
+        a.download = 'AR_Photo.png';
+        a.click();
+
+        alert('📸 照片已保存');
+    }
+
+    // 按钮绑定事件
+    arPhotoBtn.addEventListener('click', takePhoto);
+
     function switchLanguage(lang) {
         const t = translations[lang] || translations.zh;
         currentLang = lang;
@@ -950,27 +1409,26 @@
 
         localStorage.setItem('app_language', lang);
 
-        // 1. --- 核心修改：处理标题（必须用 innerHTML） ---
         const coverTitle = document.querySelector('.cover-title');
         if (coverTitle) {
             coverTitle.innerHTML = t.coverTitle; 
         }
 
-        // 2. --- 核心修改：处理输入框占位符 (赐予TA一个名字...) ---
         const nameInput = document.getElementById('mascotNameInput');
         if (nameInput) {
             nameInput.placeholder = t.namingPlaceholder;
         }
 
-        // 3. --- 更新所有简单文本元素 ---
-        // 注意：我已经从这里删除了 '.cover-title'，防止它被 innerText 覆盖
         const elementsToTranslate = {
             '#mapPage .instructions-btn': 'blindBoxBtn',
+            '#galleryBtn': 'galleryBtn',
             '.ai-title': 'awakeningTitle', 
             '.congrats-title': 'awakenSuccess',
             '.btn-confirm': 'generateCard', 
             '.btn-ar': 'arPhoto', 
             '.btn-back': 'goBack',
+            '#infoBtn': 'infoBtnText',
+            '#infoBtnAction': 'infoBtnText',
             '#back-to-index-btn': 'backButton',
             '#actionSection p[style*="font-size:10px"]': 'saveQrHint',
             '#actionSection p[style*="font-size:12px"]': 'exclusiveText', // 对应“专属于你”
@@ -987,17 +1445,21 @@
 
         for (const selector in elementsToTranslate) {
             const el = document.querySelector(selector);
-            // 使用 t[elementsToTranslate[selector]] 获取翻译内容
             if (el) el.innerText = t[elementsToTranslate[selector]] || '';
         }
 
-        // 4. 单独处理包含 HTML 的“您唤醒了”文本
+        // 处理所有带有 data-lang-key 属性的元素
+        const langKeyElements = document.querySelectorAll('[data-lang-key]');
+        langKeyElements.forEach(el => {
+            const key = el.getAttribute('data-lang-key');
+            if (t[key]) el.innerText = t[key];
+        });
+
         const youAwakenedEl = document.querySelector('#namingSection p');
         if (youAwakenedEl) {
             youAwakenedEl.innerHTML = `${t.youAwakened}<span id="artifactNameDisplay" style="color:#fff;font-weight:bold;font-size:18px;">${currentArtifactName || ''}</span>`;
         }
 
-        // 5. 处理 AR 指南列表
         const instructionsList = document.querySelectorAll('#arInstructions li');
         if (instructionsList.length > 0 && t.arInst1) {
             instructionsList[0].innerHTML = `<span class="icon">☝️</span>${t.arInst1}`;
@@ -1007,7 +1469,6 @@
             instructionsList[4].innerHTML = `<span class="icon">🤟</span>${t.arInst5}`;
         }
 
-        // 6. 处理有多种状态的按钮
         const arInstBtn = document.querySelector('#arInstructions .instructions-btn');
         if (arInstBtn && arInstBtn.innerText !== t.arBtnClose) {
             arInstBtn.innerText = t.arBtnStart;
@@ -1021,22 +1482,16 @@
         if (backBtn) {
             backBtn.href = `index.html?lang=${lang}`;
         }
-    }
-    function getChineseNameFromPath(path) {
-        return MODEL_NAME_MAP[path] || "神秘文物";
-    }
-        // --- 核心逻辑修改：初始化或扫码进入 ---
+    } 
+
     window.addEventListener('load', () => {
-        // 1. 为语言下拉框绑定“change”事件
         const langSelect = document.getElementById('lang-select');
         if (langSelect) {
             langSelect.addEventListener('change', (event) => {
-                // 当用户选择新语言时，调用翻译函数
                 switchLanguage(event.target.value);
             });
         }
 
-        // 2. 动态生成封面光点（您原有的代码）
         const sparkleContainer = document.getElementById('sparkles-container');
         if (sparkleContainer) {
             const numSparkles = 50;
@@ -1053,7 +1508,6 @@
             }
         }
 
-        // 3. 检查URL参数（您原有的代码）
         const params = new URLSearchParams(window.location.search);
         const m = params.get('m');
         const n = params.get('n');
@@ -1068,23 +1522,17 @@
             showMascot(false);
         }
         
-        // 4. 页面加载完成后，用默认语言初始化所有文本
-        // 4. 页面加载完成后，延续上一个页面的语言设置
-        // 优先从网址参数读取(例如 ?lang=en)，如果没有则从本地缓存读取，最后默认用中文
         const urlParams = new URLSearchParams(window.location.search);
         let savedLang = urlParams.get('lang') || localStorage.getItem('app_language') || 'zh';
 
-        // 防止读取到字典里没有的奇怪语言
         if (!translations[savedLang]) {
             savedLang = 'zh';
         }
 
-        // 把当前页面的下拉框也同步成这个语言
         if (langSelect) {
             langSelect.value = savedLang;
         }
 
-        // 执行翻译
         switchLanguage(savedLang);
     });
     window.startBlindBoxFlow = function() {
@@ -1098,19 +1546,19 @@
     function runAIProgress() {
         const bar = document.getElementById('aiBar');
         const log = document.getElementById('aiLog');
-        const lang = document.getElementById('lang-select').value || 'zh'; // 获取当前语言
+        const lang = document.getElementById('lang-select').value || 'zh'; 
         const t = translations[lang];
 
         bar.style.width = "0%";
-        log.innerText = t.awakenLog1; // <-- 修改点：使用翻译
+        log.innerText = t.awakenLog1; 
         let width = 0;
         const timer = setInterval(() => {
             width += Math.random() * 4;
-            if (width > 30 && width < 60) log.innerText = t.awakenLog2; // <-- 修改点：使用翻译
-            if (width > 60 && width < 90) log.innerText = t.awakenLog3; // <-- 修改点：使用翻译
+            if (width > 30 && width < 60) log.innerText = t.awakenLog2; 
+            if (width > 60 && width < 90) log.innerText = t.awakenLog3; 
             if (width >= 100) {
                 clearInterval(timer);
-                log.innerText = t.awakenSuccess; // <-- 修改点：使用翻译
+                log.innerText = t.awakenSuccess; 
                 setTimeout(showResult, 500);
             }
             bar.style.width = width + "%";
@@ -1119,10 +1567,8 @@
     function showResult() {
         window.gotoPage('mascotPage');
         
-        // 激活命名状态
         document.getElementById('mascotPage').classList.add('naming-active');
         
-        // ★ 关键：调用监听函数
         setupInputListeners(); 
 
         document.getElementById('namingSection').style.display = 'block';
@@ -1141,64 +1587,66 @@
         showMascot(false);
     }
 
-    function setupInputListeners() {
+function setupInputListeners() {
         const nameInput = document.getElementById('mascotNameInput');
         const mascotPage = document.getElementById('mascotPage');
         const wrap = document.getElementById("mascotCanvasWrap");
 
         if (nameInput) {
-            // --- 键盘弹出：模型下移防止切头 ---
-            nameInput.addEventListener('focus', () => {
-                mascotPage.classList.add('input-focused');
-                
-                // 【关键加固】逻辑下移：将模型在Y轴往下挪 0.8 个单位（根据你的模型大小微调）
-                if(model) {
-                    model.position.y -= 0.8; 
-                }
+            // ★ 杀手锏：真正的移动端检测（直接识别操作系统），避免 PC 窄屏被误判
+            const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-                setTimeout(() => {
-                    if (renderer && camera) {
-                        camera.aspect = wrap.clientWidth / wrap.clientHeight;
-                        camera.updateProjectionMatrix();
-                        renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+            // --- 聚焦：仅在真实手机上触发画布缩小 ---
+            nameInput.addEventListener('focus', () => {
+                if (isMobileDevice) {
+                    mascotPage.classList.add('input-focused');
+                    
+                    // 模型稍微下沉，防止画布变矮后头被切掉
+                    if(model) {
+                        model.position.y -= 0.8; 
                     }
-                }, 300); // 稍微延迟，等键盘动画稳定
+
+                    setTimeout(() => {
+                        if (renderer && camera) {
+                            camera.aspect = wrap.clientWidth / wrap.clientHeight;
+                            camera.updateProjectionMatrix();
+                            renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+                        }
+                    }, 300); 
+                }
             });
 
-            // --- 键盘收起：模型复位 ---
+            // --- 失焦：仅在真实手机上恢复原状 ---
             nameInput.addEventListener('blur', () => {
-                mascotPage.classList.remove('input-focused');
-                
-                // 【关键加固】逻辑复位：将模型挪回原来的位置
-                if(model) {
-                    model.position.y += 0.8; 
-                }
-
-                setTimeout(() => {
-                    if (renderer && camera) {
-                        camera.aspect = wrap.clientWidth / wrap.clientHeight;
-                        camera.updateProjectionMatrix();
-                        renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+                if (isMobileDevice) {
+                    mascotPage.classList.remove('input-focused');
+                    
+                    // 模型位置复原
+                    if(model) {
+                        model.position.y += 0.8; 
                     }
-                }, 300);
+
+                    setTimeout(() => {
+                        if (renderer && camera) {
+                            camera.aspect = wrap.clientWidth / wrap.clientHeight;
+                            camera.updateProjectionMatrix();
+                            renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+                        }
+                    }, 300);
+                }
             });
         }
     }
 
-// 记得在 window.addEventListener('load', ...) 或者 showResult 中调用一下这个初始化函数
-
     window.confirmModelName = function() {
-        // ★ 获取输入的自定义名字
         const nameInput = document.getElementById('mascotNameInput');
         const customName = nameInput ? nameInput.value.trim() : '';
         
-        // ★ 核心逻辑：如果不取名字，显示红字，退出函数不能进行下一步
         if (!customName) {
             document.getElementById('nameErrorMsg').style.opacity = '1';
             return; 
         }
 
-        // ★ 拼接名字：文物名 · 自定义名
         const finalFullName = `${currentArtifactName} · ${customName}`;
         
         document.getElementById('mascotPage').classList.remove('naming-active');
@@ -1224,10 +1672,7 @@
         qrImg.onload = () => { qrImg.style.display = "block"; };
     }
     window.backToMap = function() {
-        // 如果需要，可以保留清理 Three.js 场景的函数
         cleanUpThreeJS(); 
-        
-        // 使用 location.href 来跳转到另一个页面
         window.location.href = `index.html?lang=${currentLang}`;
     }
 
@@ -1248,7 +1693,7 @@
             return true;
         } catch (error) {
             aiLoadFailed = true;
-            alert("⚠️ AI模型加载失败！\\n(已自动切换为手动模式)");
+            alert("⚠️ AI模型加载失败！\n(已自动切换为手动模式)");
             showLoading(false);
             return false;
         }
@@ -1262,8 +1707,8 @@
         
         showLoading(false);
         const btn = document.querySelector('#arInstructions .instructions-btn');
-        const t = translations[currentLang] || translations.zh; // 获取当前语言的翻译
-        btn.textContent = t.arBtnStart; // 使用翻译来设置按钮文本
+        const t = translations[currentLang] || translations.zh; 
+        btn.textContent = t.arBtnStart; 
         btn.onclick = startArExperience;
         document.getElementById('arInstructions').style.display = 'flex';
     }
@@ -1316,7 +1761,7 @@
             predictWebcam();
             showTempStatus("探索AR模式已开启");
         } catch (err) {
-            alert("相机启动失败！\\n\\n错误信息: " + err.message + "\\n\\n请确认：\\n1. 您已授权浏览器使用摄像头。\\n2. 摄像头没有被其他程序占用。");
+            alert("相机启动失败！\n\n错误信息: " + err.message + "\n\n请确认：\n1. 您已授权浏览器使用摄像头。\n2. 摄像头没有被其他程序占用。");
             exitARMode();
         } finally {
             showLoading(false);
@@ -1325,7 +1770,7 @@
     window.showArInstructions = function() {
         const btn = document.querySelector('#arInstructions .instructions-btn');
         const t = translations[currentLang] || translations.zh;
-        btn.textContent = t.arBtnClose; // <-- 修改点：使用翻译
+        btn.textContent = t.arBtnClose; 
         btn.onclick = () => { document.getElementById('arInstructions').style.display = 'none'; };
         document.getElementById('arInstructions').style.display = 'flex';
     }
@@ -1410,28 +1855,28 @@ function handleHandGestures(landmarks) {
     window.toggleGestureRecognition = function() {
         isGestureRecognitionActive = !isGestureRecognitionActive; 
         const btn = document.getElementById('arToggleGestureBtn');
-        const t = translations[currentLang]; // <-- 修改点：读取全局语言
+        const t = translations[currentLang]; 
         
         if (isGestureRecognitionActive) {
             btn.classList.add('active-yellow'); 
-            btn.innerText = t.arGestureOn; // <-- 修改点：使用翻译
-            showTempStatus(t.gestureOnToast); // (这里的提示是临时的，可以后续再加入翻译)
+            btn.innerText = t.arGestureOn; 
+            showTempStatus(t.gestureOnToast); 
         } else {
             btn.classList.remove('active-yellow'); 
-            btn.innerText = t.arGestureOff; // <-- 修改点：使用翻译
+            btn.innerText = t.arGestureOff; 
             showTempStatus(t.gestureOffToast);
         }
     }
     window.toggleMirror = function() {
         isMirrored = !isMirrored;
         const v = document.getElementById('bgVideo');
-        const t = translations[currentLang] || translations.zh; // <-- 先定义 t
+        const t = translations[currentLang] || translations.zh; 
         if (isMirrored) { 
             v.classList.add('mirrored'); 
-            showTempStatus(t.mirrorOnToast); // <-- 通过 t 访问
+            showTempStatus(t.mirrorOnToast); 
         } else { 
             v.classList.remove('mirrored'); 
-            showTempStatus(t.mirrorOffToast); // <-- 通过 t 访问
+            showTempStatus(t.mirrorOffToast); 
         }
     }
     window.resetModelPos = function() {
@@ -1476,9 +1921,7 @@ function handleHandGestures(landmarks) {
 const gltfLoader = new GLTFLoader();
 const ktx2Loader = new KTX2Loader();
 gltfLoader.setMeshoptDecoder(MeshoptDecoder);
-// 👇 新增以下这三行代码：初始化 Draco 并设置解码器路径
 const dracoLoader = new DRACOLoader();
-// 设置解压依赖文件的 CDN 路径（必须与 Three.js 版本对应）
 dracoLoader.setDecoderPath('https://unpkg.com/three@0.158.0/examples/jsm/libs/draco/'); 
 gltfLoader.setDRACOLoader(dracoLoader);
 function showMascot(isAR) {
@@ -1494,19 +1937,15 @@ function showMascot(isAR) {
     camera.lookAt(0, 0.5, 0);
     renderer = new THREE.WebGLRenderer({ 
         alpha: true, 
-        antialias: true, // 开启抗锯齿
+        antialias: true, 
         preserveDrawingBuffer: true,
-        logarithmicDepthBuffer: true // 开启对数深度缓存，解决穿模闪烁
+        logarithmicDepthBuffer: true 
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    // 👇 --- 新增以下两行 --- 👇
-    // 强制开启 sRGB 色彩空间，解决 GLTF/GLB 模型发灰发暗的终极方案
     renderer.outputColorSpace = THREE.SRGBColorSpace; 
-    // 适当提高曝光度 (默认是 1.0，觉得不够亮可以调到 1.5 甚至 2.0)
     renderer.toneMappingExposure = 1.2; 
-    // 👆 ---------------------- 👆
     if (isAR) {
         document.body.appendChild(renderer.domElement);
         renderer.domElement.style.position = 'fixed';
@@ -1520,27 +1959,21 @@ function showMascot(isAR) {
         controls.dampingFactor = 0.05;
         controls.autoRotate = true;
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        controls.autoRotateSpeed = isMobile ? 5.0 : 10.0; 
+        controls.autoRotateSpeed = isMobile ? 5.0 : 15.0; 
         controls.enableZoom = true;
         controls.maxPolarAngle = Math.PI / 2 + Math.PI / 9;
     }
-    // 1. 全局环境光：提亮基础暗部 (强度从 1.0 提高到 1.5)
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
     scene.add(ambientLight);
 
-    // 👇 --- 这是你漏掉的半球光 --- 👇
-    // 半球光：模拟天光与地面的漫反射，非常适合青铜器/陶器质感
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
     hemiLight.position.set(0, 20, 0);
     scene.add(hemiLight);
 
-    // 2. 主平行光：模拟强光直射，打出高光 (强度从 2.0 提高到 3.0)
     const mainLight = new THREE.DirectionalLight(0xffffff, 3.0);
     mainLight.position.set(5, 10, 7);
     scene.add(mainLight);
 
-    // 👇 --- 这是你漏掉的轮廓背光 --- 👇
-    // 补光 (轮廓光)：在斜后方补光，让模型边缘更立体，脱离背景
     const backLight = new THREE.DirectionalLight(0xffffff, 1.5);
     backLight.position.set(-5, 5, -7);
     scene.add(backLight);
@@ -1568,7 +2001,7 @@ function showMascot(isAR) {
         animate();
     }, undefined, (err) => {
         console.error('模型加载失败:', err);
-        alert(`加载失败: ${selectedModelPath}。\\n请确认模型文件存在且网络正常。`);
+        alert(`加载失败: ${selectedModelPath}。\n请确认模型文件存在且网络正常。`);
     });
 }
     function animate() {
@@ -1737,7 +2170,7 @@ window.switchCamera = async function() {
     }
 
     currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-    showLoading(true, 'loadingCamera'); // <-- 此处文本键应为 'loadingCamera'
+    showLoading(true, 'loadingCamera'); 
     try {
         const videoConstraints = {
             facingMode: currentFacingMode,
@@ -1762,7 +2195,6 @@ window.switchCamera = async function() {
         showTempStatus(t.camSwitchedToast.replace('{camType}', camType));
     } catch (err) {
         alert("切换摄像头失败: " + err.message);
-        // 如果失败，恢复到之前的模式
         currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
     } finally {
         showLoading(false);
@@ -1775,7 +2207,6 @@ const galleryImg = document.getElementById('galleryImg');
 const prevImg = document.getElementById('prevImg');
 const nextImg = document.getElementById('nextImg');
 
-// 替换为你的图片路径数组
 const galleryImages = [
   'picture/1.png',
   'picture/2.png',
@@ -1785,18 +2216,15 @@ const galleryImages = [
 
 let currentIndex = 0;
 
-// 打开弹窗
 galleryBtn.onclick = () => {
   galleryModal.style.display = 'flex';
   galleryImg.src = galleryImages[currentIndex];
 };
 
-// 关闭弹窗
 closeGallery.onclick = () => {
   galleryModal.style.display = 'none';
 };
 
-// 左右切换
 prevImg.onclick = () => {
   currentIndex = (currentIndex - 1 + galleryImages.length) % galleryImages.length;
   galleryImg.src = galleryImages[currentIndex];
@@ -1806,32 +2234,321 @@ nextImg.onclick = () => {
   galleryImg.src = galleryImages[currentIndex];
 };
 
-// === 详情弹窗逻辑补完 ===
+const ARTIFACT_INFO = {
+    "zh": {
+        "modell/1_soft.glb": `
+            <h3 class="phase-title">铸造诞生期<br><span style="font-size:16px;">（商末 / 西周初）</span></h3>
+            <h3>历史背景</h3>
+            <p>商末至西周初，青铜冶炼技术高度成熟，青铜器不仅是日常用品，更是祭祀和权力象征。皿方罍作为方形礼器在王室或贵族青铜作坊铸造，承载宗族与王权的庄重使命。</p>
+            <h3>器物命运 / 功能</h3>
+            <ul>
+                <li>盛放酒水，用于祖先祭祀和重大典礼。</li>
+                <li>方形腹体、四足、高颈设计稳固庄重，适合礼仪场合。</li>
+                <li>器身饰饕餮纹、几何纹及铭文，记录祭祀程序、家族关系及王室功绩。</li>
+            </ul>
+            <h3>文化与历史意义</h3>
+            <ul>
+                <li>象征权力、尊贵与威严，反映社会等级和宗法制度。</li>
+                <li>铭文与纹饰为研究商周政治、宗族和礼制提供重要资料。</li>
+            </ul>
+        `,
+        "modell/2_soft.glb": `
+            <h3 class="phase-title">使用期<br><span style="font-size:16px;">（商末–西周早期）</span></h3>
+            <h3>历史背景</h3>
+            <p>商末至西周早期，皿方罍成为王室和贵族祭祀、宴会及礼仪的核心青铜器，礼器规格、纹饰和铭文体现社会等级和礼制规范。</p>
+            <h3>器物命运 / 功能</h3>
+            <ul>
+                <li>盛放酒水，参与祭祀、宴会及重大典礼。</li>
+                <li>祭祀者小心奉献酒水，体现对祖先和神灵的敬意。</li>
+                <li>铭文记录礼制、家族关系及王室功绩，是礼仪和宗法制度的重要凭证。</li>
+            </ul>
+            <h3>文化与历史意义</h3>
+            <ul>
+                <li>象征权威、尊贵和家族荣耀，是贵族和王室礼仪不可或缺的器物。</li>
+                <li>反映社会等级和政治秩序，展现礼制在贵族生活中的核心地位。</li>
+            </ul>
+        `,
+        "modell/3_soft.glb": `
+            <h3 class="phase-title">战乱与易手期<br><span style="font-size:16px;">（西周中晚期）</span></h3>
+            <h3>历史背景</h3>
+            <p>西周中晚期，政治格局复杂，王室权力争夺和诸侯征战频繁，青铜礼器的命运也随之多舛。</p>
+            <h3>器物命运</h3>
+            <ul>
+                <li>皿方罍可能被掠夺、缴获或埋藏以避战乱。</li>
+                <li>长期流转导致器物磨损或破损。</li>
+                <li>铜表面由亮黄铜色逐渐暗淡，甚至出现氧化斑纹。</li>
+            </ul>
+            <h3>文化与历史意义</h3>
+            <ul>
+                <li>尽管经历战乱和易手，皿方罍仍是礼仪、社会等级和宗族权力的重要象征。</li>
+                <li>反映西周中晚期社会动荡及青铜礼器在贵族礼仪体系中的坚守。</li>
+                <li>铭文和纹饰保存情况不一，为研究当时社会与政治提供线索。</li>
+            </ul>
+        `,
+        "modell/4_soft.glb": `
+            <h3 class="phase-title">出土与研究期<br><span style="font-size:16px;">（近现代，19世纪末–20世纪）</span></h3>
+            <h3>历史背景</h3>
+            <p>经过数百年的沉寂，皿方罍在考古发掘中重见天日，成为博物馆展品和学术研究对象。</p>
+            <h3>器物命运 / 功能</h3>
+            <ul>
+                <li>考古学家记录器物形制、铭文、纹饰及铸造工艺，为历史研究提供依据。</li>
+                <li>文物成为公众展览对象，传递历史文化。</li>
+            </ul>
+            <h3>文化与历史意义</h3>
+            <ul>
+                <li>铭文提供商周政治、宗族和礼制的重要参考。</li>
+                <li>青铜工艺展示古代冶铸和雕刻水平。</li>
+                <li>文物价值获得确认与传承，同时让公众理解和欣赏历史文化。</li>
+            </ul>
+        `
+    },
+    "en": {
+        "modell/1_soft.glb": `
+            <h3 class="phase-title">Phase 1 — Casting and Birth<br><span style="font-size:16px;">(Late Shang / Early Western Zhou)</span></h3>
+            <h3>Historical Background</h3>
+            <p>From the late Shang to the early Western Zhou dynasty, bronze smelting technology reached high maturity. Min Fanglei was cast in royal or aristocratic bronze workshops as a square ritual vessel, carrying the solemn mission of patriarchal clan and royal power.</p>
+            <h3>Artifact Destiny / Function</h3>
+            <ul>
+                <li>Held wine, used for ancestor worship and major ceremonies.</li>
+                <li>Its square body, four legs, and high neck design were stable and solemn, suitable for ritual occasions.</li>
+                <li>Decorated with Taotie motifs and inscriptions recording ritual procedures and royal achievements.</li>
+            </ul>
+            <h3>Cultural Significance</h3>
+            <ul>
+                <li>Symbolized power, dignity, and majesty, reflecting social hierarchy.</li>
+                <li>Inscriptions and patterns provide crucial data for studying Shang and Zhou politics.</li>
+            </ul>
+        `,
+        "modell/2_soft.glb": `
+            <h3 class="phase-title">Phase 2 — Period of Use<br><span style="font-size:16px;">(Late Shang – Early Western Zhou)</span></h3>
+            <h3>Historical Background</h3>
+            <p>During this period, Min Fanglei became a core bronze vessel for royal and aristocratic sacrifices, banquets, and rituals.</p>
+            <h3>Artifact Destiny / Function</h3>
+            <ul>
+                <li>Held wine, participating in sacrifices, banquets, and major ceremonies.</li>
+                <li>Worshipers carefully offered wine to show respect to ancestors and deities.</li>
+                <li>Inscriptions recorded the ritual system, family relations, and royal merits.</li>
+            </ul>
+            <h3>Cultural Significance</h3>
+            <ul>
+                <li>An indispensable artifact for noble and royal rituals, symbolizing authority.</li>
+                <li>Reflected the social hierarchy and political order of the time.</li>
+            </ul>
+        `,
+        "modell/3_soft.glb": `
+            <h3 class="phase-title">Phase 3 — War and Changing Hands<br><span style="font-size:16px;">(Mid-Late Western Zhou)</span></h3>
+            <h3>Historical Background</h3>
+            <p>During the mid-to-late Western Zhou dynasty, the political landscape was complex, with frequent wars among feudal lords. The destiny of bronze ritual vessels was also turbulent.</p>
+            <h3>Artifact Destiny</h3>
+            <ul>
+                <li>Min Fanglei might have been plundered, captured, or buried to avoid war.</li>
+                <li>Long-term circulation led to wear and tear of the artifact.</li>
+                <li>The copper surface gradually dimmed from bright brass, developing oxidation spots.</li>
+            </ul>
+            <h3>Cultural Significance</h3>
+            <ul>
+                <li>Despite the wars, it remained an important symbol of ritual and social status.</li>
+                <li>Reflects the social turmoil of the mid-late Western Zhou dynasty.</li>
+            </ul>
+        `,
+        "modell/4_soft.glb": `
+            <h3 class="phase-title">Phase 4 — Excavation and Research<br><span style="font-size:16px;">(Late 19th - 20th Century)</span></h3>
+            <h3>Historical Background</h3>
+            <p>After centuries of silence, Min Fanglei saw the light of day again in archaeological excavations, becoming a museum exhibit and a subject of academic research.</p>
+            <h3>Artifact Destiny / Function</h3>
+            <ul>
+                <li>Archaeologists recorded its shape, inscriptions, patterns, and casting techniques.</li>
+                <li>The artifact became an object of public exhibition, passing on historical culture.</li>
+            </ul>
+            <h3>Cultural Significance</h3>
+            <ul>
+                <li>Inscriptions provide a crucial reference for Shang and Zhou politics and rituals.</li>
+                <li>The bronze craftsmanship demonstrates the high level of ancient metallurgy.</li>
+                <li>Its value has been confirmed and passed down for public appreciation.</li>
+            </ul>
+        `
+    },
+    "ja": {
+        "modell/1_soft.glb": `
+            <h3 class="phase-title">第1段階 — 鋳造と誕生<br><span style="font-size:16px;">(商末 / 西周初期)</span></h3>
+            <h3>歴史的背景</h3>
+            <p>商末から西周初期にかけて、青銅製錬技術は高度に成熟しました。皿方罍（みんほうらい）は方形の礼器として王室や貴族の工房で鋳造され、宗族と王権の厳粛な使命を担いました。</p>
+            <h3>器物の運命 / 機能</h3>
+            <ul>
+                <li>酒を入れ、祖先の祭祀や重要な儀式に使用されました。</li>
+                <li>方形の胴部、四本足、高い首の設計は重厚で、儀式に適していました。</li>
+                <li>饕餮（とうてつ）文や幾何学模様、銘文が施されています。</li>
+            </ul>
+            <h3>文化・歴史的意義</h3>
+            <ul>
+                <li>権力、尊厳、威厳の象徴であり、社会階層と宗法制度を反映しています。</li>
+                <li>銘文と文様は、当時の政治や礼制を研究するための重要な資料です。</li>
+            </ul>
+        `,
+        "modell/2_soft.glb": `
+            <h3 class="phase-title">第2段階 — 使用期<br><span style="font-size:16px;">(商末–西周早期)</span></h3>
+            <h3>歴史的背景</h3>
+            <p>商末から西周早期にかけて、皿方罍は王室や貴族の祭祀、宴会、儀式の中心的な青銅器となりました。</p>
+            <h3>器物の運命 / 機能</h3>
+            <ul>
+                <li>酒を入れ、祭祀や重要な儀式に参加しました。</li>
+                <li>祭祀者は祖先や神々への敬意を表すために酒を捧げました。</li>
+                <li>銘文は礼制、家族関係、王室の功績を記録しています。</li>
+            </ul>
+            <h3>文化・歴史的意義</h3>
+            <ul>
+                <li>権威、尊厳、家族の栄光を象徴し、貴族や王室の儀式に不可欠でした。</li>
+                <li>社会階層と政治秩序を反映しています。</li>
+            </ul>
+        `,
+        "modell/3_soft.glb": `
+            <h3 class="phase-title">第3段階 — 戦乱と流転<br><span style="font-size:16px;">(西周中晩期)</span></h3>
+            <h3>歴史的背景</h3>
+            <p>西周中晩期は政治状況が複雑で、王室の権力闘争や諸侯の戦争が頻発し、青銅礼器的運命も波乱に満ちていました。</p>
+            <h3>器物の運命</h3>
+            <ul>
+                <li>戦乱を避けるために略奪、捕獲、または埋蔵された可能性があります。</li>
+                <li>長期間の流転により、器物が摩耗または破損しました。</li>
+                <li>銅の表面は徐々にくすみ、酸化斑点が生じました。</li>
+            </ul>
+            <h3>文化・歴史的意義</h3>
+            <ul>
+                <li>戦乱を経てもなお、礼儀、社会階層、宗族の権力の重要な象徴でした。</li>
+                <li>西周中晩期の社会の動揺を反映しています。</li>
+            </ul>
+        `,
+        "modell/4_soft.glb": `
+            <h3 class="phase-title">第4段階 — 出土と研究<br><span style="font-size:16px;">(近現代、19世紀末–20世紀)</span></h3>
+            <h3>歴史的背景</h3>
+            <p>数百年の沈黙を経て、皿方罍は考古学的発掘によって再び日の目を見ることになり、博物館の展示品となりました。</p>
+            <h3>器物の運命 / 機能</h3>
+            <ul>
+                <li>考古学者はその形状、銘文、文様、鋳造技術を記録しました。</li>
+                <li>文化財は一般公開され、歴史文化を伝えています。</li>
+            </ul>
+            <h3>文化・歴史的意義</h3>
+            <ul>
+                <li>銘文は商周の政治、宗族、礼制に関する重要な参考資料です。</li>
+                <li>青銅の工芸技術は、古代の冶金と彫刻の水準を示しています。</li>
+                <li>文化財の価値が確認され、一般の人々に鑑賞されています。</li>
+            </ul>
+        `
+    },
+    "de": {
+        "modell/1_soft.glb": `
+            <h3 class="phase-title">Phase 1 — Guss und Entstehung<br><span style="font-size:16px;">(Späte Shang- / Frühe Westliche Zhou-Dynastie)</span></h3>
+            <h3>Historischer Hintergrund</h3>
+            <p>Die Bronzeschmelztechnik war hoch entwickelt. Das Min Fanglei wurde als viereckiges Ritualgefäß in königlichen oder adligen Bronzewerkstätten gegossen.</p>
+            <h3>Artefaktschicksal / Funktion</h3>
+            <ul>
+                <li>Zur Aufbewahrung von Wein für die Ahnenverehrung.</li>
+                <li>Viereckiger Körper, vier Beine und ein hoher Hals für feierliche Anlässe.</li>
+                <li>Verziert mit Taotie-Motiven und Inschriften.</li>
+            </ul>
+            <h3>Kulturelle Bedeutung</h3>
+            <ul>
+                <li>Symbol für Macht und Würde, spiegelt die soziale Hierarchie wider.</li>
+                <li>Wichtige Daten für die Erforschung der Shang- und Zhou-Politik.</li>
+            </ul>
+        `,
+        "modell/2_soft.glb": `
+            <h3 class="phase-title">Phase 2 — Nutzungsperiode<br><span style="font-size:16px;">(Späte Shang- – Frühe Westliche Zhou-Dynastie)</span></h3>
+            <h3>Historischer Hintergrund</h3>
+            <p>Das Min Fanglei wurde zu einem zentralen Bronzegefäß für königliche und adlige Opfer, Bankette und Rituale.</p>
+            <h3>Artefaktschicksal / Funktion</h3>
+            <ul>
+                <li>Behielt Wein für Opfergaben und große Zeremonien.</li>
+                <li>Inschriften hielten das Ritualsystem und familiäre Beziehungen fest.</li>
+            </ul>
+            <h3>Kulturelle Bedeutung</h3>
+            <ul>
+                <li>Ein unverzichtbares Artefakt für adlige Rituale, das Autorität symbolisierte.</li>
+                <li>Spiegelte die soziale Hierarchie und die politische Ordnung wider.</li>
+            </ul>
+        `,
+        "modell/3_soft.glb": `
+            <h3 class="phase-title">Phase 3 — Krieg und Besitzerwechsel<br><span style="font-size:16px;">(Mittlere-Späte Westliche Zhou-Dynastie)</span></h3>
+            <h3>Historischer Hintergrund</h3>
+            <p>Die politische Landschaft war komplex, mit häufigen Kriegen, was auch das Schicksal der Ritualgefäße beeinflusste.</p>
+            <h3>Artefaktschicksal</h3>
+            <ul>
+                <li>Wurde möglicherweise geplündert, erbeutet oder begraben, um Kriegen zu entgehen.</li>
+                <li>Langfristige Zirkulation führte zu Abnutzung.</li>
+                <li>Die Kupferoberfläche wurde matt und entwickelte Oxidationsflecken.</li>
+            </ul>
+            <h3>Kulturelle Bedeutung</h3>
+            <ul>
+                <li>Trotz Kriege blieb es ein wichtiges Symbol für Rituale und sozialen Status.</li>
+                <li>Spiegelt die sozialen Unruhen der Zeit wider.</li>
+            </ul>
+        `,
+        "modell/4_soft.glb": `
+            <h3 class="phase-title">Phase 4 — Ausgrabung und Forschung<br><span style="font-size:16px;">(Moderne, spätes 19. - 20. Jahrhundert)</span></h3>
+            <h3>Historischer Hintergrund</h3>
+            <p>Nach Jahrhunderten der Stille wurde das Min Fanglei wiederentdeckt und zu einem Museumsausstellungsstück.</p>
+            <h3>Artefaktschicksal / Funktion</h3>
+            <ul>
+                <li>Archäologen dokumentierten seine Form, Inschriften und Gusstechniken.</li>
+                <li>Es wurde zu einem Objekt der öffentlichen Ausstellung.</li>
+            </ul>
+            <h3>Kulturelle Bedeutung</h3>
+            <ul>
+                <li>Inschriften bieten eine wichtige Referenz für die damalige Politik.</li>
+                <li>Demonstriert das hohe Niveau der antiken Metallurgie.</li>
+            </ul>
+        `
+    }
+};
+
 const infoBtn = document.getElementById('infoBtn');
+const infoBtnAction = document.getElementById('infoBtnAction'); 
 const infoModal = document.getElementById('infoModal');
 const closeInfo = document.getElementById('closeInfo');
+const infoTextContent = document.getElementById('infoTextContent');
 
-// 1. 点击圆球按钮，显示弹窗
-if (infoBtn) {
-    infoBtn.onclick = (e) => {
-        e.stopPropagation(); // 防止干扰模型点击
-        infoModal.style.display = 'flex';
-    };
+function openInfoModal(e) {
+    e.stopPropagation(); 
+    
+    if (controls) controls.enabled = false;
+    
+    const langData = ARTIFACT_INFO[currentLang] || ARTIFACT_INFO["zh"];
+    
+    if (langData[selectedModelPath]) {
+        infoTextContent.innerHTML = langData[selectedModelPath];
+    } else {
+        const fallbackMsg = {
+            "zh": "暂无该文物的详细信息。",
+            "en": "No detailed information available for this artifact.",
+            "ja": "この文化財の詳細情報はありません。",
+            "de": "Keine detaillierten Informationen für dieses Artefakt verfügbar."
+        };
+        const msg = fallbackMsg[currentLang] || fallbackMsg["zh"];
+        infoTextContent.innerHTML = `<p style='text-align:center; margin-top: 20px;'>${msg}</p>`;
+    }
+    
+    infoModal.style.display = 'flex';
 }
 
-// 2. 点击弹窗内的“返回”按钮，隐藏弹窗
+if (infoBtn) infoBtn.onclick = openInfoModal;
+if (infoBtnAction) infoBtnAction.onclick = openInfoModal;
+
 if (closeInfo) {
     closeInfo.onclick = () => {
         infoModal.style.display = 'none';
+        if (controls) controls.enabled = true;
     };
 }
 
-// 3. (可选) 点击弹窗黑色背景也可以关闭
-infoModal.onclick = (e) => {
-    if (e.target === infoModal) {
-        infoModal.style.display = 'none';
-    }
-};
+if (infoModal) {
+    infoModal.onclick = (e) => {
+        if (e.target === infoModal) {
+            infoModal.style.display = 'none';
+            if (controls) controls.enabled = true;
+        }
+    };
+}
+
+window.addEventListener('load', setupKeyboardAdjustments);
 </script>
 </body>
 </html>

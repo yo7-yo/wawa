@@ -65,12 +65,20 @@ div.full-page.active { display:block; z-index:100; }
 
 /* 结果页 */
 #mascotPage { flex-direction:column; justify-content:center; align-items:center; background:linear-gradient(135deg,#7f1d1d 0%,#991b1b 50%,#7f1d1d 100%); }
-.result-card { background:rgba(140,20,20,0.6); border:2px solid #fcd34d; border-radius:24px; padding:25px; width:90%; max-width:400px; text-align:center; backdrop-filter:blur(10px); transition:all 0.5s; position:relative; z-index:10; overflow:visible !important; }
-#mascotCanvasWrap { width:100%; height:300px; margin-bottom:10px; position:relative; z-index:2; }
+.result-card { width:90%; max-width:400px; padding:25px; border:2px solid #fcd34d; border-radius:24px; background:rgba(140,20,20,0.6); backdrop-filter:blur(10px); transition:transform 0.3s; text-align:center; overflow:visible !important; position:relative; z-index:10; }
+#mascotCanvasWrap { width:100%; height:300px; position:relative; z-index:2; transition:transform 0.3s; margin-bottom:10px; }
 
 /* info 按钮 */
-#infoBtn { position:fixed; top:80px; right:20px; width:36px; height:36px; z-index:2000; border-radius:50%; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.6); color:#fcd34d; border:1px solid #fcd34d; cursor:pointer; }
-body.ar-mode-global #infoBtn { top:120px; right:20px; } /* 避开拍照按钮 */
+#infoBtn { position:fixed; top:80px; right:20px; width:36px; height:36px; z-index:2000; border-radius:50%; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.6); color:#fcd34d; border:1px solid #fcd34d; cursor:pointer; transition:top 0.3s; }
+body.ar-mode-global #infoBtn { top:120px; right:20px; }
+
+/* 输入框聚焦时上移，不改变大小 */
+#mascotPage.input-focused #mascotCanvasWrap,
+#mascotPage.input-focused .result-card { transform:translateY(-100px); }
+
+/* QR 码容器固定大小 */
+#qrCodeContainer { width:140px; height:140px; background:rgba(255,255,255,0.1); border-radius:12px; display:flex; justify-content:center; align-items:center; border:2px dashed #fcd34d; margin:15px auto; }
+#generatedQr { width:100%; height:100%; border-radius:10px; background:#fff; display:block; }
 
 /* AR 控制按钮 */
 #arControls { display:none; position:fixed; inset:0; z-index:100; pointer-events:none; }
@@ -423,6 +431,25 @@ function backToMap(){
   document.querySelector('#mascotPage').classList.remove('active');
   document.querySelector('#mapPage').classList.add('active');
 }
+
+// 处理输入框聚焦事件
+function setupInputFocusHandlers(){
+  const mascotInput = document.getElementById('mascotNameInput');
+  if(!mascotInput) return;
+  
+  mascotInput.addEventListener('focus', ()=>{
+    document.getElementById('mascotPage').classList.add('input-focused');
+  });
+  
+  mascotInput.addEventListener('blur', ()=>{
+    document.getElementById('mascotPage').classList.remove('input-focused');
+  });
+}
+
+// 初始化输入框处理
+document.addEventListener('DOMContentLoaded', ()=>{
+  setupInputFocusHandlers();
+});
 
 </script>
 

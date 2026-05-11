@@ -3,6 +3,11 @@
 /* ！！！！这是第二（AI对话）个界面的样式设计*/
 
 
+
+
+/* ！！！！这是第二（AI对话）个界面的样式设计*/
+
+
 /* ========================================== */
 /* [分区 1]: 基础布局与颜色定调 */
 /* ========================================== */
@@ -211,6 +216,65 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
     position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); 
     z-index: 3000; display: none; justify-content: center; align-items: center; color: #fff; padding: 20px;
 }
+
+/* === 聊天界面的详情模态框样式 === */
+.modal-overlay-chat {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 3000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    padding: 20px;
+}
+
+.gallery-content-chat {
+    background: transparent;
+    padding: 30px;
+    border-radius: 20px;
+    border: 3px solid #fcd34d;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.gallery-content-chat h2 {
+    color: #fcd34d;
+    font-size: 28px;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px #f59e0b;
+}
+
+.info-text-container-chat {
+    padding: 20px;
+    color: #fde68a;
+    font-size: 16px;
+    text-align: left;
+    max-height: 50vh;
+    overflow-y: auto;
+    line-height: 1.6;
+}
+
+.close-btn-chat {
+    background: linear-gradient(to bottom, #fcd34d, #d97706);
+    color: #450a0a;
+    font-weight: 900;
+    padding: 12px 40px;
+    border-radius: 30px;
+    border: none;
+    box-shadow: 0 4px 0 #92400e;
+    cursor: pointer;
+    font-size: 18px;
+    transition: transform 0.2s;
+}
+
+.close-btn-chat:active {
+    transform: scale(0.96);
+}
+
 .info-text-container { background: rgba(0, 0, 0, 0.4); border-radius: 12px; padding: 20px; margin-bottom: 20px; min-height: 150px; display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(252, 211, 77, 0.3); }
 #infoTextContent { font-size: 18px; line-height: 1.6; color: #fde68a; }
 
@@ -384,6 +448,32 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
             }
 
             /* PC端"经历"圆形按钮靠右 */
+            #infoBtnChat {
+                display: block !important;
+                position: fixed !important;
+                top: 20px !important;
+                right: 20px !important;
+                z-index: 100 !important;
+                width: 50px !important;
+                height: 50px !important;
+                border-radius: 50% !important;
+                padding: 0 !important;
+                font-size: 14px !important;
+                background: linear-gradient(to bottom, #fcd34d, #d97706);
+                color: #450a0a;
+                font-weight: 900;
+                border: none;
+                box-shadow: 0 4px 0 #92400e;
+                cursor: pointer;
+                transition: transform 0.2s;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            #infoBtnChat:active {
+                transform: scale(0.96);
+            }
             /* PC端增加result-card的黄线（边框）大小 */
             .result-card {
                 border: 4px solid #fcd34d !important;

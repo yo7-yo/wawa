@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <title>数字潇湘 · 灵境</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+
+<!-- ================= 模块导入 ================= -->
 <script type="importmap">
 {
   "imports": {
@@ -13,6 +15,8 @@
   }
 }
 </script>
+
+<!-- ================= 样式 ================= -->
 <style>
 /* 基础样式和重置 */
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -22,7 +26,7 @@ section.active { display:flex; z-index:100; }
 div.full-page { position:absolute; inset:0; display:none; z-index:50; width:100%; height:100%; }
 div.full-page.active { display:block; z-index:100; }
 
-/* AR 指南 */
+/* ================= AR 指南 ================= */
 #arInstructions { position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:200; display:none; justify-content:center; align-items:center; text-align:center; padding:20px; }
 .instructions-content { background:rgba(20,20,20,0.8); padding:25px 30px; border-radius:20px; border:1px solid #fcd34d; width:100%; max-width:380px; box-shadow:0 8px 30px rgba(0,0,0,0.5); }
 .instructions-content h2 { color:#fcd34d; font-size:24px; margin-bottom:25px; text-shadow:0 0 10px #f59e0b; }
@@ -32,28 +36,21 @@ div.full-page.active { display:block; z-index:100; }
 .instructions-btn { background:linear-gradient(to bottom,#fcd34d,#d97706); color:#450a0a; font-weight:900; padding:14px 40px; border-radius:30px; border:none; box-shadow:0 4px 0 #92400e; cursor:pointer; font-size:18px; width:100%; transition:transform 0.2s; }
 .instructions-btn:active { transform:scale(0.96); }
 
-/* 动态光点 */
+/* ================= 动态光点 ================= */
 #sparkles-container { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; pointer-events:none; }
 .sparkle { position:absolute; bottom:-20px; background-color:#fcd34d; border-radius:50%; opacity:0; animation:floatUp 10s infinite linear; }
 @keyframes floatUp { 0%{transform:translateY(0);opacity:0;} 10%,90%{opacity:1;} 100%{transform:translateY(-100vh);opacity:0;} }
 
-/* 首页地图页 */
+/* ================= 首页地图页 ================= */
 #mapPage { flex-direction:column; justify-content:center; align-items:center; height:100vh; background:radial-gradient(ellipse at center,#e63946 0%,#8d0812 70%); }
 #mapStage { position:relative; text-align:center; }
 #giftBox { font-size:150px; text-shadow:0 0 15px #fcd34d,0 0 30px #f59e0b; animation:float 3s ease-in-out infinite; margin-bottom:30px; cursor:default; }
 @keyframes float { 0%{transform:translateY(0px) rotate(-2deg);} 50%{transform:translateY(-25px) rotate(2deg);} 100%{transform:translateY(0px) rotate(-2deg);} }
 #mapStartButtonContainer { display:flex; flex-direction:column; align-items:center; gap:40px; width:100%; margin-top:20px; }
 .instructions-btn.blind-box-btn { width:100%; max-width:280px; padding:15px 0; font-size:20px; }
-
-/* 图鉴按钮 */
 #galleryBtn { width:auto; padding:15px 40px; font-size:20px; }
 
-/* 图鉴弹窗 */
-#galleryModal { position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:2000; display:none; justify-content:center; align-items:center; text-align:center; padding:20px; }
-.gallery-content { background:rgba(20,20,20,0.8); padding:25px 30px; border-radius:20px; border:1px solid #fcd34d; width:100%; max-width:380px; box-shadow:0 8px 30px rgba(0,0,0,0.5); }
-.gallery-content h2 { color:#fcd34d; font-size:24px; margin-bottom:20px; text-shadow:0 0 10px #f59e0b; }
-
-/* 抽取页 */
+/* ================= 抽取页 ================= */
 #aiPage { flex-direction:column; justify-content:center; align-items:center; background:radial-gradient(circle,#5e0a0a,#000); }
 .ai-box { width:80%; max-width:320px; text-align:center; }
 .shake-jar { font-size:180px; margin-bottom:30px; animation:jarShake 0.6s infinite ease-in-out; display:inline-block; filter:drop-shadow(0 0 20px rgba(251,191,36,0.6)); }
@@ -63,37 +60,17 @@ div.full-page.active { display:block; z-index:100; }
 .progress-fill { width:0%; height:100%; background:linear-gradient(90deg,#fbbf24,#f59e0b); transition:width 0.1s linear; }
 .ai-log { margin-top:15px; color:#fbbf24; font-family:monospace; font-size:14px; }
 
-/* 结果页 */
+/* ================= 结果页 ================= */
 #mascotPage { flex-direction:column; justify-content:center; align-items:center; background:linear-gradient(135deg,#7f1d1d 0%,#991b1b 50%,#7f1d1d 100%); }
 .result-card { width:90%; max-width:400px; padding:25px; border:2px solid #fcd34d; border-radius:24px; background:rgba(140,20,20,0.6); backdrop-filter:blur(10px); transition:transform 0.3s; text-align:center; overflow:visible !important; position:relative; z-index:10; }
 #mascotCanvasWrap { width:100%; height:300px; position:relative; z-index:2; transition:transform 0.3s; margin-bottom:10px; }
 
-/* info 按钮 */
-#infoBtn { position:fixed; top:80px; right:20px; width:36px; height:36px; z-index:2000; border-radius:50%; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.6); color:#fcd34d; border:1px solid #fcd34d; cursor:pointer; transition:top 0.3s; }
-body.ar-mode-global #infoBtn { top:120px; right:20px; }
-
-/* 输入框聚焦时上移，不改变大小 */
-#mascotPage.input-focused #mascotCanvasWrap,
-#mascotPage.input-focused .result-card { transform:translateY(-100px); }
-
-/* QR 码容器固定大小 */
-#qrCodeContainer { width:140px; height:140px; background:rgba(255,255,255,0.1); border-radius:12px; display:flex; justify-content:center; align-items:center; border:2px dashed #fcd34d; margin:15px auto; }
-#generatedQr { width:100%; height:100%; border-radius:10px; background:#fff; display:block; }
-
-/* AR 控制按钮 */
+/* ================= AR 控制按钮 ================= */
 #arControls { display:none; position:fixed; inset:0; z-index:100; pointer-events:none; }
 .ar-btn { position:absolute; height:44px; min-width:44px; padding:0 16px; border-radius:22px; border:none; background:rgba(0,0,0,0.6); backdrop-filter:blur(5px); color:#fff; font-size:14px; font-weight:bold; display:flex; justify-content:center; align-items:center; cursor:pointer; pointer-events:auto; box-shadow:0 2px 10px rgba(0,0,0,0.3); transition:all 0.2s; white-space:nowrap; }
 .ar-btn:active { transform:scale(0.95); background:rgba(255,255,255,0.2); }
-#arExitBtn { top:20px; left:20px; background:rgba(220,38,38,0.8); }
-#arHelpBtn { top:74px; left:20px; }
-#arMirrorBtn { top:20px; right:20px; }
-#arResetBtn { bottom:40px; left:20px; }
-#arToggleGestureBtn { bottom:94px; left:20px; }
-#arSwitchCameraBtn { top:74px; right:20px; display:none; }
-#arPhotoBtn { bottom:100px; right:20px; background:rgba(59,130,246,0.8); }
-#arVideoBtn { bottom:40px; right:20px; background:rgba(239,68,68,0.8); }
 
-/* loading / 状态提示 */
+/* ================= Loading / 状态提示 ================= */
 #loadingToast { position:fixed; top:45%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.8); color:#fff; padding:20px 40px; border-radius:12px; display:none; flex-direction:column; align-items:center; z-index:999; pointer-events:none; }
 .spinner { width:30px; height:30px; border:4px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 1s infinite linear; margin-bottom:10px; }
 @keyframes spin { to{transform:rotate(360deg);} }
@@ -101,88 +78,97 @@ body.ar-mode-global #infoBtn { top:120px; right:20px; }
 </head>
 <body>
 
+<!-- ================= 顶部导航与语言选择 ================= -->
 <a href="index.html" id="back-to-index-btn">返回 ↩</a>
 <select id="lang-select">
-<option value="zh">中文</option>
-<option value="en">English</option>
-<option value="de">Deutsch</option>
-<option value="ja">日本語</option>
+  <option value="zh">中文</option>
+  <option value="en">English</option>
+  <option value="de">Deutsch</option>
+  <option value="ja">日本語</option>
 </select>
 
-<!-- AR 指南 -->
+<!-- ================= AR 指南 ================= -->
 <div id="arInstructions">
-<div class="instructions-content">
-<h2>AR 互动指南</h2>
-<ul>
-<li><span class="icon">☝️</span><b>单指跟随:</b> 模型跟随指尖</li>
-<li><span class="icon">🖐️</span><b>张开手掌:</b> 放大模型</li>
-<li><span class="icon">✊</span><b>握紧拳头:</b> 缩小模型</li>
-<li><span class="icon">✌️</span><b>"V"手势:</b> 顺时针旋转30°</li>
-<li><span class="icon">🤟</span><b>三指手势:</b> 逆时针旋转30°</li>
-</ul>
-<button class="instructions-btn" onclick="startArExperience()">开启奇妙之旅</button>
-</div>
+  <div class="instructions-content">
+    <h2>AR 互动指南</h2>
+    <ul>
+      <li><span class="icon">☝️</span><b>单指跟随:</b> 模型跟随指尖</li>
+      <li><span class="icon">🖐️</span><b>张开手掌:</b> 放大模型</li>
+      <li><span class="icon">✊</span><b>握紧拳头:</b> 缩小模型</li>
+      <li><span class="icon">✌️</span><b>"V"手势:</b> 顺时针旋转30°</li>
+      <li><span class="icon">🤟</span><b>三指手势:</b> 逆时针旋转30°</li>
+    </ul>
+    <button class="instructions-btn" onclick="startArExperience()">开启奇妙之旅</button>
+  </div>
 </div>
 
-<div id="loadingToast"><div class="spinner"></div><div id="loadingText">处理中...</div></div>
+<!-- ================= Loading / 状态提示 ================= -->
+<div id="loadingToast">
+  <div class="spinner"></div>
+  <div id="loadingText">处理中...</div>
+</div>
+
 <video id="bgVideo" autoplay playsinline muted></video>
 <div id="aiStatus"></div>
 
-<!-- 1. 地图页 -->
+<!-- ================= 1. 地图页 ================= -->
 <section id="mapPage" class="active">
-<div id="sparkles-container"></div>
-<div id="mapStage">
-<h1 class="cover-title">古物有灵，待知音唤醒</h1>
-<div id="giftBox">🎁</div>
-<div id="mapStartButtonContainer">
-<button class="instructions-btn blind-box-btn" onclick="startBlindBoxFlow()">抽取文物盲盒</button>
-<button id="galleryBtn" class="instructions-btn">图鉴</button>
-</div>
-<img id="mapImg" src="map.png" alt="MAP">
-</div>
+  <div id="sparkles-container"></div>
+  <div id="mapStage">
+    <h1 class="cover-title">古物有灵，待知音唤醒</h1>
+    <div id="giftBox">🎁</div>
+    <div id="mapStartButtonContainer">
+      <button class="instructions-btn blind-box-btn" onclick="startBlindBoxFlow()">抽取文物盲盒</button>
+      <button id="galleryBtn" class="instructions-btn">图鉴</button>
+    </div>
+    <img id="mapImg" src="map.png" alt="MAP">
+  </div>
 </section>
 
-<!-- 2. 抽取页 -->
+<!-- ================= 2. 抽取页 ================= -->
 <section id="aiPage">
-<div class="ai-box">
-<div class="shake-jar">🏺</div>
-<div class="ai-title">正在唤醒文物之灵...</div>
-<div class="progress-track"><div class="progress-fill" id="aiBar"></div></div>
-<div class="ai-log" id="aiLog">解析历史印记...</div>
-</div>
+  <div class="ai-box">
+    <div class="shake-jar">🏺</div>
+    <div class="ai-title">正在唤醒文物之灵...</div>
+    <div class="progress-track">
+      <div class="progress-fill" id="aiBar"></div>
+    </div>
+    <div class="ai-log" id="aiLog">解析历史印记...</div>
+  </div>
 </section>
 
-<!-- 3. 结果页 -->
+<!-- ================= 3. 结果页 ================= -->
 <section id="mascotPage">
-<div class="result-card" id="resCard">
-<button id="infoBtn" class="dark-gold-btn info-sphere-btn">经历</button>
-<div id="mascotCanvasWrap"></div>
-<div class="model-info">
-<div id="namingSection">
-<h2 class="congrats-title">🎉 唤醒成功！</h2>
-</div>
-<div id="actionSection">
-<h2 id="finalNameDisplay"></h2>
-<p>文物拟人化形态已生成</p>
-<div id="qrCodeContainer">
-<img id="generatedQr" src="" alt="QR Code">
-</div>
-<div class="btn-group">
-<button class="action-btn btn-ar" onclick="enterARMode()">📸 与TA合影</button>
-<button class="action-btn btn-back" onclick="backToMap()">↺ 返回</button>
-</div>
-</div>
-</div>
-<div id="arControls">
-<button class="ar-btn" id="arExitBtn" onclick="exitARMode()">❌ 退出</button>
-<button class="ar-btn" id="arHelpBtn" onclick="showArInstructions()">❓ 帮助</button>
-<button class="ar-btn" id="arMirrorBtn" onclick="toggleMirror()">🔁 镜像</button>
-<button class="ar-btn" id="arResetBtn" onclick="resetModelPos()">📍 归位</button>
-<button class="ar-btn" id="arToggleGestureBtn" onclick="toggleGestureRecognition()">✋ 无识别</button>
-<button class="ar-btn" id="arSwitchCameraBtn" onclick="switchCamera()">🔄 切换镜头</button>
-<button class="ar-btn" id="arPhotoBtn" onclick="takePhoto()">📷 拍照</button>
-<button class="ar-btn" id="arVideoBtn" onclick="toggleVideoRecord()">🎥 录像</button>
-</div>
+  <div class="result-card" id="resCard">
+    <button id="infoBtn" class="dark-gold-btn info-sphere-btn">经历</button>
+    <div id="mascotCanvasWrap"></div>
+    <div class="model-info">
+      <div id="namingSection">
+        <h2 class="congrats-title">🎉 唤醒成功！</h2>
+      </div>
+      <div id="actionSection">
+        <h2 id="finalNameDisplay"></h2>
+        <p>文物拟人化形态已生成</p>
+        <div id="qrCodeContainer">
+          <img id="generatedQr" src="" alt="QR Code">
+        </div>
+        <div class="btn-group">
+          <button class="action-btn btn-ar" onclick="enterARMode()">📸 与TA合影</button>
+          <button class="action-btn btn-back" onclick="backToMap()">↺ 返回</button>
+        </div>
+      </div>
+    </div>
+    <div id="arControls">
+      <button class="ar-btn" id="arExitBtn" onclick="exitARMode()">❌ 退出</button>
+      <button class="ar-btn" id="arHelpBtn" onclick="showArInstructions()">❓ 帮助</button>
+      <button class="ar-btn" id="arMirrorBtn" onclick="toggleMirror()">🔁 镜像</button>
+      <button class="ar-btn" id="arResetBtn" onclick="resetModelPos()">📍 归位</button>
+      <button class="ar-btn" id="arToggleGestureBtn" onclick="toggleGestureRecognition()">✋ 无识别</button>
+      <button class="ar-btn" id="arSwitchCameraBtn" onclick="switchCamera()">🔄 切换镜头</button>
+      <button class="ar-btn" id="arPhotoBtn" onclick="takePhoto()">📷 拍照</button>
+      <button class="ar-btn" id="arVideoBtn" onclick="toggleVideoRecord()">🎥 录像</button>
+    </div>
+  </div>
 </section>
 
 <script type="module">
@@ -336,40 +322,42 @@ const translations = {
 
 let currentLang = 'zh';
 
+/* ==============================
+   多语言应用函数
+   ============================== */
 function updateLanguage(lang) {
   currentLang = lang;
   const t = translations[lang];
-  
-  // 更新所有文本元素
+
+  // 顶部与图鉴按钮
   document.getElementById('back-to-index-btn').textContent = t['back-to-index'];
   document.getElementById('galleryBtn').textContent = t['gallery-btn'];
   document.getElementById('loadingText').textContent = t['loading-text'];
-  
-  // 更新 AR 指南
-  document.querySelector('#arInstructions h2').textContent = t['ar-guide-title'];
+
+  // AR 指南
   const guideItems = document.querySelectorAll('#arInstructions li');
+  document.querySelector('#arInstructions h2').textContent = t['ar-guide-title'];
   guideItems[0].innerHTML = `<span class="icon">☝️</span><b>${t['ar-guide-1']}:</b> ${t['ar-guide-1-desc']}`;
   guideItems[1].innerHTML = `<span class="icon">🖐️</span><b>${t['ar-guide-2']}:</b> ${t['ar-guide-2-desc']}`;
   guideItems[2].innerHTML = `<span class="icon">✊</span><b>${t['ar-guide-3']}:</b> ${t['ar-guide-3-desc']}`;
   guideItems[3].innerHTML = `<span class="icon">✌️</span><b>${t['ar-guide-4']}:</b> ${t['ar-guide-4-desc']}`;
   guideItems[4].innerHTML = `<span class="icon">🤟</span><b>${t['ar-guide-5']}:</b> ${t['ar-guide-5-desc']}`;
   document.querySelector('#arInstructions button').textContent = t['ar-guide-btn'];
-  
-  // 更新主标题和盲盒按钮
+
+  // 首页地图页标题与盲盒按钮
   document.querySelector('.cover-title').textContent = t['title'];
   document.querySelector('.blind-box-btn').textContent = t['blind-box-btn'];
-  
-  // 更新 AI 进度页面
+
+  // AI 页面
   document.querySelector('.ai-title').textContent = t['ai-title'];
-  
-  // 更新结果页
+
+  // 结果页
   document.getElementById('infoBtn').textContent = t['info-btn'];
   document.querySelector('.congrats-title').textContent = t['congrats'];
   document.querySelector('#actionSection p').textContent = t['model-desc'];
   document.querySelector('.btn-ar').textContent = t['ar-photo-btn'];
-  document.querySelector('.btn-back').textContent = t['back-btn'];
-  
-  // 更新 AR 控制按钮
+
+  // AR 控制按钮
   document.getElementById('arExitBtn').textContent = t['ar-exit'];
   document.getElementById('arHelpBtn').textContent = t['ar-help'];
   document.getElementById('arMirrorBtn').textContent = t['ar-mirror'];
@@ -380,33 +368,31 @@ function updateLanguage(lang) {
   document.getElementById('arVideoBtn').textContent = t['ar-video'];
 }
 
-// 页面加载时初始化
+/* ==============================
+   页面初始化
+   ============================== */
 document.addEventListener('DOMContentLoaded', () => {
-  // 初始化为中文
   updateLanguage('zh');
-  
-  // 初始化语言选择器
+
   const langSelect = document.getElementById('lang-select');
   if (langSelect) {
-    langSelect.addEventListener('change', (e) => {
-      updateLanguage(e.target.value);
-    });
+    langSelect.addEventListener('change', (e) => updateLanguage(e.target.value));
   }
-  
-  // 处理输入框聚焦事件
-  setupInputFocusHandlers();
 });
 
-// 这里写 JS：控制页面切换、AI 进度条、AR 拍照、infoBtn隐藏逻辑
+/* ==============================
+   页面切换与 AI 进度条
+   ============================== */
 function startBlindBoxFlow(){
   document.querySelector('#mapPage').classList.remove('active');
   document.querySelector('#aiPage').classList.add('active');
-  // 启动 AI 进度条动画
+
   let progress = 0;
   const bar = document.getElementById('aiBar');
   const log = document.getElementById('aiLog');
   const t = translations[currentLang];
   const messages = [t['ai-log-1'], t['ai-log-2'], t['ai-log-3']];
+
   const interval = setInterval(()=>{
     progress += 1;
     bar.style.width = progress + '%';
@@ -420,6 +406,9 @@ function startBlindBoxFlow(){
   },50);
 }
 
+/* ==============================
+   AR 控制
+   ============================== */
 function enterARMode(){
   document.body.classList.add('ar-mode-global');
   document.getElementById('arControls').style.display='block';
@@ -439,21 +428,15 @@ function backToMap(){
   document.querySelector('#mapPage').classList.add('active');
 }
 
-// 处理输入框聚焦事件
+/* ==============================
+   输入框聚焦事件
+   ============================== */
 function setupInputFocusHandlers(){
   const mascotInput = document.getElementById('mascotNameInput');
   if(!mascotInput) return;
-  
-  mascotInput.addEventListener('focus', ()=>{
-    document.getElementById('mascotPage').classList.add('input-focused');
-  });
-  
-  mascotInput.addEventListener('blur', ()=>{
-    document.getElementById('mascotPage').classList.remove('input-focused');
-  });
+  mascotInput.addEventListener('focus', ()=>document.getElementById('mascotPage').classList.add('input-focused'));
+  mascotInput.addEventListener('blur', ()=>document.getElementById('mascotPage').classList.remove('input-focused'));
 }
 
+setupInputFocusHandlers();
 </script>
-
-</body>
-</html>

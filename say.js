@@ -3,67 +3,7 @@ function getPersonaFromURL() {
     const params = new URLSearchParams(window.location.search);
     return params.get('role') || 'scholar'; // 没拿到参数默认给“学者”
 }
-let scene, camera, renderer, controls, model;
 
-function init3D() {
-    const container = document.getElementById('canvas-container');
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-    camera.position.set(0, 1.5, 5);
-
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    container.appendChild(renderer.domElement);
-
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 6.0;
-
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    const dirLight = new THREE.DirectionalLight(0xffedd0, 1.5);
-    dirLight.position.set(5,5,5);
-    scene.add(dirLight);
-}
-
-function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-}
-
-function loadModel(modelPath) {
-    const loadingOverlay = document.getElementById('loading-overlay');
-    loadingOverlay.style.display = 'block';
-    const loader = new THREE.GLTFLoader();
-
-    if(model) scene.remove(model);
-
-    loader.load(
-        modelPath,
-        function(gltf){
-            model = gltf.scene;
-            model.scale.set(1,1,1);
-            model.position.set(0,0,0);
-            scene.add(model);
-            loadingOverlay.style.display = 'none';
-        },
-        undefined,
-        function(error){
-            console.error('模型加载失败:', error);
-            loadingOverlay.innerText = '模型加载失败，请检查路径';
-        }
-    );
-}
-
-// 页面加载时初始化
-document.addEventListener('DOMContentLoaded', ()=>{
-    init3D();
-    animate();
-    loadModel('./2.glb'); // 改成你的模型路径
-});
 window.currentAiPersona = getPersonaFromURL();
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -287,7 +227,7 @@ function loadModel(modelPath) {
     loadingOverlay.style.display = 'block';
     const loader = new THREE.GLTFLoader();
 
-    //loader.setMeshoptDecoder(MeshoptDecoder);
+    loader.setMeshoptDecoder(MeshoptDecoder);
 
     if (model) {
         scene.remove(model);
@@ -297,8 +237,18 @@ function loadModel(modelPath) {
         modelPath,
         function (gltf) {
             model = gltf.scene;
-            model.scale.set(4, 4, 4);
-            model.position.y = -1.2;
+
+            // 自动缩放和居中
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 4 / maxDim; // 设定目标显示大小
+            model.scale.set(scale, scale, scale);
+
+            model.position.sub(center.multiplyScalar(scale));
+
             scene.add(model);
             loadingOverlay.style.display = 'none';
         },
@@ -798,190 +748,7 @@ if (infoBtn) {
         if (infoModal) infoModal.style.display = 'flex';
     };
 }
-// ================== 角色参数 ==================
-function getPersonaFromURL() {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('role') || 'scholar';
-}
-window.currentAiPersona = getPersonaFromURL();
 
-// ================== 全局变量 ==================
-let scene, camera, renderer, controls, model;
-let chatHistory = [];
-let currentLang = 'zh';
-let isInSelectionMode = false;
-let selectedMessages = new Set();
-const LONG_PRESS_DURATION = 500;
-
-// ================== 3D 渲染 ==================
-function init3D() {
-    const container = document.getElementById('canvas-container');
-    scene = new THREE.Scene();
-
-    camera = new THREE.PerspectiveCamera(
-        45,
-        container.clientWidth / container.clientHeight,
-        0.1,
-        1000
-    );
-    camera.position.set(0, 1.5, 5);
-
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    container.appendChild(renderer.domElement);
-
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 6.0;
-
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    const dirLight = new THREE.DirectionalLight(0xffedd0, 1.5);
-    dirLight.position.set(5,5,5);
-    scene.add(dirLight);
-}
-
-function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-}
-
-function loadModel(modelPath) {
-    const loadingOverlay = document.getElementById('loading-overlay');
-    if (loadingOverlay) loadingOverlay.style.display = 'block';
-
-    const loader = new THREE.GLTFLoader();
-
-    if (model) scene.remove(model);
-
-    loader.load(
-        modelPath,
-        function (gltf) {
-            model = gltf.scene;
-            model.scale.set(1,1,1);
-            model.position.set(0,0,0);
-            scene.add(model);
-            if (loadingOverlay) loadingOverlay.style.display = 'none';
-        },
-        undefined,
-        function (error) {
-            console.error('模型加载失败:', error);
-            if (loadingOverlay) loadingOverlay.innerText = '模型加载失败，请检查路径';
-        }
-    );
-}
-
-// ================== 页面初始化 ==================
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. 初始化 3D
-    init3D();
-    animate();
-    loadModel('./models/2.glb'); // 确认路径正确
-
-    // 2. AI 欢迎语
-    const greetingMsg = document.getElementById('dynamic-greeting');
-    const greetings = {
-        child: "哇！你终于来看我啦！我肚子里装了好多好玩的故事，你想先听哪一个呀？",
-        student: "阁下有礼了。相见即是缘，咱们一同探讨探讨这器物背后的奥秘如何？",
-        storyteller: "惊堂木一拍，咱们话接上回！这位看官，您想听点宫廷秘闻呢，还是江湖传说？",
-        scholar: "您好。此器历经沧桑。若有关于其形制、纹饰或年代断代的学术探讨，但问无妨。"
-    };
-    if (greetingMsg) greetingMsg.innerText = greetings[window.currentAiPersona];
-
-    // 3. AI 对话历史
-    loadHistoryFromLocal();
-    renderChat();
-
-    // 4. 按钮事件
-    document.getElementById('send-btn').addEventListener('click', sendChat);
-    document.getElementById('user-input').addEventListener('keypress', e => { if(e.key==='Enter') sendChat(); });
-    document.getElementById('undo-btn').addEventListener('click', undoLast);
-    document.getElementById('retry-btn').addEventListener('click', retryLast);
-    document.getElementById('save-btn').addEventListener('click', saveChatHistory);
-});
-
-// ================== AI 对话函数 ==================
-async function sendChat(overrideText=null) {
-    const input = document.getElementById('user-input');
-    const text = overrideText || input.value.trim();
-    if (!text) return;
-
-    if (!overrideText) {
-        input.value = '';
-        chatHistory.push({role:'user', content:text});
-        saveHistoryToLocal();
-        renderChat();
-    }
-
-    const artifactName = document.getElementById('artifact-name').value;
-    const historyDiv = document.getElementById('chat-history');
-    const loadingDiv = document.createElement('div');
-    loadingDiv.className = 'message ai';
-    loadingDiv.id = 'temp-loading';
-    loadingDiv.innerText = '思考中...';
-    historyDiv.appendChild(loadingDiv);
-    historyDiv.scrollTop = historyDiv.scrollHeight;
-
-    try {
-        const response = await fetch('/api/chat', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({
-                history: chatHistory,
-                artifact_name: artifactName,
-                language: currentLang
-            })
-        });
-        const data = await response.json().catch(()=>({}));
-        if (!response.ok) throw new Error(data.detail || data.answer || `HTTP ${response.status}`);
-
-        const aiText = data.answer;
-        document.getElementById('temp-loading').remove();
-        chatHistory.push({role:'assistant', content:aiText});
-        saveHistoryToLocal();
-        renderChat();
-        speak(aiText);
-
-    } catch(error) {
-        console.error('Chat error:', error);
-        const loadingElement = document.getElementById('temp-loading');
-        if (loadingElement) loadingElement.innerText = error?.message || '连接断开';
-    }
-}
-
-// ================== 工具函数 ==================
-function speak(text){
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const speechLangMap = { zh:'zh-CN', en:'en-US', de:'de-DE', ja:'ja-JP' };
-    u.lang = speechLangMap[currentLang]||'en-US';
-    u.rate=1.0;
-    window.speechSynthesis.speak(u);
-}
-
-// 本地存储
-function saveHistoryToLocal(){ localStorage.setItem('museumChatHistory', JSON.stringify(chatHistory)); }
-function loadHistoryFromLocal(){ 
-    const h = localStorage.getItem('museumChatHistory');
-    if(h) chatHistory = JSON.parse(h);
-}
-
-// 聊天渲染
-function renderChat(){
-    const div = document.getElementById('chat-history');
-    div.innerHTML='';
-    if(chatHistory.length===0){ div.innerHTML=`<div class="message system-msg">有兴趣和我一起聊聊天吗</div>`; return; }
-    chatHistory.forEach((msg,index)=>{
-        const m = document.createElement('div');
-        m.className=`message ${msg.role==='user'?'user':'ai'}`;
-        m.innerHTML = msg.role==='user'? msg.content:`<strong>${document.getElementById('artifact-name').value}</strong><br>${msg.content}`;
-        div.appendChild(m);
-    });
-    div.scrollTop = div.scrollHeight;
-}
 if (closeInfo && infoModal) {
     closeInfo.onclick = () => {
         infoModal.style.display = 'none';

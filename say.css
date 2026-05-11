@@ -369,4 +369,23 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
     #selection-controls .action-buttons button {
         font-size: 11px !important;
     }
+
+    .app-header {
+        display: flex;
+        flex-direction: column; /* 先垂直排列两行 */
+        gap: 10px;              /* 两行间距 */
+        padding: 10px 20px;
+    }
+
+    .title-row h1 {
+        margin: 0;
+        font-size: 28px;
+        text-align: left;       /* 左对齐 */
+    }
+
+    .top-row {
+        display: flex;
+        align-items: center;    /* 垂直居中 */
+        gap: 10px;              /* 控件之间水平间距 */
+    }
 }

@@ -1,31 +1,112 @@
-body { margin: 0; background: #1a1a1a; color: #e0c097; font-family: "Songti SC", "SimSun", serif; }
+/* =========================================================
+   1. 全局与基础布局
+   ========================================================= */
+body { 
+    margin: 0; 
+    background: #1a1a1a; 
+    color: #e0c097; 
+    font-family: "Songti SC", "SimSun", serif; 
+}
+
 #app { 
     display: flex; 
     flex-direction: column; 
-    min-height: 100vh; /* 使用 min-height 而不是 height */
+    min-height: 100vh; 
     overflow-x: hidden;
 }
-header { 
+
+/* =========================================================
+   2. 顶部导航栏 (Header) - 弹性自适应布局
+   ========================================================= */
+.app-header { 
     padding: 15px; 
     text-align: center; 
     border-bottom: 2px solid #5c4d3c; 
     background: #000; 
     position: relative; 
     z-index: 100; /* 极高层级，防止模型穿过 */
+    display: flex;
+    flex-direction: column;
+    gap: 12px; 
 }
-header h1 { margin: 0; font-size: 1.5em; text-shadow: 0 2px 5px black; letter-spacing: 2px; }
-header p { margin: 5px 0 0; color: #888; font-size: 0.8em; }
 
+.title-row h1 { 
+    margin: 0; 
+    font-size: 1.5em; 
+    text-shadow: 0 2px 5px black; 
+    letter-spacing: 2px; 
+    color: #e0c097; 
+}
+
+/* 控件水平排列，窄屏自动换行 */
+.top-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap; 
+    width: 100%;
+}
+
+/* 统一输入框与按钮的高度与流式布局 */
+#lang-select, 
+#blind-box-btn, 
+#artifact-name {
+    margin: 0;
+    height: 38px;
+    box-sizing: border-box;
+}
+
+#lang-select {
+    padding: 0 10px;
+    font-size: 14px;
+    flex: 0 1 auto;
+    background: #444; 
+    color: #ccc; 
+    border: 1px solid #666;
+}
+
+#artifact-name { 
+    background: #222; 
+    border: 1px solid #5c4d3c; 
+    color: #d4af37; 
+    padding: 5px 10px; 
+    text-align: center; 
+    font-family: inherit;
+    flex: 1;           /* 占满剩余宽度 */
+    min-width: 100px;  
+    max-width: 200px;  
+}
+
+/* =========================================================
+   3. 3D 模型展示区 (Canvas)
+   ========================================================= */
 #canvas-container { 
     flex: 1; 
     position: relative; 
     background: radial-gradient(circle at center, #3a3a3a 0%, #000 100%); 
-    overflow: hidden; /* 核心：裁剪掉任何跑出来的模型部分 */
-    z-index: 1;       /* 放在底层 */
-}/* 新增：强制 Three.js 标签不越界 */
-#canvas-container canvas { display: block; width: 100% !important; height: 100% !important; outline: none; }
-#loading-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #d4af37; font-size: 1.2em; }
+    overflow: hidden; /* 裁剪掉任何跑出来的模型部分 */
+    z-index: 1;       
+}
 
+#canvas-container canvas { 
+    display: block; 
+    width: 100% !important; 
+    height: 100% !important; 
+    outline: none; 
+}
+
+#loading-overlay { 
+    position: absolute; 
+    top: 50%; left: 50%; 
+    transform: translate(-50%, -50%); 
+    color: #d4af37; 
+    font-size: 1.2em; 
+}
+
+/* =========================================================
+   4. 聊天面板 (Chat Panel)
+   ========================================================= */
 .chat-panel { 
     height: 320px; 
     background: rgba(20, 20, 20, 0.95); 
@@ -38,91 +119,96 @@ header p { margin: 5px 0 0; color: #888; font-size: 0.8em; }
     z-index: 10;
 }
 
-/* 输入区 (因为之前调整过位置，所以放前面) */
-.input-area { display: flex; gap: 10px; }
+.input-area { 
+    display: flex; 
+    gap: 10px; 
+}
+
 input#user-input { 
-    flex: 1; background: #e0e0e0; border: 2px solid #7a6b5d; color: #000; 
-    padding: 10px; font-weight: bold; font-family: inherit;
+    flex: 1; 
+    background: #e0e0e0; 
+    border: 2px solid #7a6b5d; 
+    color: #000; 
+    padding: 10px; 
+    font-weight: bold; 
+    font-family: inherit;
 }
 
 /* 聊天记录区域 */
 #chat-history { 
-    flex: 1; overflow-y: auto; 
-    padding: 10px; border: 1px solid #333; background: rgba(0,0,0,0.3); 
-    display: flex; flex-direction: column; gap: 10px;
-}
-
-/* 控制栏样式 (因为之前调整过位置，所以放后面) */
-.controls-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
-#artifact-name { 
-    background: #222; border: 1px solid #5c4d3c; color: #d4af37; 
-    padding: 5px 10px; width: 150px; text-align: center; font-family: inherit;
-}
-.action-buttons { 
+    flex: 1; 
+    overflow-y: auto; 
+    padding: 10px; 
+    border: 1px solid #333; 
+    background: rgba(0,0,0,0.3); 
     display: flex; 
-    gap: 5px; 
-    margin-left: auto; /* ★ 核心秘诀：自动把左边距撑满，从而把按钮挤到最右边 */
+    flex-direction: column; 
+    gap: 10px;
+    -ms-overflow-style: none;  /* IE 10+ 隐藏滚动条 */
+    scrollbar-width: none;     /* Firefox 隐藏滚动条 */
+}
+#chat-history::-webkit-scrollbar {
+    width: 0px; 
+    background: transparent;
 }
 
-/* 仅在 PC 端生效的布局调整 */
-@media (min-width: 769px) {
-    .controls-bar .action-buttons {
-        margin-left: auto; /* 利用 auto 撑开左侧空间，把按钮挤到最右边 */
-    }
-    
-    #artifact-name {
-        margin: 0; /* 清除它在 PC 端可能带有的外边距 */
-    }
+/* =========================================================
+   5. 消息气泡样式 (Messages)
+   ========================================================= */
+.message { 
+    padding: 8px 12px; /* 稍微增加了内边距，让气泡更圆润美观 */
+    border-radius: 4px; 
+    max-width: 70%; 
+    line-height: 1.4; 
+    position: relative;
 }
-
-/* 消息气泡 */
-.message { padding: 3px 3px; border-radius: 4px; max-width: 70%; line-height: 1.4; }
 .message.user { align-self: flex-end; background-color: #5c4d3c; color: #fff; border: 1px solid #7a6b5d; }
 .message.ai { align-self: flex-start; background-color: #2b2b2b; color: #d4af37; border: 1px solid #555; }
 .message.system-msg { align-self: center; background: none; color: #666; font-size: 0.8em; border: none; }
 
-/* 按钮通用样式 */
-button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; font-family: inherit; transition: 0.2s; }
+/* 消息选中特效 */
+.chat-turn.selected, .user-message .chat-turn.selected {
+    background-color: rgba(0, 123, 255, 0.15);
+    border-radius: 8px; 
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+}
+.message.selected { 
+    background-color: #5c4d3c99 !important; 
+    border: 1px solid #d4af37 !important; 
+    box-shadow: 0 0 8px #d4af37a0 !important; 
+}
+
+/* =========================================================
+   6. 按钮与控制栏 (Buttons & Controls)
+   ========================================================= */
+button { 
+    cursor: pointer; 
+    border: none; 
+    padding: 10px 20px; 
+    font-weight: bold; 
+    font-family: inherit; 
+    transition: 0.2s; 
+}
+
 .primary-btn { background: linear-gradient(to bottom, #d4af37, #aa8c2c); color: #222; border: 1px solid #886a1a; }
 .primary-btn:hover { filter: brightness(1.1); }
 .secondary-btn { background: #444; color: #ccc; border: 1px solid #666; padding: 5px 10px; font-size: 0.9em; }
 .secondary-btn:hover { background: #555; }
 
-/* 弹窗样式 */
-.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); justify-content: center; align-items: center; }
-.modal-content { background: #1a1a1a; border: 2px solid #d4af37; padding: 20px; border-radius: 8px; text-align: center; width: 300px; box-shadow: 0 0 20px rgba(212, 175, 55, 0.2); }
-.modal-content h3 { color: #d4af37; margin-top: 0; }
-.highlight-text { color: #ff4444; font-weight: bold; font-size: 1.2em; display: inline-block; margin: 10px 0; }
-#verify-input { width: 90%; margin-bottom: 15px; text-align: center; background: #333; color: white; }
-.modal-buttons { display: flex; justify-content: space-around; }
-
-/* 单个删除按钮 */
-.delete-btn { position: absolute; top: 50%; transform: translateY(-50%); background: none; border: none; color: #555; font-size: 16px; cursor: pointer; opacity: 0; transition: opacity 0.2s, color 0.2s; padding: 5px; }
-.message.user .delete-btn { left: -15px; }
-.message.ai .delete-btn { right: -15px; }
-.message:hover .delete-btn { opacity: 1; }
-.delete-btn:hover { color: #ff4444; }
-
-/* 批量选择模式样式 */
-#selection-counter { color: #d4af37; margin: 0; font-size: 0.9em; flex: 1; text-align: left; }
-.message.selected { background-color: #5c4d3c99 !important; border: 1px solid #d4af37 !important; box-shadow: 0 0 8px #d4af37a0 !important; }
-.selection-active .message:hover .delete-btn { opacity: 0; }
-.selection-active .message { cursor: pointer; }
-
-/* --- 新增代码：用于消息选中的荧光效果 --- */
-.chat-turn.selected {
-    background-color: rgba(0, 123, 255, 0.15);
-    border-radius: 8px; /* 给高亮一个圆角，更好看 */
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+.controls-bar { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-top: 5px; 
 }
 
-/* 让用户消息的选中效果也生效 */
-.user-message .chat-turn.selected {
-    /* 如果有需要，可以为用户消息单独微调样式 */
-    background-color: rgba(0, 123, 255, 0.15);
+.action-buttons { 
+    display: flex; 
+    gap: 5px; 
+    margin-left: auto; /* 靠右对齐 */
 }
 
-/* --- 盲盒按钮 "呼吸光晕" 限定皮肤 --- */
+/* 盲盒呼吸按钮 */
 @keyframes breathing-brass {
     0% { box-shadow: 0 0 5px rgba(224, 178, 92, 0.5); }
     50% { box-shadow: 0 0 20px rgba(224, 178, 92, 0.9); }
@@ -130,127 +216,74 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
 }
 
 #blind-box-btn {
-    /* --- 定位 --- */
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    right: 15px;
-    z-index: 1000;
-    
-    /* --- 外观 (完整定义，不再依赖其他样式) --- */
+    padding: 0 20px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: linear-gradient(to bottom, #E0B25C, #c99a42);
     color: #403014;
     border: 1px solid #a87d32;
     border-radius: 50px; 
-    padding: 12px 21px;
-    font-size: 19px;
-    font-weight: bold; 
-    font-family: inherit; 
-    cursor: pointer; 
     animation: breathing-brass 3s infinite ease-in-out;
+    white-space: nowrap; 
 }
-
 #blind-box-btn:hover {
     animation-play-state: paused;
     filter: brightness(1.1);
     box-shadow: 0 0 25px rgba(224, 178, 92, 1);
 }
 
-/* 信息小圆球按钮样式 */
-.info-sphere-btn {
-    position: absolute;
-    top: 15px;      /* 距离金框顶部距离 */
-    right: 15px;    /* 距离金框右侧距离 */
-    width: 32px;    /* 宽和高相等保证是圆 */
-    height: 32px;
-    padding: 0 !important; /* 取消原有内边距 */
-    border-radius: 50% !important; /* 强制变圆 */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-style: italic;
-    font-family: "Times New Roman", serif;
-    font-size: 18px;
-    z-index: 100;   /* 确保在模型之上 */
+/* 删除与选择控制 */
+.delete-btn { 
+    position: absolute; top: 50%; transform: translateY(-50%); 
+    background: none; border: none; color: #555; font-size: 16px; 
+    cursor: pointer; opacity: 0; transition: opacity 0.2s, color 0.2s; padding: 5px; 
 }
+.message.user .delete-btn { left: -25px; } /* 微调了位置防止遮挡 */
+.message.ai .delete-btn { right: -25px; }
+.message:hover .delete-btn { opacity: 1; }
+.delete-btn:hover { color: #ff4444; }
 
-/* 文字弹窗的通用遮罩样式 (复用图鉴的逻辑) */
-.modal-overlay {
-    position: fixed; 
-    inset: 0; 
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(8px); 
-    z-index: 3000; /* 比图鉴更高一点 */
-    display: none; /* 默认隐藏 */
-    justify-content: center; 
-    align-items: center; 
-    color: #fff;
-    padding: 20px;
-}
-
-/* 文字容器样式 */
-.info-text-container {
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-    min-height: 150px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px dashed rgba(252, 211, 77, 0.3);
-}
-
-#infoTextContent {
-    font-size: 18px;
-    line-height: 1.6;
-    color: #fde68a;
-}
-
-/* 2. 将语言选择框绝对定位到左上角并垂直居中 */
-#lang-select {
-    position: absolute !important;
-    left: 15px !important;       /* ★ 紧贴左侧 */
-    bottom: 12px !important;     /* ★ 核心：紧贴 Header 的底部 */
-    top: auto !important;        /* ★ 必须把 top 设为 auto 清除掉，否则 bottom 不生效 */
-    transform: none !important; 
-    z-index: 1000 !important;   
-    margin: 0 !important;
-    height: 32px !important;
-    font-size: 13px !important;
-}
-
-/* 隐藏 PC 端 #chat-history 滚动条，但仍可滚动 */
-#chat-history::-webkit-scrollbar {
-    width: 0px;       /* Chrome, Safari, Edge */
-    background: transparent;
-}
-#chat-history {
-    -ms-overflow-style: none;  /* IE 10+ */
-    scrollbar-width: none;     /* Firefox */
-}
+#selection-counter { color: #d4af37; margin: 0; font-size: 0.9em; flex: 1; text-align: left; }
+.selection-active .message:hover .delete-btn { opacity: 0; }
+.selection-active .message { cursor: pointer; }
 
 /* =========================================================
-   新增：角色选择遮罩层样式
+   7. 弹窗与遮罩层 (Modals & Overlays)
    ========================================================= */
-.overlay-container {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.85); z-index: 9999; 
-    display: flex; justify-content: center; align-items: center;
+.modal, .overlay-container, .modal-overlay { 
+    display: none; 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background-color: rgba(0, 0, 0, 0.85); 
     backdrop-filter: blur(8px);
-    transition: opacity 0.5s ease, visibility 0.5s;
+    justify-content: center; align-items: center; 
+    z-index: 3000; 
 }
 
-.role-modal {
-    background: #1a1a1a; border: 2px solid #d4af37; border-radius: 12px;
-    padding: 30px 20px; width: 85%; max-width: 400px; text-align: center;
-    box-shadow: 0 0 40px rgba(212, 175, 55, 0.2);
+/* 将 overlay-container 默认状态设为 flex 以配合之前的逻辑 */
+.overlay-container { display: flex; transition: opacity 0.5s ease, visibility 0.5s; z-index: 9999; }
+
+.modal-content, .role-modal { 
+    background: #1a1a1a; 
+    border: 2px solid #d4af37; 
+    border-radius: 12px; 
+    padding: 30px 20px; 
+    text-align: center; 
+    width: 85%; max-width: 400px; 
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.2); 
 }
 
-.role-modal h2 { color: #d4af37; margin-top: 0; margin-bottom: 10px; font-size: 1.5em; letter-spacing: 2px;}
+.modal-content h3, .role-modal h2 { color: #d4af37; margin-top: 0; }
+.role-modal h2 { margin-bottom: 10px; font-size: 1.5em; letter-spacing: 2px; }
 .role-modal p { color: #aaa; font-size: 0.9em; margin-bottom: 25px; }
-.role-options { display: flex; flex-direction: column; gap: 12px; }
 
+.highlight-text { color: #ff4444; font-weight: bold; font-size: 1.2em; display: inline-block; margin: 10px 0; }
+#verify-input { width: 90%; margin-bottom: 15px; padding: 10px; text-align: center; background: #333; color: white; border: 1px solid #555;}
+.modal-buttons { display: flex; justify-content: space-around; }
+
+/* 角色选择按钮 */
+.role-options { display: flex; flex-direction: column; gap: 12px; }
 .role-btn {
     background: #2b2b2b; border: 1px solid #5c4d3c; border-radius: 8px;
     padding: 12px; cursor: pointer; transition: all 0.3s ease;
@@ -260,89 +293,35 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
 .role-title { font-size: 1.1em; font-weight: bold; color: #d4af37; margin-bottom: 5px; }
 .role-desc { font-size: 0.8em; color: #ccc; }
 
+/* =========================================================
+   8. 移动端适配 (Media Queries)
+   ========================================================= */
 @media (max-width: 768px) {
-    /* 顶部 Header 两行布局 */
-    .app-header {
-        display: flex;
-        flex-direction: column; /* 两行垂直排列 */
-        gap: 8px;               /* 两行间距 */
-        padding: 8px 12px;
-    }
-
-    /* 第一行：标题单独一行 */
-    .title-row h1 {
-        margin: 0;
-        font-size: 1.2em;
-        text-align: center;
-    }
-
-    /* 第二行：语言选择框 + 按钮 + 文物名称 */
-    .top-row {
-        display: flex;
-        align-items: center;       /* 垂直居中 */
-        justify-content: flex-start; /* 左对齐，可改 center */
-        gap: 8px;                  /* 元素间水平间距 */
-        flex-wrap: wrap;           /* 太窄自动换行 */
-    }
-
-    /* 去掉绝对定位 */
-    #lang-select,
-    #blind-box-btn,
-    #artifact-name {
-        position: static !important;
-        transform: none !important;
-        margin: 0 !important;
-    }
-
-    /* 微调控件高度和字体 */
-    #lang-select,
-    #blind-box-btn {
-        height: 32px;
-        font-size: 12px;
-    }
-
-    #artifact-name {
-        flex: 1;                  /* 占剩余空间 */
-        min-width: 80px;
-        text-align: center;
-        background: #222;
-        border: 1px solid #5c4d3c;
-        color: #d4af37;
-        padding: 5px 10px;
-        font-family: inherit;
-        order: 3;                 /* 保证在按钮之后显示 */
-    }
-
-    /* 模型区域微调 */
+    /* 缩小头部内边距 */
+    .app-header { padding: 10px 12px; gap: 8px; }
+    .title-row h1 { font-size: 1.3em; }
+    
+    /* 模型与面板空间微调 */
     #canvas-container {
-        margin-top: -20px !important;
+        margin-top: -10px !important;
         height: 42vh !important;
-        min-height: 300px !important;
+        min-height: 280px !important;
     }
-
-    /* 对话面板向上 */
     .chat-panel {
-        margin-top: -15px !important;
+        margin-top: -10px !important;
         background: #141414;
-        padding: 10px 6px !important;
+        padding: 10px 8px !important;
+        height: 350px; 
     }
 
-    /* 底部按钮一行 */
-    .controls-bar {
-        width: 100% !important;
-        margin-top: 5px !important;
-    }
-
-    .action-buttons {
-        display: flex !important;
-        gap: 5px !important;
-        width: 100% !important;
-    }
-
+    /* 底部控制栏和按钮紧凑化 */
+    .controls-bar { width: 100% !important; margin-top: 5px !important; }
+    .action-buttons { display: flex !important; gap: 4px !important; width: 100% !important; }
+    
     .action-buttons button {
         flex: 1 !important;
         min-width: 0 !important;
-        padding: 8px 2px !important;
+        padding: 8px 0 !important; /* 缩小内边距 */
         font-size: 11px !important;
         white-space: nowrap !important;
         overflow: hidden;
@@ -350,10 +329,5 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
         text-align: center;
         border-radius: 4px !important;
         letter-spacing: -0.5px;
-    }
-
-    /* 长按菜单按钮微调 */
-    #selection-controls .action-buttons button {
-        font-size: 11px !important;
     }
 }

@@ -1,652 +1,1837 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8" />
-<title>数字潇湘 · 灵境</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta charset="UTF-8" />
+    <title>数字潇湘 · 灵境</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- 引入库 -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/",
+            "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm"
+        }
+    }
+    </script>
+    <style>
 
-<!-- ================= 模块导入 ================= -->
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/",
-    "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm"
-  }
-}
-</script>
+        /* 1. 强制弹窗在最顶层，完全遮盖 3D 场景 */
+        .modal-overlay {
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0, 0, 0, 0.9); /* 加深背景，彻底隔绝 3D 干扰 */
+            backdrop-filter: blur(10px); 
+            z-index: 5000; /* 必须高于所有元素 */
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+        }
 
-<!-- ================= 样式 ================= -->
-<style>
-/* 基础样式和重置 */
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family: "Microsoft YaHei", sans-serif; background:#020617; color:#fff; overflow:hidden; width:100vw; height:100vh; }
-section { position:absolute; inset:0; display:none; z-index:10; width:100%; height:100%; }
-section.active { display:flex; z-index:100; }
-div.full-page { position:absolute; inset:0; display:none; z-index:50; width:100%; height:100%; }
-div.full-page.active { display:block; z-index:100; }
+        /* 2. 信息按钮样式（防止它在 AR 模式下乱跑） */
+        .info-sphere-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 32px;
+            height: 32px;
+            z-index: 200; /* 确保在 3D Canvas 之上 */
+            border-radius: 50% !important;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fcd34d;
+            border: 1px solid #fcd34d;
+            cursor: pointer;
+        }
 
-/* ================= AR 指南 ================= */
-#arInstructions { position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:200; display:none; justify-content:center; align-items:center; text-align:center; padding:20px; }
-.instructions-content { background:rgba(20,20,20,0.8); padding:25px 30px; border-radius:20px; border:1px solid #fcd34d; width:100%; max-width:380px; box-shadow:0 8px 30px rgba(0,0,0,0.5); }
-.instructions-content h2 { color:#fcd34d; font-size:24px; margin-bottom:25px; text-shadow:0 0 10px #f59e0b; }
-.instructions-content ul { list-style:none; padding:0; margin-bottom:30px; text-align:left; }
-.instructions-content li { font-size:16px; margin-bottom:15px; display:flex; align-items:center; }
-.instructions-content .icon { font-size:24px; margin-right:15px; width:30px; display:inline-block; }
-.instructions-btn { background:linear-gradient(to bottom,#fcd34d,#d97706); color:#450a0a; font-weight:900; padding:14px 40px; border-radius:30px; border:none; box-shadow:0 4px 0 #92400e; cursor:pointer; font-size:18px; width:100%; transition:transform 0.2s; }
-.instructions-btn:active { transform:scale(0.96); }
+        /* 3. 结果卡片的溢出处理 */
+        .result-card {
+            overflow: visible !important; /* 允许模型稍微超出边框而不被截断 */
+        }
 
-/* ================= 动态光点 ================= */
-#sparkles-container { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; pointer-events:none; }
-.sparkle { position:absolute; bottom:-20px; background-color:#fcd34d; border-radius:50%; opacity:0; animation:floatUp 10s infinite linear; }
-@keyframes floatUp { 0%{transform:translateY(0);opacity:0;} 10%,90%{opacity:1;} 100%{transform:translateY(-100vh);opacity:0;} }
+        /* 4. 文字内容容器 */
+        .info-text-container {
+            padding: 20px;
+            color: #fde68a;
+            font-size: 16px;
+            text-align: left;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        body.ar-mode-global #back-to-index-btn,
+        body.ar-mode-global #lang-select {
+            display: none !important;
+        }
+        #lang-select {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 2001; /* 确保在最上层 */
 
-/* ================= 首页地图页 ================= */
-#mapPage { flex-direction:column; justify-content:center; align-items:center; height:100vh; background:radial-gradient(ellipse at center,#e63946 0%,#8d0812 70%); }
-#mapStage { position:relative; text-align:center; }
-#giftBox { font-size:150px; text-shadow:0 0 15px #fcd34d,0 0 30px #f59e0b; animation:float 3s ease-in-out infinite; margin-bottom:30px; cursor:default; }
-@keyframes float { 0%{transform:translateY(0px) rotate(-2deg);} 50%{transform:translateY(-25px) rotate(2deg);} 100%{transform:translateY(0px) rotate(-2deg);} }
-#mapStartButtonContainer { display:flex; flex-direction:column; align-items:center; gap:40px; width:100%; margin-top:20px; }
-.instructions-btn.blind-box-btn { width:100%; max-width:280px; padding:15px 0; font-size:20px; }
-#galleryBtn { width:auto; padding:15px 40px; font-size:20px; }
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.6); /* 半透明黑色背景 */
+        color: #fcd34d;                  /* 金色文字 */
+        border: 1px solid #fcd34d;      /* 金色边框 */
+        
+        font-weight: bold;
+        cursor: pointer;
+        -webkit-appearance: none;
+        appearance: none;
 
-/* ================= 抽取页 ================= */
-#aiPage { flex-direction:column; justify-content:center; align-items:center; background:radial-gradient(circle,#5e0a0a,#000); }
-.ai-box { width:80%; max-width:320px; text-align:center; }
-.shake-jar { font-size:180px; margin-bottom:30px; animation:jarShake 0.6s infinite ease-in-out; display:inline-block; filter:drop-shadow(0 0 20px rgba(251,191,36,0.6)); }
-@keyframes jarShake { 0%,100%{transform:rotate(0deg);} 25%{transform:rotate(-12deg) translateY(-5px);} 50%{transform:rotate(0deg);} 75%{transform:rotate(12deg) translateY(-5px);} }
-.ai-title { color:#fcd34d; font-size:22px; margin-bottom:24px; font-weight:bold; text-shadow:0 0 10px #b45309; }
-.progress-track { width:100%; height:6px; background:#333; border-radius:3px; overflow:hidden; }
-.progress-fill { width:0%; height:100%; background:linear-gradient(90deg,#fbbf24,#f59e0b); transition:width 0.1s linear; }
-.ai-log { margin-top:15px; color:#fbbf24; font-family:monospace; font-size:14px; }
+        /* 添加自定义的下拉箭头 */
+        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FCD34D%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E');
+        background-repeat: no-repeat;
+        background-position: right 12px top 50%;
+        background-size: .65em auto;
+        padding-right: 30px;
+    }
 
-/* ================= 结果页 ================= */
-#mascotPage { flex-direction:column; justify-content:center; align-items:center; background:linear-gradient(135deg,#7f1d1d 0%,#991b1b 50%,#7f1d1d 100%); overflow-y:auto; padding:20px 0; }
-.result-card { width:90%; max-width:400px; padding:25px; border:2px solid #fcd34d; border-radius:24px; background:rgba(140,20,20,0.6); backdrop-filter:blur(10px); transition:all 0.5s; text-align:center; overflow:visible !important; position:relative; z-index:10; flex-shrink:0; margin:auto; }
-#mascotCanvasWrap { width:100%; height:300px; position:relative; z-index:2; transition:transform 0.3s; margin-bottom:10px; flex-shrink:0; }
-.model-info, .btn-group { flex-shrink:0; }
+    /* --- 解决软键盘穿模的视觉修正 --- */
+    /* 当 mascotPage 激活 input-focused 类时 */
+    #mascotPage.input-focused .result-card {
+        transform: translateY(-120px); /* 向上移动更多一点，避开键盘 */
+        transition: transform 0.3s ease;
+    }
 
-/* ================= info 按钮 ================= */
-#infoBtn { position:fixed; top:80px; right:20px; width:36px; height:36px; z-index:2000; border-radius:50%; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.6); color:#fcd34d; border:1px solid #fcd34d; cursor:pointer; transition:top 0.3s; }
-body.ar-mode-global #infoBtn { top:120px; right:20px; }
+    /* 强制缩小模型高度，防止挤占输入框空间 */
+    #mascotPage.input-focused #mascotCanvasWrap {
+        height: 35vh !important; 
+        transition: height 0.3s ease;
+    }
 
-/* ================= 输入框聚焦时上移 ================= */
-#mascotPage.input-focused #mascotCanvasWrap,
-#mascotPage.input-focused .result-card { transform:translateY(-100px); }
+    /* 键盘弹出时，隐藏标题节省空间 */
+    #mascotPage.input-focused .congrats-title,
+    #mascotPage.input-focused #namingSection p {
+        display: none;
+    }
 
-/* ================= QR 码容器 ================= */
-#qrCodeContainer { width:140px; height:140px; background:rgba(255,255,255,0.1); border-radius:12px; display:flex; justify-content:center; align-items:center; border:2px dashed #fcd34d; margin:15px auto; }
-#generatedQr { width:100%; height:100%; border-radius:10px; background:#fff; display:block; }
+    #lang-select:hover {
+        background-color: rgba(20, 20, 20, 0.8);
+    }
+        /* --- ★★★ 新增：右上角返回按钮的样式 ★★★ --- */
+        #back-to-index-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2001; /* 确保在最上层 */
+            
+            background: rgba(0, 0, 0, 0.6);   /* 半透明黑色背景 */
+            color: #fcd34d;                  /* 金色文字 */
+            border: 1px solid #fcd34d;      /* 金色边框 */
+            
+            padding: 8px 16px;
+            border-radius: 20px;             /* 圆角 */
+            text-decoration: none;           /* 移除链接下划线 */
+            font-weight: bold;
+            font-size: 14px;
+            
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
 
-/* ================= AR 控制按钮 ================= */
-#arControls { display:none; position:fixed; inset:0; z-index:100; pointer-events:none; }
-.ar-btn { position:absolute; height:44px; min-width:44px; padding:0 16px; border-radius:22px; border:none; background:rgba(0,0,0,0.6); backdrop-filter:blur(5px); color:#fff; font-size:14px; font-weight:bold; display:flex; justify-content:center; align-items:center; cursor:pointer; pointer-events:auto; box-shadow:0 2px 10px rgba(0,0,0,0.3); transition:all 0.2s; white-space:nowrap; }
-.ar-btn:active { transform:scale(0.95); background:rgba(255,255,255,0.2); }
-#arExitBtn { top:20px; left:20px; background:rgba(220,38,38,0.8); }
-#arHelpBtn { top:74px; left:20px; }
-#arMirrorBtn { top:20px; right:20px; }
-#arResetBtn { bottom:40px; left:20px; }
-#arToggleGestureBtn { bottom:94px; left:20px; }
-#arSwitchCameraBtn { top:74px; right:20px; display:none; }
-#arPhotoBtn { bottom:100px; right:20px; background:rgba(59,130,246,0.8); }
-#arVideoBtn { bottom:40px; right:20px; background:rgba(239,68,68,0.8); }
+        #back-to-index-btn:hover {
+            background: rgba(252, 211, 77, 0.2); /* 悬浮时增加金色辉光效果 */
+            box-shadow: 0 0 10px rgba(252, 211, 77, 0.5);
+        }
 
-/* ================= 阶段信息弹窗 ================= */
-#stageModal { position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:3000; display:none; justify-content:center; align-items:center; text-align:center; padding:20px; overflow-y:auto; }
-.stage-modal-content { background:rgba(20,20,20,0.9); border:2px solid #fcd34d; border-radius:16px; padding:30px; width:100%; max-width:500px; box-shadow:0 0 40px rgba(212,175,55,0.3); }
-.stage-modal-content h3 { color:#fcd34d; font-size:24px; margin-bottom:20px; text-shadow:0 0 10px #f59e0b; }
-.stage-section { margin-bottom:20px; text-align:left; }
-.stage-section h4 { color:#fbbf24; font-size:16px; margin-bottom:10px; }
-.stage-section p { color:#e0c097; font-size:14px; line-height:1.6; white-space:pre-wrap; margin-bottom:15px; }
-.stage-close-btn { background:linear-gradient(to bottom,#fcd34d,#d97706); color:#450a0a; font-weight:900; padding:12px 30px; border-radius:25px; border:none; box-shadow:0 4px 0 #92400e; cursor:pointer; font-size:16px; transition:transform 0.2s; }
-.stage-close-btn:active { transform:scale(0.96); }
-</style>
+        /* 标题样式：字号再次加大，视觉冲击力极强 */
+        .cover-title {
+            color: #fcd34d;
+            font-weight: bold;
+            text-shadow: 0 4px 15px rgba(245, 158, 11, 0.8); /* 稍微加强阴影，字大了要有厚度感 */
+            
+            /* 再次增加顶部外边距，防止超大字号撞到右上角按钮 */
+            margin-top: 110px; 
+            margin-bottom: 30px; 
+            
+            animation: fadeInDown 1.5s ease-out; 
+            line-height: 1.3; /* 字号大了，行间距稍微收紧一点点更有力 */
+            padding: 0 15px;  
+
+            /* --- 核心修改：在之前基础上再加 8px --- */
+            /* 最小值约 41px，最大值 56px */
+            font-size: clamp(41px, 12vw, 56px); 
+            
+            text-align: center;
+            width: 100%;
+            
+            /* 保证中文成词显示，配合 <br> 换行 */
+            word-break: keep-all; 
+            white-space: normal;
+        }
+
+        /* 德语和日语单词太长，字号不能无限制大，否则会撑破屏幕 */
+        body[lang="ja"] .cover-title{
+            font-size: clamp(35px, 8vw, 38px);
+        }
+
+        /* --- ★★★ 仅在 PC 端生效 (屏幕宽度大于 1024px) ★★★ --- */
+        /* --- ★★★ 仅在 PC 端生效 (屏幕宽度大于 1024px) ★★★ --- */
+        @media screen and (min-width: 1024px) {
+
+            /* 1. 标题：强制一行，字号依然保持大气 */
+            .cover-title {
+                font-size: 70px !important; 
+                white-space: nowrap !important; 
+                margin-top: 70px !important;   
+                margin-bottom: 30px !important;
+                letter-spacing: 3px !important;
+            }
+
+            /* 隐藏标题里的换行指令 */
+            .cover-title br {
+                display: none !important;
+            }
+
+            /* 2. 返回按钮：缩小 4px (从 26px 调至 22px) */
+            #back-to-index-btn {
+                font-size: 22px !important; 
+                padding: 12px 30px !important; /* 填充也同步微调，显得更精致 */
+                border-radius: 35px !important;
+                top: 25px !important; 
+                right: 25px !important;
+            }
+
+            /* 3. 语言选择器：同步微调字号 */
+            #lang-select {
+                font-size: 18px !important;
+                padding: 10px 35px 10px 12px !important;
+                top: 25px !important;
+                left: 25px !important;
+            }
+
+            /* 4. 首页按钮布局：PC 端保持垂直排列 (图鉴在抽取下方) */
+            #mapStartButtonContainer {
+                display: flex !important;
+                flex-direction: column !important; /* 强制垂直排列 */
+                align-items: center !important;
+                gap: 35px !important; /* 按钮之间的上下间距 */
+                margin-top: 30px !important;
+            }
+
+            /* PC 端按钮宽度可以稍微加宽，适应大屏幕 */
+            .blind-box-btn {
+                max-width: 320px !important;
+            }
+        }
+        /* 5. 修正起名字环节的文字排版，防止它们太靠近屏幕边缘 */
+        #namingSection p, #actionSection p {
+            padding: 0 15px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            font-size: 15px;
+        }
+
+        #namingSection p, #actionSection p {
+            margin: 10px 0;
+            line-height: 1.5;
+        }
+
+        /* 专门针对日语的缩放，防止长难句溢出 */
+        body[lang="ja"] .cover-title {
+            font-size: clamp(24px, 6.5vw, 34px);
+            letter-spacing: -1px; /* 紧凑一点 */
+        }
+
+        /* 按钮文字自动缩小，防止四字以上溢出 */
+        .instructions-btn {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 盲盒按钮：保持原本较宽的尺寸 */
+        .blind-box-btn {
+            width: 100%;
+            max-width: 280px;
+            padding: 15px 0 !important;
+            font-size: 20px !important;
+        }
+
+        /* 图鉴按钮：宽度自适应字数，高度和字号与盲盒按钮一致 */
+        #galleryBtn {
+            width: auto !important;         /* 宽度自适应 */
+            padding: 15px 40px !important;  /* 左右边距撑开宽度 */
+            font-size: 20px !important;
+            margin: 0;
+        }
+
+        /* --- ★★★ PC 端专属适配 ★★★ --- */
+        @media screen and (min-width: 768px) {
+            .cover-title {
+                /* PC端字号：保持加大的 65px */
+                font-size: 65px; 
+            }
+            
+            /* PC端图鉴按钮：固定到左下角 */
+            #galleryBtn {
+                            padding: 10px 28px !important; 
+                            font-size: 16px !important; 
+                        }
+        }
+        /* ★★★ 新增：标题入场动画 ★★★ */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* --- ★★★ 新增：动态光点装饰 ★★★ --- */
+        #sparkles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none; /* 确保装饰不会干扰点击 */
+        }
+        .sparkle {
+            position: absolute;
+            bottom: -20px; /* 从底部开始 */
+            background-color: #fcd34d; /* 光点颜色 */
+            border-radius: 50%;
+            opacity: 0;
+            animation: floatUp 10s infinite linear;
+        }
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0);
+                opacity: 0;
+            }
+            10%, 90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh); /* 向上移动整个屏幕的高度 */
+                opacity: 0;
+            }
+        }
+        /* --- ★★★ 新增：默认隐藏切换镜头按钮 ★★★ --- */
+        #arSwitchCameraBtn {
+            display: none; /* ★ 默认是隐藏的 */
+            top: 74px; 
+            right: 20px;
+        }
+        /* === 基础重置 === */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", sans-serif; background: #020617; color: #fff; overflow: hidden; width: 100vw; height: 100vh; }
+        /* 通用 UI */
+        section { position: absolute; inset: 0; display: none; z-index: 10; width: 100%; height: 100%; }
+        section.active { display: flex; z-index: 100; }
+        div.full-page { position: absolute; inset: 0; display: none; z-index: 50; width: 100%; height: 100%; }
+        div.full-page.active { display: block; z-index: 100; }
+        /* === AR 操作指南样式 === */
+        #arInstructions {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px); z-index: 200; display: none;
+            justify-content: center; align-items: center; color: #fff;
+            text-align: center; padding: 20px;
+        }
+        .instructions-content {
+            background: rgba(20, 20, 20, 0.8); padding: 25px 30px;
+            border-radius: 20px; border: 1px solid #fcd34d;
+            width: 100%; max-width: 380px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+        .instructions-content h2 { color: #fcd34d; font-size: 24px; margin-bottom: 25px; text-shadow: 0 0 10px #f59e0b; }
+        .instructions-content ul { list-style: none; padding: 0; margin-bottom: 30px; text-align: left; }
+        .instructions-content li { font-size: 16px; margin-bottom: 15px; display: flex; align-items: center; }
+        .instructions-content .icon { font-size: 24px; margin-right: 15px; width: 30px; display: inline-block; }
+        .instructions-btn {
+            background: linear-gradient(to bottom, #fcd34d, #d97706); color: #450a0a;
+            font-weight: 900; padding: 14px 40px; border-radius: 30px; border: none;
+            box-shadow: 0 4px 0 #92400e; cursor: pointer; font-size: 18px;
+            width: 100%; transition: transform 0.2s;
+        }
+        .instructions-btn:active { transform: scale(0.96); }
+        /* === 2. 地图 (首页) - 修改后 === */
+        #mapPage {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            /* ★★★ 修改：背景改为亮红色渐变 ★★★ */
+            background: radial-gradient(ellipse at center, #e63946 0%, #8d0812 70%);
+        }
+        #mapStage {
+            position: relative;
+            text-align: center;
+        }
+        #mapImg {
+            display: none; /* 隐藏旧地图 */
+        }
+        
+        /* 新增：礼物盒样式 */
+        #giftBox {
+            font-size: 150px;
+            text-shadow: 0 0 15px #fcd34d, 0 0 30px #f59e0b;
+            animation: float 3s ease-in-out infinite;
+            margin-bottom: 30px;
+            /* ★★★ 修改：移除点击手势 ★★★ */
+            cursor: default; 
+        }
+        
+        /* 新增：浮动动画 */
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(-2deg); }
+            50% { transform: translateY(-25px) rotate(2deg); }
+            100% { transform: translateY(0px) rotate(-2deg); }
+        }
+        #mapStartButtonContainer {
+            display: flex;
+            flex-direction: column; /* 垂直排列 */
+            align-items: center;    /* 居中 */
+            
+            /* --- 核心修改：拉开按钮之间的间距 --- */
+            gap: 40px; 
+            
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        /* === 3. 抽取页 === */
+        #aiPage { flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle, #5e0a0a, #000); }
+        .ai-box { width: 80%; max-width: 320px; text-align: center; }
+        .shake-jar { 
+            font-size: 180px; 
+            margin-bottom: 30px; 
+            animation: jarShake 0.6s infinite ease-in-out; 
+            display: inline-block; 
+            filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.6)); 
+        }
+        @keyframes jarShake { 
+            0%, 100% { transform: rotate(0deg); } 
+            25% { transform: rotate(-12deg) translateY(-5px); } 
+            50% { transform: rotate(0deg); } 
+            75% { transform: rotate(12deg) translateY(-5px); } 
+        }
+        .ai-title { color: #fcd34d; font-size: 22px; margin-bottom: 24px; font-weight: bold; text-shadow: 0 0 10px #b45309; }
+        .progress-track { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; }
+        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #fbbf24, #f59e0b); transition: width 0.1s linear; }
+        .ai-log { margin-top: 15px; color: #fbbf24; font-family: monospace; font-size: 14px; }
+        /* === 4. 结果页 === */
+        #mascotPage { flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #7f1d1d 100%); }
+        .result-card { background: rgba(140, 20, 20, 0.6); border: 2px solid #fcd34d; border-radius: 24px; padding: 25px; width: 90%; max-width: 400px; text-align: center; backdrop-filter: blur(10px); transition: all 0.5s; position: relative; z-index: 10; }
+        #mascotCanvasWrap { width: 100%; height: 300px; margin-bottom: 10px; position: relative; z-index: 2; }
+        
+        /* ★★★ 新增：当处于命名阶段时，模型画布变大 ★★★ */
+        #mascotPage.naming-active #mascotCanvasWrap {
+            height: 60vh;
+        }
+
+        .model-info h2 { color: #fcd34d; font-size: 26px; margin-bottom: 8px; }
+        .model-info p { color: #fed7aa; font-size: 14px; margin-bottom: 15px; }
+        
+        #namingSection { display: none; margin-top: 10px; animation: fadeIn 0.5s; }
+        .btn-confirm { background: linear-gradient(to bottom, #fcd34d, #d97706); color: #450a0a; font-weight: 900; padding: 12px 40px; border-radius: 30px; border: none; box-shadow: 0 4px 0 #92400e; cursor: pointer; font-size: 18px; margin-top: 20px; }
+        
+        #actionSection { display: none; margin-top: 15px; animation: fadeIn 0.5s; }
+        #qrCodeContainer { margin: 15px auto; width: 140px; height: 140px; background: rgba(255,255,255,0.1); border-radius: 12px; display: flex; justify-content: center; align-items: center; border: 2px dashed #fcd34d; }
+        #generatedQr { 
+            width: 100%; 
+            height: 100%; 
+            border-radius: 10px; 
+            padding: 6px;
+            background: #fff;
+            display: none; 
+        }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; margin-top: 15px; }
+        .action-btn { padding: 12px 0; width: 100%; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; color: #fff; flex: 1; transition: 0.3s; }
+        .btn-ar { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .btn-back { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fcd34d; width: 100%; }
+        @keyframes fadeIn { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+        /* === 5. AR 界面 === */
+        #bgVideo { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; display: none; transform: scaleX(1); transition: transform 0.3s; }
+        #bgVideo.mirrored { transform: scaleX(-1); }
+        #mascotPage.ar-mode-active { background: none !important; pointer-events: none; }
+        .ar-mode-active .result-card { background: transparent !important; border: none !important; backdrop-filter: none !important; box-shadow: none !important; }
+        .ar-mode-active .model-info, .ar-mode-active .btn-group, .ar-mode-active .btn-back, .ar-mode-active #actionSection, .ar-mode-active #namingSection { display: none !important; }
+        #arControls { display: none; position: fixed; inset: 0; z-index: 100; pointer-events: none; }
+        .ar-btn {
+            position: absolute;
+            height: 44px;
+            width: auto;
+            min-width: 44px;
+            padding: 0 16px;
+            border-radius: 22px;
+            border: none;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .ar-btn:active {
+            transform: scale(0.95);
+            background: rgba(255,255,255,0.2);
+        }
+        .ar-btn.active-yellow {
+            background: rgba(245, 158, 11, 0.9);
+            color: #fff;
+        }
+        #arExitBtn { top: 20px; left: 20px; background: rgba(220, 38, 38, 0.8); }
+        #arHelpBtn { top: 74px; left: 20px; }
+        #arToggleGestureBtn { bottom: 94px; left: 20px; }
+        #arResetBtn { bottom: 40px; left: 20px; }
+        #arMirrorBtn { top: 20px; right: 20px; }
+        #arSwitchCameraBtn { top: 74px; right: 20px; display: none; }
+        #arPhotoBtn { bottom: 100px; right: 20px; background: rgba(59, 130, 246, 0.8); }
+        #arVideoBtn { bottom: 40px; right: 20px; background: rgba(239, 68, 68, 0.8); }
+        #arVideoBtn.recording { animation: pulseRed 1s infinite; border: 2px solid #fff; background: red; }
+        body.mobile-device #arSwitchCameraBtn {
+            display: flex;
+        }
+        
+        @keyframes pulseRed { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        
+        /* === 6. 状态与加载 === */
+        #aiStatus {
+            position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%);
+            background: rgba(16, 185, 129, 0.8); padding: 8px 16px; border-radius: 20px;
+            color: #fff; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.5s;
+        }
+        #loadingToast { position: fixed; top: 45%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 20px 40px; border-radius: 12px; display: none; flex-direction: column; align-items: center; z-index: 999; pointer-events: none; }
+        .spinner { width: 30px; height: 30px; border: 4px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s infinite linear; margin-bottom: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+/* === 7. 纯展示模式 (扫码后的页面) === */
+        body.share-mode #qrCodeContainer,
+        body.share-mode #actionSection p,
+        body.share-mode #mapStartButtonContainer,
+        body.share-mode #namingSection,
+        body.share-mode .btn-group,
+        body.share-mode #back-to-index-btn {
+            display: none !important;
+        }
+        
+        body.share-mode #finalNameDisplay {
+            font-size: 32px;
+            margin-top: 20px;
+            color: #fcd34d;
+            text-shadow: 0 2px 15px rgba(251, 191, 36, 0.6);
+            padding-bottom: 20px;
+        }
+        
+        body.share-mode .result-card {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            backdrop-filter: none;
+            /* ★ 取消宽度限制并移除内边距，使其撑满屏幕 */
+            width: 100vw;
+            max-width: none;
+            padding: 0;
+        }
+        
+        body.share-mode #mascotPage {
+            background-color: #6a0d23;
+            background-image: 
+                radial-gradient(
+                    circle at center,
+                    #ff7f50 0%,
+                    #6a0d23 55%
+                );
+        }
+        
+        body.share-mode #mascotCanvasWrap {
+            /* ★ 宽度设为满屏 */
+            width: 100vw;
+            /* ★ 高度增加 50px */
+            height: calc(60vh + 60px);
+            /* ★ 顶部边距减少 50px，实现“只向上加长，不向下延伸”的效果 */
+            margin-top: calc(10vh - 60px);
+        }
+
+/* === 通用黑底金边按钮（和右上角返回按钮一模一样） === */
+        .dark-gold-btn {
+            background: rgba(0, 0, 0, 0.6);
+            color: #fcd34d;
+            border: 1px solid #fcd34d;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+        }
+        .dark-gold-btn:hover {
+            background: rgba(252, 211, 77, 0.2);
+            box-shadow: 0 0 10px rgba(252, 211, 77, 0.5);
+        }
+        
+        /* === 图鉴弹窗背景 === */
+        #galleryModal {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px); z-index: 2000; display: none;
+            justify-content: center; align-items: center; color: #fff;
+            text-align: center; padding: 20px;
+        }
+        .gallery-content {
+            background: rgba(20, 20, 20, 0.8); padding: 25px 30px;
+            border-radius: 20px; border: 1px solid #fcd34d;
+            width: 100%; max-width: 380px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+        .gallery-content h2 { 
+            color: #fcd34d; font-size: 24px; margin-bottom: 20px; text-shadow: 0 0 10px #f59e0b; 
+        }
+        /* 针对箭头的按下微调 */
+        #prevImg:active, #nextImg:active {
+            transform: translateY(-50%) scale(0.9) !important;
+        }
+
+        /* === 取名输入框及提示样式 === */
+        #mascotNameInput {
+            width: 80%;
+            padding: 12px;
+            margin-top: 10px;
+            border: 2px solid #fcd34d;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+            transition: all 0.3s;
+        }
+        #mascotNameInput::placeholder {
+            color: #aaa;
+        }
+        #mascotNameInput:focus {
+            background: rgba(0, 0, 0, 0.8);
+            box-shadow: 0 0 10px rgba(252, 211, 77, 0.8);
+        }
+        #nameErrorMsg {
+            color: #ef4444; /* 红色 */
+            font-size: 13px;
+            font-weight: bold;
+            height: 16px;
+            margin-top: 8px;
+            margin-bottom: -5px;
+            opacity: 0; /* 默认隐藏 */
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body>
-
-<!-- ================= 顶部导航与语言选择 ================= -->
 <a href="index.html" id="back-to-index-btn">返回 ↩</a>
 <select id="lang-select">
-  <option value="zh">中文</option>
-  <option value="en">English</option>
-  <option value="de">Deutsch</option>
-  <option value="ja">日本語</option>
+    <option value="zh">中文</option>
+    <option value="en">English</option>
+    <option value="de">Deutsch</option>
+    <option value="ja">日本語</option>
 </select>
-
-<!-- ================= AR 指南 ================= -->
+<!-- AR 操作指南 -->
 <div id="arInstructions">
-  <div class="instructions-content">
-    <h2>AR 互动指南</h2>
-    <ul>
-      <li><span class="icon">☝️</span><b>单指跟随:</b> 模型跟随指尖</li>
-      <li><span class="icon">🖐️</span><b>张开手掌:</b> 放大模型</li>
-      <li><span class="icon">✊</span><b>握紧拳头:</b> 缩小模型</li>
-      <li><span class="icon">✌️</span><b>"V"手势:</b> 顺时针旋转30°</li>
-      <li><span class="icon">🤟</span><b>三指手势:</b> 逆时针旋转30°</li>
-    </ul>
-    <button class="instructions-btn" onclick="startArExperience()">开启奇妙之旅</button>
-  </div>
-</div>
-
-<!-- ================= Loading / 状态提示 ================= -->
-<div id="loadingToast">
-  <div class="spinner"></div>
-  <div id="loadingText">处理中...</div>
-</div>
-
-<!-- ================= 阶段信息弹窗 ================= -->
-<div id="stageModal">
-  <div class="stage-modal-content">
-    <h3 id="stageTitle">文物的故事</h3>
-    <div class="stage-section">
-      <h4 id="stageHistoryLabel">历史背景</h4>
-      <p id="stageHistory"></p>
+    <div class="instructions-content">
+        <h2>AR 互动指南</h2>
+        <ul>
+            <li><span class="icon">☝️</span><b>单指跟随:</b> 伸出食指，模型将跟随您的指尖。</li>
+            <li><span class="icon">🖐️</span><b>张开手掌:</b> 放大模型。</li>
+            <li><span class="icon">✊</span><b>握紧拳头:</b> 缩小模型。</li>
+            <li><span class="icon">✌️</span><b>"V"字手势:</b> 顺时针旋转30°。</li>
+            <li><span class="icon">🤟</span><b>三指手势:</b> 逆时针旋转30°。</li>
+        </ul>
+        <button class="instructions-btn" onclick="startArExperience()">开启奇妙之旅</button>
     </div>
-    <div class="stage-section">
-      <h4 id="stageFunctionLabel">功能用途</h4>
-      <p id="stageFunction"></p>
-    </div>
-    <div class="stage-section">
-      <h4 id="stageSignificanceLabel">历史意义</h4>
-      <p id="stageSignificance"></p>
-    </div>
-    <button class="stage-close-btn" onclick="closeStageModal()">关闭</button>
-  </div>
 </div>
-
+<div id="loadingToast"><div class="spinner"></div><div id="loadingText">处理中...</div></div>
 <video id="bgVideo" autoplay playsinline muted></video>
 <div id="aiStatus"></div>
-
-<!-- ================= 1. 地图页 ================= -->
+<!-- 1. 地图页（首页） -->
 <section id="mapPage" class="active">
-  <div id="sparkles-container"></div>
-  <div id="mapStage">
-    <h1 class="cover-title">古物有灵，待知音唤醒</h1>
-    <div id="giftBox">🎁</div>
-    <div id="mapStartButtonContainer">
-      <button class="instructions-btn blind-box-btn" onclick="startBlindBoxFlow()">抽取文物盲盒</button>
-      <button id="galleryBtn" class="instructions-btn">图鉴</button>
+    <div id="sparkles-container"></div>
+    
+    <div id="mapStage">
+       <h1 class="cover-title">古物有灵，待知音唤醒</h1>
+       <div id="giftBox">🎁</div>
+       
+       <div id="mapStartButtonContainer" class="action-btn-group">
+           <button class="instructions-btn blind-box-btn" onclick="startBlindBoxFlow()">抽取文物盲盒</button>
+           
+           <button id="galleryBtn" class="instructions-btn">图鉴</button>
+       </div>
+       
+       <img id="mapImg" src="map.png" alt="MAP">
     </div>
-    <img id="mapImg" src="map.png" alt="MAP">
-  </div>
 </section>
 
-<!-- ================= 2. 抽取页 ================= -->
+<!-- 图鉴弹窗 -->
+<div id="galleryModal">
+    <div class="gallery-content">
+        <h2>文物图鉴</h2>
+        <!-- 图片容器 -->
+        <div id="galleryContainer" style="position:relative; margin-bottom: 25px;">
+            <!-- 左箭头 -->
+            <button id="prevImg" class="dark-gold-btn" style="position: absolute; top: 50%; transform: translateY(-50%); left: -15px; padding: 8px 12px; z-index: 10;">◀</button>
+            
+            <img id="galleryImg" src="picture/1.png" 
+                style="max-width:100%; height: 300px; object-fit: contain; border-radius:12px; display: block; margin: 0 auto; background: rgba(0,0,0,0.4); padding: 5px;" />
+            
+            <!-- 右箭头 -->
+            <button id="nextImg" class="dark-gold-btn" style="position: absolute; top: 50%; transform: translateY(-50%); right: -15px; padding: 8px 12px; z-index: 10;">▶</button>
+        </div>
+        
+        <!-- 返回按钮 -->
+        <button id="closeGallery" class="instructions-btn" style="width: auto; padding: 12px 40px; font-size: 18px; margin-top: 10px;">返回</button>
+    </div>
+</div>
+
+<!-- 2. 抽取页 (拟人化主题) -->
 <section id="aiPage">
-  <div class="ai-box">
-    <div class="shake-jar">🏺</div>
-    <div class="ai-title">正在唤醒文物之灵...</div>
-    <div class="progress-track">
-      <div class="progress-fill" id="aiBar"></div>
+    <div class="ai-box">
+        <div class="shake-jar">🏺</div>
+        <div class="ai-title">正在唤醒文物之灵...</div>
+        <div class="progress-track"><div class="progress-fill" id="aiBar"></div></div>
+        <div class="ai-log" id="aiLog">解析历史印记...</div>
     </div>
-    <div class="ai-log" id="aiLog">解析历史印记...</div>
-  </div>
 </section>
-
-<!-- ================= 3. 结果页 ================= -->
+<!-- 3. 结果页 -->
 <section id="mascotPage">
-  <div class="result-card" id="resCard">
-    <button id="infoBtn" class="dark-gold-btn info-sphere-btn">经历</button>
-    <div id="mascotCanvasWrap"></div>
-    <div class="model-info">
-      <div id="namingSection">
-        <h2 class="congrats-title">🎉 唤醒成功！</h2>
-        <input type="text" id="artifactNameInput" placeholder="为TA赐名..." style="width: 80%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #fcd34d; background: rgba(0,0,0,0.5); color: #fff; text-align: center; font-size: 16px;">
-      </div>
-      <div id="actionSection">
-        <h2 id="finalNameDisplay"></h2>
-        <p>文物拟人化形态已生成</p>
-        <div id="artifactInfoContainer" class="artifact-info"></div>
-        <div id="qrCodeContainer">
-          <img id="generatedQr" src="" alt="QR Code">
+    <div class="result-card" id="resCard">
+        <button id="infoBtn" class="dark-gold-btn info-sphere-btn">i</button>
+        <div id="mascotCanvasWrap"></div>
+        <div id="infoModal" class="modal-overlay">
+            <div class="gallery-content">
+                <h2>详情</h2>
+                <div class="info-text-container">
+                    <p id="infoTextContent">111</p>
+                </div>
+                <button id="closeInfo" class="instructions-btn" style="width: auto; padding: 12px 40px; font-size: 18px; margin-top: 10px;">返回</button>
+            </div>
         </div>
-        <div class="btn-group">
-          <button class="action-btn btn-ar" onclick="enterARMode()">📸 与TA合影</button>
-          <button class="action-btn btn-back" onclick="backToMap()">↺ 返回</button>
+        <div class="model-info">
+            <!-- ★★★ 修改：移除赐名和输入框 ★★★ -->
+            <div id="namingSection">
+                <h2 class="congrats-title">🎉 唤醒成功！</h2>
+                <p style="color:#fde68a; font-size:14px; margin-bottom:15px;">您唤醒了：<span id="artifactNameDisplay" style="color:#fff;font-weight:bold;font-size:18px;"></span></p>
+                
+                <!-- 新增：输入框 -->
+                <input type="text" id="mascotNameInput" placeholder="赐予TA一个名字..." maxlength="10" oninput="document.getElementById('nameErrorMsg').style.opacity = '0'">
+                <!-- 新增：红色错误提示 -->
+                <div id="nameErrorMsg">起个名字，让它真正属于你吧~</div>
+                
+                <button class="btn-confirm" onclick="confirmModelName()">✨ 生成专属名片 ✨</button>
+            </div>
+
+            <div id="actionSection">
+                <h2 id="finalNameDisplay" style="color:#fcd34d; font-size:24px; margin-bottom:5px; white-space: normal; line-height: 1.2;"></h2>
+                <p style="color:#fca5a5; font-size:12px; margin-bottom:10px;">文物拟人化形态已生成</p>
+                
+                <div id="qrCodeContainer">
+                    <img id="generatedQr" src="" alt="QR Code">
+                </div>
+                <p style="font-size:10px; color:#aaa; margin-bottom:15px;">长按二维码保存专属名片</p>
+                <div class="btn-group">
+                    <button class="action-btn btn-ar" onclick="enterARMode()">📸 与TA合影</button>
+                    <button class="action-btn btn-back" onclick="backToMap()">↺ 返回</button>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
+    
     <div id="arControls">
-      <button class="ar-btn" id="arExitBtn" onclick="exitARMode()">❌ 退出</button>
-      <button class="ar-btn" id="arHelpBtn" onclick="showArInstructions()">❓ 帮助</button>
-      <button class="ar-btn" id="arMirrorBtn" onclick="toggleMirror()">🔁 镜像</button>
-      <button class="ar-btn" id="arResetBtn" onclick="resetModelPos()">📍 归位</button>
-      <button class="ar-btn" id="arToggleGestureBtn" onclick="toggleGestureRecognition()">✋ 无识别</button>
-      <button class="ar-btn" id="arSwitchCameraBtn" onclick="switchCamera()">🔄 切换镜头</button>
-      <button class="ar-btn" id="arPhotoBtn" onclick="takePhoto()">📷 拍照</button>
-      <button class="ar-btn" id="arVideoBtn" onclick="toggleVideoRecord()">🎥 录像</button>
+        <button class="ar-btn" id="arExitBtn" onclick="exitARMode()">❌ 退出</button>
+        <button class="ar-btn" id="arHelpBtn" onclick="showArInstructions()">❓ 帮助</button>
+        <button class="ar-btn" id="arMirrorBtn" onclick="toggleMirror()">🔁 镜像</button>
+        <button class="ar-btn" id="arResetBtn" onclick="resetModelPos()">📍 归位</button>
+        <button class="ar-btn" id="arToggleGestureBtn" onclick="toggleGestureRecognition()">✋ 无识别</button>
+        <button class="ar-btn" id="arSwitchCameraBtn" onclick="switchCamera()">🔄 切换镜头</button>
+        <button class="ar-btn" id="arPhotoBtn" onclick="takePhoto()">📷 拍照</button>
+        <button class="ar-btn" id="arVideoBtn" onclick="toggleVideoRecord()">🎥 录像</button>
     </div>
-  </div>
 </section>
-
 <script type="module">
-// 多语言翻译配置
-const translations = {
-  zh: {
-    'back-to-index': '返回 ↩',
-    'gallery-btn': '图鉴',
-    'ar-guide-title': 'AR 互动指南',
-    'ar-guide-1': '单指跟随',
-    'ar-guide-1-desc': '模型跟随指尖',
-    'ar-guide-2': '张开手掌',
-    'ar-guide-2-desc': '放大模型',
-    'ar-guide-3': '握紧拳头',
-    'ar-guide-3-desc': '缩小模型',
-    'ar-guide-4': '"V"手势',
-    'ar-guide-4-desc': '顺时针旋转30°',
-    'ar-guide-5': '三指手势',
-    'ar-guide-5-desc': '逆时针旋转30°',
-    'ar-guide-btn': '开启奇妙之旅',
-    'blind-box-btn': '抽取文物盲盒',
-    'title': '古物有灵，待知音唤醒',
-    'ai-title': '正在唤醒文物之灵...',
-    'ai-log-1': '解析历史印记...',
-    'ai-log-2': '正在描绘人形轮廓...',
-    'ai-log-3': '正在赋予文物灵性...',
-    'info-btn': '经历',
-    'congrats': '🎉 唤醒成功！',
-    'model-desc': '文物拟人化形态已生成',
-    'ar-photo-btn': '📸 与TA合影',
-    'back-btn': '↺ 返回',
-    'ar-exit': '❌ 退出',
-    'ar-help': '❓ 帮助',
-    'ar-mirror': '🔁 镜像',
-    'ar-reset': '📍 归位',
-    'ar-gesture': '✋ 无识别',
-    'ar-camera': '🔄 切换镜头',
-    'ar-photo': '📷 拍照',
-    'ar-video': '🎥 录像',
-    'loading-text': '处理中...'
-  },
-  en: {
-    'back-to-index': 'Back ↩',
-    'gallery-btn': 'Gallery',
-    'ar-guide-title': 'AR Guide',
-    'ar-guide-1': 'Single Finger',
-    'ar-guide-1-desc': 'Model follows fingertip',
-    'ar-guide-2': 'Open Palm',
-    'ar-guide-2-desc': 'Zoom in model',
-    'ar-guide-3': 'Closed Fist',
-    'ar-guide-3-desc': 'Zoom out model',
-    'ar-guide-4': 'V Gesture',
-    'ar-guide-4-desc': 'Rotate 30° clockwise',
-    'ar-guide-5': 'Three Fingers',
-    'ar-guide-5-desc': 'Rotate 30° counterclockwise',
-    'ar-guide-btn': 'Start Journey',
-    'blind-box-btn': 'Draw Artifact',
-    'title': 'Ancient objects await awakening',
-    'ai-title': 'Awakening artifact spirit...',
-    'ai-log-1': 'Analyzing historical marks...',
-    'ai-log-2': 'Drawing humanoid silhouette...',
-    'ai-log-3': 'Bestowing artifact spirituality...',
-    'info-btn': 'Experience',
-    'congrats': '🎉 Awakened!',
-    'model-desc': 'Artifact humanoid form generated',
-    'ar-photo-btn': '📸 Take Photo',
-    'back-btn': '↺ Back',
-    'ar-exit': '❌ Exit',
-    'ar-help': '❓ Help',
-    'ar-mirror': '🔁 Mirror',
-    'ar-reset': '📍 Reset',
-    'ar-gesture': '✋ No Recognition',
-    'ar-camera': '🔄 Switch Camera',
-    'ar-photo': '📷 Photo',
-    'ar-video': '🎥 Video',
-    'loading-text': 'Processing...'
-  },
-  de: {
-    'back-to-index': 'Zurück ↩',
-    'gallery-btn': 'Galerie',
-    'ar-guide-title': 'AR-Anleitung',
-    'ar-guide-1': 'Einzelner Finger',
-    'ar-guide-1-desc': 'Modell folgt der Fingerspitze',
-    'ar-guide-2': 'Offene Handfläche',
-    'ar-guide-2-desc': 'Modell vergrößern',
-    'ar-guide-3': 'Geballte Faust',
-    'ar-guide-3-desc': 'Modell verkleinern',
-    'ar-guide-4': 'V-Geste',
-    'ar-guide-4-desc': '30° im Uhrzeigersinn drehen',
-    'ar-guide-5': 'Drei Finger',
-    'ar-guide-5-desc': '30° gegen den Uhrzeigersinn drehen',
-    'ar-guide-btn': 'Reise starten',
-    'blind-box-btn': 'Artefakt zeichnen',
-    'title': 'Alte Objekte warten auf Erweckung',
-    'ai-title': 'Erwecke Artefaktgeist...',
-    'ai-log-1': 'Historische Spuren analysieren...',
-    'ai-log-2': 'Humanoides Profil zeichnen...',
-    'ai-log-3': 'Artefakt-Spiritualität verleihen...',
-    'info-btn': 'Erfahrung',
-    'congrats': '🎉 Erwacht!',
-    'model-desc': 'Humanoides Artefaktformular generiert',
-    'ar-photo-btn': '📸 Foto machen',
-    'back-btn': '↺ Zurück',
-    'ar-exit': '❌ Beenden',
-    'ar-help': '❓ Hilfe',
-    'ar-mirror': '🔁 Spiegel',
-    'ar-reset': '📍 Zurücksetzen',
-    'ar-gesture': '✋ Keine Erkennung',
-    'ar-camera': '🔄 Kamera wechseln',
-    'ar-photo': '📷 Foto',
-    'ar-video': '🎥 Video',
-    'loading-text': 'Wird verarbeitet...'
-  },
-  ja: {
-    'back-to-index': '戻る ↩',
-    'gallery-btn': 'ギャラリー',
-    'ar-guide-title': 'ARガイド',
-    'ar-guide-1': '1本指',
-    'ar-guide-1-desc': 'モデルが指の先端を追従',
-    'ar-guide-2': '手のひらを開く',
-    'ar-guide-2-desc': 'モデルを拡大',
-    'ar-guide-3': '握りこぶし',
-    'ar-guide-3-desc': 'モデルを縮小',
-    'ar-guide-4': 'V字ジェスチャー',
-    'ar-guide-4-desc': '時計回りに30°回転',
-    'ar-guide-5': '3本指ジェスチャー',
-    'ar-guide-5-desc': '反時計回りに30°回転',
-    'ar-guide-btn': '旅を開始',
-    'blind-box-btn': 'アーティファクト獲得',
-    'title': '古い物たちが目覚めるのを待っています',
-    'ai-title': 'アーティファクト精霊を目覚めさせる...',
-    'ai-log-1': '歴史的痕跡を分析中...',
-    'ai-log-2': '人型シルエットを描画中...',
-    'ai-log-3': 'アーティファクト精神を付与中...',
-    'info-btn': '経験',
-    'congrats': '🎉 目覚めた！',
-    'model-desc': 'アーティファクト人型フォーム生成',
-    'ar-photo-btn': '📸 写真を撮る',
-    'back-btn': '↺ 戻る',
-    'ar-exit': '❌ 終了',
-    'ar-help': '❓ ヘルプ',
-    'ar-mirror': '🔁 ミラー',
-    'ar-reset': '📍 リセット',
-    'ar-gesture': '✋ 認識なし',
-    'ar-camera': '🔄 カメラ切り替え',
-    'ar-photo': '📷 写真',
-    'ar-video': '🎥 ビデオ',
-    'loading-text': '処理中...'
-  }
+    import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
+    import { GLTFLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.158.0/examples/jsm/controls/OrbitControls.js';
+    import { KTX2Loader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/KTX2Loader.js';
+    import { DRACOLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/DRACOLoader.js';
+    import { FilesetResolver, HandLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm';
+    import { MeshoptDecoder } from 'https://unpkg.com/three@0.158.0/examples/jsm/libs/meshopt_decoder.module.js';
+    let currentLang = 'zh';
+    const translations = {
+        'zh': {
+            docTitle: '数字潇湘 · 灵境',
+            coverTitle: '古物有灵，<br>待知音唤醒',
+            blindBoxBtn: '抽取文物盲盒',
+            awakeningTitle: '正在唤醒文物之灵...',
+            awakenLog1: '解析历史印记...',
+            awakenLog2: '描绘人形轮廓...',
+            awakenLog3: '赋予文物灵性...', // 对应你说的“赋予灵犀”
+            exclusiveText: '文物拟人形态已生成，现专属于你',
+            nameErrorMsg: '起个名字，让它真正属于你吧~',
+            awakenSuccess: '🎉 唤醒成功！',
+            youAwakened: '您唤醒了：',
+            generateCard: '带TA回家',           // 改为最通俗的表述
+            cardGenerated: '缘分已定，TA现在归你了',
+            saveQrHint: '长按保存，让TA永远陪伴你',
+            arPhoto: '📸 与TA合影',
+            goBack: '↺ 返回',
+            backButton: '返回 ↩',
+            loadingAI: '正在加载灵觉模型...',
+            loadingCamera: '正在开启现实之眼...',
+            photoSavedToast: '照片已保存至相册',
+            videoSavedToast: '灵境影像录制成功',
+            videoRecordingToast: '正在记录灵动瞬间...',
+            camSwitchedToast: '已切换至 {camType}',
+            camTypeFront: '前置镜头',
+            camTypeBack: '后置镜头',
+            resetPosToast: '模型已归位',
+            arGestureOn: '✋ 手势开启',
+            arGestureOff: '🚫 手势关闭',
+            nameErrorMsg: '起个名字，让它真正属于你吧~',
+            gestureOnToast: '手势识别已启动',
+            gestureOffToast: '手势识别已关闭'
+        },
+        'en': {
+            docTitle: 'Digital Hunan · Spirit Realm',
+            coverTitle: 'Ancient Spirits<br>Await Your Call',
+            blindBoxBtn: 'Open Mystery Box',
+            awakeningTitle: 'Awakening the Spirit...',
+            awakenLog1: 'Analyzing history...',
+            awakenLog2: 'Shaping the form...',
+            awakenLog3: 'Granting spirituality...',
+            awakenSuccess: '🎉 Awakening Success!',
+            youAwakened: 'You awakened: ',
+            generateCard: 'Bring TA Home',      // 通俗的英文表述
+            exclusiveText: 'Spirit form generated, now yours alone',
+            nameErrorMsg: 'Please give it a name!',
+            cardGenerated: 'The pact is sealed!',
+            saveQrHint: 'Long press to keep TA forever',
+            arPhoto: '📸 Take a Photo',
+            goBack: '↺ Back',
+            backButton: 'Back ↩',
+            loadingAI: 'Loading AI eyes...',
+            loadingCamera: 'Opening Camera...',
+            photoSavedToast: 'Photo saved!',
+            videoSavedToast: 'Video recorded!',
+            videoRecordingToast: 'Recording moments...',
+            camSwitchedToast: 'Switched to {camType}',
+            camTypeFront: 'Front Cam',
+            camTypeBack: 'Rear Cam',
+            resetPosToast: 'Position Reset',
+            arGestureOn: '✋ Gestures ON',
+            arGestureOff: '🚫 Gestures OFF',
+            nameErrorMsg: 'Give it a name first!',
+            gestureOnToast: 'Gestures enabled',
+            gestureOffToast: 'Gestures disabled'
+        },
+        'ja': {
+            docTitle: 'デジタル湖南 · 霊境',
+            coverTitle: '古き遺物に霊あり<br>知音を待つ',
+            blindBoxBtn: 'ボックスを引く',
+            awakeningTitle: '霊を呼び覚ましています...',
+            awakenLog1: '歴史を分析中...',
+            awakenLog2: '姿を描いています...',
+            awakenLog3: '霊性を付与中...',
+            awakenSuccess: '🎉 覚醒成功！',
+            youAwakened: 'あなたが呼び覚ましたのは：',
+            generateCard: '連れて帰る',         // 日语通俗表述：带回家
+            exclusiveText: '擬人化完了、あなたの専属です',
+            nameErrorMsg: '名前を付けてください！',
+            cardGenerated: '契約が結ばれました！',
+            saveQrHint: '長押しして保存する',
+            arPhoto: '📸 一緒に写真を撮る',
+            goBack: '↺ 戻る',
+            backButton: '戻る ↩',
+            loadingAI: 'AIを読み込み中...',
+            loadingCamera: 'カメラを起動中...',
+            photoSavedToast: '保存しました',
+            videoSavedToast: '動画を保存しました',
+            videoRecordingToast: '録画中...',
+            camSwitchedToast: '{camType}に切り替えました',
+            camTypeFront: 'フロントカメラ',
+            camTypeBack: 'メインカメラ',
+            resetPosToast: '位置を戻しました',
+            arGestureOn: '✋ ジェスチャーON',
+            arGestureOff: '🚫 ジェスチャーOFF',
+            nameErrorMsg: '名前を付けてください！',
+            gestureOnToast: '起動しました',
+            gestureOffToast: '停止しました'
+        },
+        'de': {
+            docTitle: 'Digitales Hunan · Geisterreich',
+            coverTitle: 'Alte Geister<br>Warten auf dich', // 德语长单词多，必须换行
+            blindBoxBtn: 'Überraschungsbox',
+            awakeningTitle: 'Geist wird erweckt...',
+            awakenLog1: 'Geschichte analysieren...',
+            awakenLog2: 'Form gestalten...',
+            awakenLog3: 'Leben einhauchen...',
+            awakenSuccess: '🎉 Erwachen erfolgreich!',
+            youAwakened: 'Du hast erweckt: ',
+            generateCard: 'Mit nach Hause',      // 德语通俗表述：带回家
+            cardGenerated: 'Verbindung hergestellt!',
+            exclusiveText: 'Form erstellt, jetzt dein Begleiter',
+            nameErrorMsg: 'Gib ihm einen Namen!',
+            saveQrHint: 'Gedrückt halten zum Speichern',
+            arPhoto: '📸 Foto machen',
+            goBack: '↺ Zurück',
+            backButton: 'Zurück ↩',
+            loadingAI: 'KI wird geladen...',
+            loadingCamera: 'Kamera startet...',
+            photoSavedToast: 'Foto gespeichert',
+            videoSavedToast: 'Video aufgenommen',
+            videoRecordingToast: 'Aufnahme läuft...',
+            camSwitchedToast: 'Kamera gewechselt: {camType}',
+            camTypeFront: 'Frontkamera',
+            camTypeBack: 'Hauptkamera',
+            resetPosToast: 'Position zurückgesetzt',
+            arGestureOn: '✋ Gesten AN',
+            arGestureOff: '🚫 Gesten AUS',
+            nameErrorMsg: 'Gib ihm einen Namen!',
+            gestureOnToast: 'Gesten aktiviert',
+            gestureOffToast: 'Gesten deaktiviert'
+        }
+    };
+    const ZONE_CONFIG = {
+        "博物馆": { 
+            models: [ 
+                "modell/1_soft.glb", "modell/2_soft.glb", "modell/3_soft.glb", "modell/4_soft.glb"
+            ] 
+        },
+        "默认": { models: [ "modell/1_soft.glb" ] }
+    };
+    // === 花名册 ===
+    const MODEL_NAME_MAP = {
+       "modell/1_soft.glb": "皿方罍",
+        "modell/2_soft.glb": "皿方罍",
+        "modell/3_soft.glb": "皿方罍",
+        "modell/4_soft.glb": "皿方罍",
+    };
+    let selectedModelPath = "";
+    let currentArtifactName = ""; // 系统定义的前缀名
+    let isDragging = false;
+    let raycaster;
+    let isGestureRecognitionActive = true; // 默认开启手势识别
+    let currentFacingMode = 'environment';   // 默认是后置摄像头
+    const pointer = new THREE.Vector2();
+    const dragPlane = new THREE.Plane();
+    const intersection = new THREE.Vector3();
+    const offset = new THREE.Vector3();
+    let scene, camera, renderer, model, animationId;
+    let controls; // 轨道控制器
+    let lastRotationAngle = null; 
+    let arStreamObj = null, isMirrored = false;
+    let handLandmarker = undefined;
+    let lastVideoTime = -1, isAiRunning = false, aiLoadFailed = false;
+    let statusTimer = null;
+    let mediaRecorder = null, recordedChunks = [], isRecording = false,recorderAnimationId = null;
+    window.gotoPage = function(id) {
+        document.querySelectorAll('section, div.full-page').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function switchLanguage(lang) {
+        const t = translations[lang] || translations.zh;
+        currentLang = lang;
+
+        // 给 body 贴标签，方便 CSS 调整不同语言的排版
+        document.body.setAttribute('lang', lang);
+
+        localStorage.setItem('app_language', lang);
+
+        // 1. --- 核心修改：处理标题（必须用 innerHTML） ---
+        const coverTitle = document.querySelector('.cover-title');
+        if (coverTitle) {
+            coverTitle.innerHTML = t.coverTitle; 
+        }
+
+        // 2. --- 核心修改：处理输入框占位符 (赐予TA一个名字...) ---
+        const nameInput = document.getElementById('mascotNameInput');
+        if (nameInput) {
+            nameInput.placeholder = t.namingPlaceholder;
+        }
+
+        // 3. --- 更新所有简单文本元素 ---
+        // 注意：我已经从这里删除了 '.cover-title'，防止它被 innerText 覆盖
+        const elementsToTranslate = {
+            '#mapPage .instructions-btn': 'blindBoxBtn',
+            '.ai-title': 'awakeningTitle', 
+            '.congrats-title': 'awakenSuccess',
+            '.btn-confirm': 'generateCard', 
+            '.btn-ar': 'arPhoto', 
+            '.btn-back': 'goBack',
+            '#back-to-index-btn': 'backButton',
+            '#actionSection p[style*="font-size:10px"]': 'saveQrHint',
+            '#actionSection p[style*="font-size:12px"]': 'exclusiveText', // 对应“专属于你”
+            '#nameErrorMsg': 'nameErrorMsg',
+            '#arInstructions h2': 'arTitle', 
+            '#arExitBtn': 'exitAr', 
+            '#arHelpBtn': 'arHelp',
+            '#arMirrorBtn': 'arMirror', 
+            '#arResetBtn': 'arReset',
+            '#arSwitchCameraBtn': 'arSwitchCam', 
+            '#arPhotoBtn': 'arPhotoBtn',
+            '#arVideoBtn': 'arVideoBtn'
+        };
+
+        for (const selector in elementsToTranslate) {
+            const el = document.querySelector(selector);
+            // 使用 t[elementsToTranslate[selector]] 获取翻译内容
+            if (el) el.innerText = t[elementsToTranslate[selector]] || '';
+        }
+
+        // 4. 单独处理包含 HTML 的“您唤醒了”文本
+        const youAwakenedEl = document.querySelector('#namingSection p');
+        if (youAwakenedEl) {
+            youAwakenedEl.innerHTML = `${t.youAwakened}<span id="artifactNameDisplay" style="color:#fff;font-weight:bold;font-size:18px;">${currentArtifactName || ''}</span>`;
+        }
+
+        // 5. 处理 AR 指南列表
+        const instructionsList = document.querySelectorAll('#arInstructions li');
+        if (instructionsList.length > 0 && t.arInst1) {
+            instructionsList[0].innerHTML = `<span class="icon">☝️</span>${t.arInst1}`;
+            instructionsList[1].innerHTML = `<span class="icon">🖐️</span>${t.arInst2}`;
+            instructionsList[2].innerHTML = `<span class="icon">✊</span>${t.arInst3}`;
+            instructionsList[3].innerHTML = `<span class="icon">✌️</span>${t.arInst4}`;
+            instructionsList[4].innerHTML = `<span class="icon">🤟</span>${t.arInst5}`;
+        }
+
+        // 6. 处理有多种状态的按钮
+        const arInstBtn = document.querySelector('#arInstructions .instructions-btn');
+        if (arInstBtn && arInstBtn.innerText !== t.arBtnClose) {
+            arInstBtn.innerText = t.arBtnStart;
+        }
+        
+        const gestureBtn = document.getElementById('arToggleGestureBtn');
+        if (gestureBtn) {
+            gestureBtn.innerText = isGestureRecognitionActive ? t.arGestureOn : t.arGestureOff;
+        }
+        const backBtn = document.getElementById('back-to-index-btn');
+        if (backBtn) {
+            backBtn.href = `index.html?lang=${lang}`;
+        }
+    }
+    function getChineseNameFromPath(path) {
+        return MODEL_NAME_MAP[path] || "神秘文物";
+    }
+        // --- 核心逻辑修改：初始化或扫码进入 ---
+    window.addEventListener('load', () => {
+        // 1. 为语言下拉框绑定“change”事件
+        const langSelect = document.getElementById('lang-select');
+        if (langSelect) {
+            langSelect.addEventListener('change', (event) => {
+                // 当用户选择新语言时，调用翻译函数
+                switchLanguage(event.target.value);
+            });
+        }
+
+        // 2. 动态生成封面光点（您原有的代码）
+        const sparkleContainer = document.getElementById('sparkles-container');
+        if (sparkleContainer) {
+            const numSparkles = 50;
+            for (let i = 0; i < numSparkles; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'sparkle';
+                const size = Math.random() * 5 + 2;
+                sparkle.style.width = `${size}px`;
+                sparkle.style.height = `${size}px`;
+                sparkle.style.left = `${Math.random() * 100}%`;
+                sparkle.style.animationDelay = `${Math.random() * 10}s`;
+                sparkle.style.animationDuration = `${Math.random() * 5 + 8}s`;
+                sparkleContainer.appendChild(sparkle);
+            }
+        }
+
+        // 3. 检查URL参数（您原有的代码）
+        const params = new URLSearchParams(window.location.search);
+        const m = params.get('m');
+        const n = params.get('n');
+        if (m && n) {
+            document.body.classList.add('share-mode');
+            selectedModelPath = decodeURIComponent(m);
+            const fullName = decodeURIComponent(n);
+            window.gotoPage('mascotPage');
+            document.getElementById('namingSection').style.display = 'none';
+            document.getElementById('actionSection').style.display = 'block';
+            document.getElementById('finalNameDisplay').innerText = `✨ ${fullName} ✨`;
+            showMascot(false);
+        }
+        
+        // 4. 页面加载完成后，用默认语言初始化所有文本
+        // 4. 页面加载完成后，延续上一个页面的语言设置
+        // 优先从网址参数读取(例如 ?lang=en)，如果没有则从本地缓存读取，最后默认用中文
+        const urlParams = new URLSearchParams(window.location.search);
+        let savedLang = urlParams.get('lang') || localStorage.getItem('app_language') || 'zh';
+
+        // 防止读取到字典里没有的奇怪语言
+        if (!translations[savedLang]) {
+            savedLang = 'zh';
+        }
+
+        // 把当前页面的下拉框也同步成这个语言
+        if (langSelect) {
+            langSelect.value = savedLang;
+        }
+
+        // 执行翻译
+        switchLanguage(savedLang);
+    });
+    window.startBlindBoxFlow = function() {
+        let matchedKey = "博物馆"; 
+        const pool = ZONE_CONFIG[matchedKey].models;
+        selectedModelPath = (pool && pool.length > 0) ? pool[Math.floor(Math.random() * pool.length)] : ZONE_CONFIG["默认"].models[0];
+        currentArtifactName = getChineseNameFromPath(selectedModelPath);
+        window.gotoPage('aiPage');
+        runAIProgress();
+    }
+    function runAIProgress() {
+        const bar = document.getElementById('aiBar');
+        const log = document.getElementById('aiLog');
+        const lang = document.getElementById('lang-select').value || 'zh'; // 获取当前语言
+        const t = translations[lang];
+
+        bar.style.width = "0%";
+        log.innerText = t.awakenLog1; // <-- 修改点：使用翻译
+        let width = 0;
+        const timer = setInterval(() => {
+            width += Math.random() * 4;
+            if (width > 30 && width < 60) log.innerText = t.awakenLog2; // <-- 修改点：使用翻译
+            if (width > 60 && width < 90) log.innerText = t.awakenLog3; // <-- 修改点：使用翻译
+            if (width >= 100) {
+                clearInterval(timer);
+                log.innerText = t.awakenSuccess; // <-- 修改点：使用翻译
+                setTimeout(showResult, 500);
+            }
+            bar.style.width = width + "%";
+        }, 80);
+    }
+    function showResult() {
+        window.gotoPage('mascotPage');
+        
+        // 激活命名状态
+        document.getElementById('mascotPage').classList.add('naming-active');
+        
+        // ★ 关键：调用监听函数
+        setupInputListeners(); 
+
+        document.getElementById('namingSection').style.display = 'block';
+        document.getElementById('actionSection').style.display = 'none';
+        document.getElementById('artifactNameDisplay').innerText = currentArtifactName;
+        
+        const nameInput = document.getElementById('mascotNameInput');
+        if(nameInput) nameInput.value = '';
+        
+        const errorMsg = document.getElementById('nameErrorMsg');
+        if(errorMsg) errorMsg.style.opacity = '0';
+
+        document.getElementById('generatedQr').style.display = 'none';
+        document.getElementById('generatedQr').src = "";
+        
+        showMascot(false);
+    }
+
+    function setupInputListeners() {
+        const nameInput = document.getElementById('mascotNameInput');
+        const mascotPage = document.getElementById('mascotPage');
+        const wrap = document.getElementById("mascotCanvasWrap");
+
+        if (nameInput) {
+            // --- 键盘弹出：模型下移防止切头 ---
+            nameInput.addEventListener('focus', () => {
+                mascotPage.classList.add('input-focused');
+                
+                // 【关键加固】逻辑下移：将模型在Y轴往下挪 0.8 个单位（根据你的模型大小微调）
+                if(model) {
+                    model.position.y -= 0.8; 
+                }
+
+                setTimeout(() => {
+                    if (renderer && camera) {
+                        camera.aspect = wrap.clientWidth / wrap.clientHeight;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+                    }
+                }, 300); // 稍微延迟，等键盘动画稳定
+            });
+
+            // --- 键盘收起：模型复位 ---
+            nameInput.addEventListener('blur', () => {
+                mascotPage.classList.remove('input-focused');
+                
+                // 【关键加固】逻辑复位：将模型挪回原来的位置
+                if(model) {
+                    model.position.y += 0.8; 
+                }
+
+                setTimeout(() => {
+                    if (renderer && camera) {
+                        camera.aspect = wrap.clientWidth / wrap.clientHeight;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+                    }
+                }, 300);
+            });
+        }
+    }
+
+// 记得在 window.addEventListener('load', ...) 或者 showResult 中调用一下这个初始化函数
+
+    window.confirmModelName = function() {
+        // ★ 获取输入的自定义名字
+        const nameInput = document.getElementById('mascotNameInput');
+        const customName = nameInput ? nameInput.value.trim() : '';
+        
+        // ★ 核心逻辑：如果不取名字，显示红字，退出函数不能进行下一步
+        if (!customName) {
+            document.getElementById('nameErrorMsg').style.opacity = '1';
+            return; 
+        }
+
+        // ★ 拼接名字：文物名 · 自定义名
+        const finalFullName = `${currentArtifactName} · ${customName}`;
+        
+        document.getElementById('mascotPage').classList.remove('naming-active');
+        
+        // 动态调整画布尺寸以匹配容器
+        const wrap = document.getElementById("mascotCanvasWrap");
+        if(renderer && camera) {
+            camera.aspect = wrap.clientWidth / wrap.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+        }
+        
+        document.getElementById('namingSection').style.display = 'none';
+        document.getElementById('actionSection').style.display = 'block';
+        document.getElementById('finalNameDisplay').innerText = `✨ ${finalFullName} ✨`;
+        
+        const baseUrl = window.location.href.split('?')[0];
+        const shareUrl = `${baseUrl}?m=${encodeURIComponent(selectedModelPath)}&n=${encodeURIComponent(finalFullName)}`;
+        
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
+        const qrImg = document.getElementById('generatedQr');
+        qrImg.src = qrApiUrl;
+        qrImg.onload = () => { qrImg.style.display = "block"; };
+    }
+    window.backToMap = function() {
+        // 如果需要，可以保留清理 Three.js 场景的函数
+        cleanUpThreeJS(); 
+        
+        // 使用 location.href 来跳转到另一个页面
+        window.location.href = `index.html?lang=${currentLang}`;
+    }
+
+    // === THREE.js & AR Logic ===
+    async function loadAiModels() {
+        if (handLandmarker) return true;
+        if (aiLoadFailed) return false;
+        showLoading(true, 'loadingAI');
+        try {
+            const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
+            if (!handLandmarker) {
+                handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                    baseOptions: { modelAssetPath: "./hand_landmarker.task", delegate: "GPU", modelComplexity: 0 },
+                    runningMode: "VIDEO",
+                    numHands: 1
+                });
+            }
+            return true;
+        } catch (error) {
+            aiLoadFailed = true;
+            alert("⚠️ AI模型加载失败！\\n(已自动切换为手动模式)");
+            showLoading(false);
+            return false;
+        }
+    }
+    window.enterARMode = async function() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert("⚠️ 请使用 HTTPS 或 Localhost。"); return;
+        }
+        const modelsLoaded = await loadAiModels();
+        if (!modelsLoaded) { showLoading(false); return; }
+        
+        showLoading(false);
+        const btn = document.querySelector('#arInstructions .instructions-btn');
+        const t = translations[currentLang] || translations.zh; // 获取当前语言的翻译
+        btn.textContent = t.arBtnStart; // 使用翻译来设置按钮文本
+        btn.onclick = startArExperience;
+        document.getElementById('arInstructions').style.display = 'flex';
+    }
+    window.startArExperience = async function() {
+        document.getElementById('arInstructions').style.display = 'none';
+        showLoading(true, 'loadingCamera');
+        try {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+            document.body.classList.add('mobile-device');
+            }
+            document.getElementById('arSwitchCameraBtn').style.display = isMobile ? 'flex' : 'none';
+            currentFacingMode = isMobile ? 'environment' : 'user';
+            
+            let videoConstraints;
+            if (isMobile) {
+                videoConstraints = { facingMode: { exact: currentFacingMode }, width: { ideal: 640 }, height: { ideal: 480 } };
+            } else {
+                videoConstraints = { width: { ideal: 640 }, height: { ideal: 480 } };
+                if (!isMirrored) { toggleMirror(); } 
+            }
+            try {
+                arStreamObj = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
+            } catch (e) {
+                console.warn("请求指定摄像头失败，尝试备用方案...", e);
+                currentFacingMode = 'user'; 
+                arStreamObj = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            }
+            
+            const bgVideo = document.getElementById('bgVideo');
+            bgVideo.srcObject = arStreamObj;
+            bgVideo.style.display = "block";
+            await bgVideo.play();
+            
+            showMascot(true);
+            document.body.classList.add('ar-mode-global');
+            document.getElementById('mascotPage').classList.add('ar-mode-active');
+            document.getElementById('arControls').style.display = 'block';
+            
+            raycaster = new THREE.Raycaster();
+            const domElement = renderer.domElement;
+            domElement.addEventListener('pointerdown', onDragStart);
+            domElement.addEventListener('pointermove', onDragMove);
+            domElement.addEventListener('pointerup', onDragEnd);
+            domElement.addEventListener('pointercancel', onDragEnd);
+            isAiRunning = true;
+            isGestureRecognitionActive = true; 
+            const gestureBtn = document.getElementById('arToggleGestureBtn');
+            gestureBtn.classList.add('active-yellow'); 
+            predictWebcam();
+            showTempStatus("探索AR模式已开启");
+        } catch (err) {
+            alert("相机启动失败！\\n\\n错误信息: " + err.message + "\\n\\n请确认：\\n1. 您已授权浏览器使用摄像头。\\n2. 摄像头没有被其他程序占用。");
+            exitARMode();
+        } finally {
+            showLoading(false);
+        }
+    }
+    window.showArInstructions = function() {
+        const btn = document.querySelector('#arInstructions .instructions-btn');
+        const t = translations[currentLang] || translations.zh;
+        btn.textContent = t.arBtnClose; // <-- 修改点：使用翻译
+        btn.onclick = () => { document.getElementById('arInstructions').style.display = 'none'; };
+        document.getElementById('arInstructions').style.display = 'flex';
+    }
+    async function predictWebcam() {
+        if (!isAiRunning) return;
+        if (!isGestureRecognitionActive) {
+            requestAnimationFrame(predictWebcam); 
+            return; 
+        }
+        const video = document.getElementById('bgVideo');
+        if (video.readyState >= 2) {
+            let startTimeMs = performance.now();
+            if (video.currentTime !== lastVideoTime) {
+                lastVideoTime = video.currentTime;
+                if (!aiLoadFailed && handLandmarker) {
+                    const handResult = handLandmarker.detectForVideo(video, startTimeMs);
+                    if (handResult.landmarks && handResult.landmarks.length > 0) {
+                        handleHandGestures(handResult.landmarks[0]);
+                    }
+                }
+            }
+        }
+        requestAnimationFrame(predictWebcam);
+    }
+function handleHandGestures(landmarks) {
+    if (isDragging) return;
+    
+    if (!model || !landmarks || landmarks.length === 0) {
+        lastRotationAngle = null; 
+        return;
+    }
+    const [wrist, thumb_cmc, thumb_mcp, thumb_ip, thumb_tip, index_mcp, index_pip, index_dip, index_tip, middle_mcp, middle_pip, middle_dip, middle_tip, ring_mcp, ring_pip, ring_dip, ring_tip, pinky_mcp, pinky_pip, pinky_dip, pinky_tip] = landmarks;
+    const isIndexStraight = index_tip.y < index_pip.y;
+    const isMiddleStraight = middle_tip.y < middle_pip.y;
+    const isRingStraight = ring_tip.y < ring_pip.y;
+    const isPinkyStraight = pinky_tip.y < pinky_pip.y;
+    const straightFingers = [isIndexStraight, isMiddleStraight, isRingStraight, isPinkyStraight].filter(Boolean).length;
+    if (straightFingers === 0) { 
+        if (model.scale.x > 0.4) model.scale.multiplyScalar(0.98); 
+        showTempStatus("✊ 缩小");
+        lastRotationAngle = null;
+    } 
+    else if (straightFingers === 1 && isIndexStraight) { 
+        let x = index_tip.x * 2 - 1;
+        if (isMirrored) x = -x;  
+        const y = -(index_tip.y * 2 - 1);
+        
+        const vec = new THREE.Vector3(x, y, 0.5);
+        vec.unproject(camera);
+        const dir = vec.sub(camera.position).normalize();
+        const newPos = camera.position.clone().add(dir.multiplyScalar(3));
+        
+        model.position.lerp(newPos, 0.05);
+        showTempStatus("☝️ 贴近");
+        lastRotationAngle = null;
+    } else if (straightFingers === 2 && isIndexStraight && isMiddleStraight) { 
+        if (lastRotationAngle === null) {
+            model.rotation.y -= Math.PI / 6; 
+            showTempStatus("✌️ 顺时针旋转30°");
+            lastRotationAngle = 1;
+        }
+    } else if (straightFingers === 3 && isIndexStraight && isMiddleStraight && isRingStraight) { 
+        if (lastRotationAngle === null) {
+            model.rotation.y += Math.PI / 6;
+            showTempStatus("🤟 逆时针旋转30°");
+            lastRotationAngle = 1;
+        }
+    } else if (straightFingers === 4) { 
+        if (model.scale.x < 2.5) model.scale.multiplyScalar(1.02);
+        showTempStatus("🖐️ 放大");
+        lastRotationAngle = null;
+    } else { 
+        lastRotationAngle = null;
+    }
+}
+    function showTempStatus(text) {
+        const el = document.getElementById('aiStatus');
+        el.innerText = text; el.style.opacity = '1';
+        if(statusTimer) clearTimeout(statusTimer);
+        statusTimer = setTimeout(() => { el.style.opacity = '0'; }, 3000);
+    }
+    window.toggleGestureRecognition = function() {
+        isGestureRecognitionActive = !isGestureRecognitionActive; 
+        const btn = document.getElementById('arToggleGestureBtn');
+        const t = translations[currentLang]; // <-- 修改点：读取全局语言
+        
+        if (isGestureRecognitionActive) {
+            btn.classList.add('active-yellow'); 
+            btn.innerText = t.arGestureOn; // <-- 修改点：使用翻译
+            showTempStatus(t.gestureOnToast); // (这里的提示是临时的，可以后续再加入翻译)
+        } else {
+            btn.classList.remove('active-yellow'); 
+            btn.innerText = t.arGestureOff; // <-- 修改点：使用翻译
+            showTempStatus(t.gestureOffToast);
+        }
+    }
+    window.toggleMirror = function() {
+        isMirrored = !isMirrored;
+        const v = document.getElementById('bgVideo');
+        const t = translations[currentLang] || translations.zh; // <-- 先定义 t
+        if (isMirrored) { 
+            v.classList.add('mirrored'); 
+            showTempStatus(t.mirrorOnToast); // <-- 通过 t 访问
+        } else { 
+            v.classList.remove('mirrored'); 
+            showTempStatus(t.mirrorOffToast); // <-- 通过 t 访问
+        }
+    }
+    window.resetModelPos = function() {
+        if(model) {
+            model.position.set(0, -0.5, -3); 
+            model.rotation.y = Math.PI + (Math.PI / 2); 
+            
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            const s = 1.5 / Math.max(size.x, size.y, size.z);
+            model.scale.set(s,s,s);
+            
+            if (controls) controls.reset();
+            showTempStatus(translations[currentLang].resetPosToast);
+        }
+    }
+    window.exitARMode = function() {
+    isAiRunning = false;
+    document.body.classList.remove('ar-mode-global');
+    if (arStreamObj) arStreamObj.getTracks().forEach(track => track.stop());
+    arStreamObj = null;
+    document.body.classList.remove('mobile-device');
+    
+    if (renderer) {
+        const domElement = renderer.domElement;
+        domElement.removeEventListener('pointerdown', onDragStart);
+        domElement.removeEventListener('pointermove', onDragMove);
+        domElement.removeEventListener('pointerup', onDragEnd);
+        domElement.removeEventListener('pointercancel', onDragEnd);
+    }
+    document.getElementById('bgVideo').style.display = "none";
+    document.getElementById('mascotPage').classList.remove('ar-mode-active');
+    document.getElementById('arControls').style.display = 'none';
+    showMascot(false);
+}
+    function cleanUpThreeJS() {
+        if (animationId) cancelAnimationFrame(animationId);
+        if (renderer) { renderer.domElement.remove(); renderer.dispose(); }
+        if (controls) { controls.dispose(); }
+        scene = null; camera = null; renderer = null; model = null; controls = null;
+    }
+const gltfLoader = new GLTFLoader();
+const ktx2Loader = new KTX2Loader();
+gltfLoader.setMeshoptDecoder(MeshoptDecoder);
+// 👇 新增以下这三行代码：初始化 Draco 并设置解码器路径
+const dracoLoader = new DRACOLoader();
+// 设置解压依赖文件的 CDN 路径（必须与 Three.js 版本对应）
+dracoLoader.setDecoderPath('https://unpkg.com/three@0.158.0/examples/jsm/libs/draco/'); 
+gltfLoader.setDRACOLoader(dracoLoader);
+function showMascot(isAR) {
+    cleanUpThreeJS();
+    const wrap = document.getElementById("mascotCanvasWrap");
+    if(!wrap) return;
+    if(isAR) wrap.innerHTML = "";
+    const width = isAR ? window.innerWidth : wrap.clientWidth;
+    const height = isAR ? window.innerHeight : wrap.clientHeight;
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 100);
+    camera.position.set(0, 1.2, 3);
+    camera.lookAt(0, 0.5, 0);
+    renderer = new THREE.WebGLRenderer({ 
+        alpha: true, 
+        antialias: true, // 开启抗锯齿
+        preserveDrawingBuffer: true,
+        logarithmicDepthBuffer: true // 开启对数深度缓存，解决穿模闪烁
+    });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    // 👇 --- 新增以下两行 --- 👇
+    // 强制开启 sRGB 色彩空间，解决 GLTF/GLB 模型发灰发暗的终极方案
+    renderer.outputColorSpace = THREE.SRGBColorSpace; 
+    // 适当提高曝光度 (默认是 1.0，觉得不够亮可以调到 1.5 甚至 2.0)
+    renderer.toneMappingExposure = 1.2; 
+    // 👆 ---------------------- 👆
+    if (isAR) {
+        document.body.appendChild(renderer.domElement);
+        renderer.domElement.style.position = 'fixed';
+        renderer.domElement.style.top = '0';
+        renderer.domElement.style.left = '0';
+        renderer.domElement.style.zIndex = '50';
+    } else {
+        wrap.appendChild(renderer.domElement);
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        controls.autoRotateSpeed = isMobile ? 5.0 : 10.0; 
+        controls.enableZoom = true;
+        controls.maxPolarAngle = Math.PI / 2 + Math.PI / 9;
+    }
+    // 1. 全局环境光：提亮基础暗部 (强度从 1.0 提高到 1.5)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+    scene.add(ambientLight);
+
+    // 👇 --- 这是你漏掉的半球光 --- 👇
+    // 半球光：模拟天光与地面的漫反射，非常适合青铜器/陶器质感
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
+    hemiLight.position.set(0, 20, 0);
+    scene.add(hemiLight);
+
+    // 2. 主平行光：模拟强光直射，打出高光 (强度从 2.0 提高到 3.0)
+    const mainLight = new THREE.DirectionalLight(0xffffff, 3.0);
+    mainLight.position.set(5, 10, 7);
+    scene.add(mainLight);
+
+    // 👇 --- 这是你漏掉的轮廓背光 --- 👇
+    // 补光 (轮廓光)：在斜后方补光，让模型边缘更立体，脱离背景
+    const backLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    backLight.position.set(-5, 5, -7);
+    scene.add(backLight);
+    const basisPath = 'https://unpkg.com/three@0.158.0/examples/jsm/libs/basis/';
+    ktx2Loader
+        .setTranscoderPath(basisPath)
+        .detectSupport(renderer); 
+    gltfLoader.setKTX2Loader(ktx2Loader);
+    gltfLoader.load(selectedModelPath, (gltf) => {
+        model = gltf.scene;
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3());
+        const baseScale = 2.0 / Math.max(size.x, size.y, size.z);
+        model.scale.set(baseScale, baseScale, baseScale);
+        const center = box.getCenter(new THREE.Vector3());
+        model.position.x = -center.x * baseScale;
+        model.position.y = -center.y * baseScale;
+        model.position.z = -center.z * baseScale;
+        if (isAR) {
+            model.position.y = -0.5;
+            model.position.z = -3;
+            model.rotation.y = Math.PI + (Math.PI / 2);
+        }
+        scene.add(model);
+        animate();
+    }, undefined, (err) => {
+        console.error('模型加载失败:', err);
+        alert(`加载失败: ${selectedModelPath}。\\n请确认模型文件存在且网络正常。`);
+    });
+}
+    function animate() {
+        animationId = requestAnimationFrame(animate);
+        if (controls) {
+            controls.update();
+        } 
+        else if (model && document.getElementById('mascotPage').classList.contains('ar-mode-active')) {
+        }
+        renderer.render(scene, camera);
+    }
+    window.takePhoto = function() {
+        const bgVideo = document.getElementById('bgVideo');
+        const glCanvas = renderer.domElement;
+        const canvas = document.createElement('canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const ctx = canvas.getContext('2d');
+        const vRatio = bgVideo.videoWidth / bgVideo.videoHeight;
+        const cRatio = canvas.width / canvas.height;
+        let sW, sH, sX, sY;
+        if (vRatio > cRatio) {
+            sH = bgVideo.videoHeight; sW = sH * cRatio; sX = (bgVideo.videoWidth - sW)/2; sY = 0;
+        } else {
+            sW = bgVideo.videoWidth; sH = sW / cRatio; sX = 0; sY = (bgVideo.videoHeight - sH)/2;
+        }
+        ctx.save();
+        if (isMirrored) { ctx.translate(canvas.width, 0); ctx.scale(-1, 1); }
+        ctx.drawImage(bgVideo, sX, sY, sW, sH, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
+        ctx.drawImage(glCanvas, 0, 0, canvas.width, canvas.height);
+        const link = document.createElement('a');
+        link.download = `AR_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showTempStatus(translations[currentLang].photoSavedToast);
+    }
+window.toggleVideoRecord = function() {
+    if (isRecording) {
+        if (mediaRecorder) mediaRecorder.stop();
+        if (recorderAnimationId) cancelAnimationFrame(recorderAnimationId);
+        recorderAnimationId = null;
+        isRecording = false;
+        document.getElementById('arVideoBtn').classList.remove('recording');
+    } else {
+        const bgVideo = document.getElementById('bgVideo');
+        const glCanvas = renderer.domElement;
+        const compositeCanvas = document.createElement('canvas');
+        compositeCanvas.width = window.innerWidth;
+        compositeCanvas.height = window.innerHeight;
+        const compositeCtx = compositeCanvas.getContext('2d');
+        function recordFrame() {
+            const vRatio = bgVideo.videoWidth / bgVideo.videoHeight;
+            const cRatio = compositeCanvas.width / compositeCanvas.height;
+            let sW, sH, sX, sY;
+            if (vRatio > cRatio) {
+                sH = bgVideo.videoHeight;
+                sW = sH * cRatio;
+                sX = (bgVideo.videoWidth - sW) / 2;
+                sY = 0;
+            } else {
+                sW = bgVideo.videoWidth;
+                sH = sW / cRatio;
+                sX = 0;
+                sY = (bgVideo.videoHeight - sH) / 2;
+            }
+            
+            compositeCtx.save();
+            if (isMirrored) { 
+                compositeCtx.translate(compositeCanvas.width, 0); 
+                compositeCtx.scale(-1, 1); 
+            }
+            compositeCtx.drawImage(bgVideo, sX, sY, sW, sH, 0, 0, compositeCanvas.width, compositeCanvas.height);
+            compositeCtx.restore();
+            
+            compositeCtx.drawImage(glCanvas, 0, 0, compositeCanvas.width, compositeCanvas.height);
+            
+            recorderAnimationId = requestAnimationFrame(recordFrame);
+        }
+        recordFrame(); 
+        const stream = compositeCanvas.captureStream(30); 
+        recordedChunks = [];
+        try {
+            const options = { 
+                mimeType: 'video/webm',
+                videoBitsPerSecond: 2500000 
+            };
+            
+            mediaRecorder = new MediaRecorder(stream, options);
+            mediaRecorder.ondataavailable = (e) => { 
+                if (e.data.size > 0) recordedChunks.push(e.data); 
+            };
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `AR_Video_${Date.now()}.webm`;
+                a.click();
+                showTempStatus(translations[currentLang].videoSavedToast);
+            };
+            mediaRecorder.start();
+            isRecording = true;
+            document.getElementById('arVideoBtn').classList.add('recording');
+            showTempStatus(translations[currentLang].videoRecordingToast);
+        } catch(e) { 
+            alert("录制不支持或出错: " + e.message);
+            if(recorderAnimationId) cancelAnimationFrame(recorderAnimationId); 
+        }
+    }
+}
+    function showLoading(show, textKey = '') {
+        const el = document.getElementById('loadingToast');
+        el.style.display = show ? 'flex' : 'none';
+        if (show && textKey) {
+            const t = translations[currentLang] || translations.zh;
+            document.getElementById('loadingText').innerText = t[textKey] || textKey;
+        }
+    }
+function onDragStart(event) {
+    event.preventDefault(); 
+    
+    const touch = event.touches ? event.touches[0] : event;
+    if (!touch || !model) return;
+    isDragging = true;
+    
+    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+    
+    raycaster.setFromCamera(pointer, camera);
+    const intersects = raycaster.intersectObject(model, true);
+    
+    if (intersects.length > 0) {
+        const cameraDirection = camera.getWorldDirection(new THREE.Vector3());
+        dragPlane.setFromNormalAndCoplanarPoint(cameraDirection, intersects[0].point);
+        if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
+            offset.copy(intersection).sub(model.position);
+        }
+    }
+}
+function onDragMove(event) {
+    event.preventDefault();
+    const touch = event.touches ? event.touches[0] : event;
+    if (!touch || !isDragging) return;
+    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+    
+    raycaster.setFromCamera(pointer, camera);
+    if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
+        model.position.copy(intersection.sub(offset));
+    }
+}
+function onDragEnd(event) {
+    isDragging = false; 
+}
+window.switchCamera = async function() {
+    const t = translations[currentLang] || translations.zh;
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        alert("您的浏览器不支持摄像头切换。");
+        return;
+    }
+
+    if (arStreamObj) {
+        arStreamObj.getTracks().forEach(track => track.stop());
+    }
+
+    currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+    showLoading(true, 'loadingCamera'); // <-- 此处文本键应为 'loadingCamera'
+    try {
+        const videoConstraints = {
+            facingMode: currentFacingMode,
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+        };
+
+        const newStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
+        arStreamObj = newStream;
+        const bgVideo = document.getElementById('bgVideo');
+        bgVideo.srcObject = newStream;
+        await bgVideo.play();
+        
+        if (currentFacingMode === 'user' && !isMirrored) {
+            isMirrored = true;
+            bgVideo.classList.add('mirrored');
+        } else if (currentFacingMode === 'environment' && isMirrored) {
+            isMirrored = false;
+            bgVideo.classList.remove('mirrored');
+        }
+        const camType = t[currentFacingMode === 'user' ? 'camTypeFront' : 'camTypeBack'];
+        showTempStatus(t.camSwitchedToast.replace('{camType}', camType));
+    } catch (err) {
+        alert("切换摄像头失败: " + err.message);
+        // 如果失败，恢复到之前的模式
+        currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+    } finally {
+        showLoading(false);
+    }
+}
+const galleryBtn = document.getElementById('galleryBtn');
+const galleryModal = document.getElementById('galleryModal');
+const closeGallery = document.getElementById('closeGallery');
+const galleryImg = document.getElementById('galleryImg');
+const prevImg = document.getElementById('prevImg');
+const nextImg = document.getElementById('nextImg');
+
+// 替换为你的图片路径数组
+const galleryImages = [
+  'picture/1.png',
+  'picture/2.png',
+  'picture/3.png',
+  'picture/4.png'
+];
+
+let currentIndex = 0;
+
+// 打开弹窗
+galleryBtn.onclick = () => {
+  galleryModal.style.display = 'flex';
+  galleryImg.src = galleryImages[currentIndex];
 };
 
-let currentLang = 'zh';
-let currentStage = '1_soft'; // 当前阶段，根据模型名称动态设置
-
-/* ================= 文物阶段历史数据 ================= */
-const artifactStages = {
-  "1_soft": {
-    zh: {
-      title: "阶段 1 — 铸造诞生期（商末 / 西周初）",
-      history: "商末至西周初，青铜冶炼技术高度成熟，青铜器不仅是日常用品，更是祭祀和权力象征。皿方罍作为方形礼器在王室或贵族青铜作坊铸造，承载宗族与王权的庄重使命。",
-      function: "• 盛放酒水，用于祖先祭祀和重大典礼。\n• 方形腹体、四足、高颈设计稳固庄重，适合礼仪场合。\n• 器身饰饕餮纹、几何纹及铭文，记录祭祀程序、家族关系及王室功绩。",
-      significance: "• 象征权力、尊贵与威严，反映社会等级和宗法制度。\n• 铭文与纹饰为研究商周政治、宗族和礼制提供重要资料。"
-    },
-    en: {
-      title: "Stage 1 — Casting Birth Period (Late Shang / Early Western Zhou)",
-      history: "During the late Shang to early Western Zhou, bronze metallurgy was highly developed. Bronze vessels were not only everyday objects but also symbols of ritual and power. The square ritual vessel was cast in royal or aristocratic workshops, carrying solemn social and royal significance.",
-      function: "• Used for holding wine in ancestral sacrifices and major ceremonies.\n• Square body with four legs and high neck for stability and solemnity.\n• Decorated with taotie and geometric patterns; inscriptions record rituals, family relations, and royal achievements.",
-      significance: "• Symbolizes power, prestige, and authority, reflecting social hierarchy and clan system.\n• Inscriptions and decorations provide important references for studying Shang-Zhou politics, clan, and ritual system."
-    },
-    de: {
-      title: "Phase 1 — Guss-Entstehungsphase (Späte Shang / Frühe Westliche Zhou)",
-      history: "Von der späten Shang- bis zur frühen Westlichen Zhou-Zeit war die Bronzeverarbeitung hochentwickelt. Bronzen dienten nicht nur im Alltag, sondern auch als Symbol für Ritual und Macht. Der quadratische Ritualbehälter wurde in königlichen oder adeligen Werkstätten gegossen und trug gesellschaftliche und königliche Bedeutung.",
-      function: "• Zum Aufbewahren von Wein für Ahnenrituale und große Zeremonien.\n• Quadratischer Körper mit vier Beinen und hohem Hals für Stabilität.\n• Verziert mit Taotie- und geometrischen Mustern; Inschriften dokumentieren Rituale, Familienbeziehungen und königliche Leistungen.",
-      significance: "• Symbolisiert Macht, Prestige und Autorität und spiegelt die soziale Hierarchie und das Clansystem wider.\n• Inschriften und Verzierungen bieten wichtige Hinweise zum Studium der Shang-Zhou-Politik, Clanstrukturen und Ritualsysteme."
-    },
-    ja: {
-      title: "第1段階 — 鋳造誕生期（商末/西周初）",
-      history: "商末から西周初期にかけて、青銅冶金技術は高度に発展しており、青銅器は日用品だけでなく、儀式や権力の象徴でもありました。方形礼器は王室や貴族の作業場で鋳造され、宗族や王権の重要な使命を担っていました。",
-      function: "• 酒を盛り、先祖祭祀や重要な儀式に使用。\n• 四足の方形胴体と高い首で安定と厳粛さを確保。\n• 饕餮文や幾何学模様、銘文で儀式、家族関係、王室の功績を記録。",
-      significance: "• 権力、尊貴、威厳を象徴し、社会階級と宗法制度を反映。\n• 銘文と文様は商周の政治、宗族、礼制の研究に重要な資料を提供。"
-    }
-  },
-
-  "2_soft": {
-    zh: {
-      title: "阶段 2 — 使用期（商末–西周早期）",
-      history: "商末至西周早期，皿方罍成为王室和贵族祭祀、宴会及礼仪的核心青铜器，礼器规格、纹饰和铭文体现社会等级和礼制规范。",
-      function: "• 盛放酒水，参与祭祀、宴会及重大典礼。\n• 祭祀者小心奉献酒水，体现对祖先和神灵的敬意。\n• 铭文记录礼制、家族关系及王室功绩，是礼仪和宗法制度的重要凭证。",
-      significance: "• 象征权威、尊贵和家族荣耀，是贵族和王室礼仪不可或缺的器物。\n• 反映社会等级和政治秩序，展现礼制在贵族生活中的核心地位。"
-    },
-    en: {
-      title: "Stage 2 — Usage Period (Late Shang – Early Western Zhou)",
-      history: "During the late Shang to early Western Zhou, the vessel became a core ritual bronze for royal and aristocratic sacrifices, banquets, and ceremonies. Specifications, decorations, and inscriptions reflected social hierarchy and ritual norms.",
-      function: "• Used for holding wine in rituals, banquets, and major ceremonies.\n• Ritualists carefully offered wine, showing respect to ancestors and deities.\n• Inscriptions record rituals, family relations, and royal achievements, serving as evidence for ceremonial and clan systems.",
-      significance: "• Symbolizes authority, prestige, and family honor; indispensable for aristocratic and royal rituals.\n• Reflects social hierarchy and political order, showing the centrality of rituals in noble life."
-    },
-    de: {
-      title: "Phase 2 — Nutzungsphase (Späte Shang – Frühe Westliche Zhou)",
-      history: "Von der späten Shang- bis zur frühen Westlichen Zhou-Zeit wurde das Gefäß zum Kernritualbronzeobjekt für königliche und adlige Zeremonien. Größe, Verzierungen und Inschriften spiegelten die soziale Hierarchie und rituelle Normen wider.",
-      function: "• Zur Aufbewahrung von Wein in Ritualen, Festen und Zeremonien.\n• Ritualisten brachten Wein sorgfältig dar, um Respekt gegenüber Ahnen und Göttern zu zeigen.\n• Inschriften dokumentieren Rituale, Familienbeziehungen und königliche Leistungen.",
-      significance: "• Symbolisiert Autorität, Prestige und Familienehre; unverzichtbar für aristokratische und königliche Rituale.\n• Spiegeln soziale Hierarchie und politische Ordnung wider."
-    },
-    ja: {
-      title: "第2段階 — 使用期（商末–西周早期）",
-      history: "商末から西周初期にかけて、礼器は王室や貴族の祭祀、宴会、儀式における重要な青銅器となりました。礼器の仕様、装飾、銘文は社会階級や儀礼規範を反映しています。",
-      function: "• 酒を盛り、祭祀、宴会、重要な儀式に使用。\n• 祭祀者は慎重に酒を捧げ、先祖や神々への敬意を示す。\n• 銘文は儀礼、家族関係、王室の功績を記録する重要な証拠です。",
-      significance: "• 権力と尊貴、家族の栄誉を象徴；貴族や王族の儀式に不可欠です。"
-    }
-  },
-
-  "3_soft": {
-    zh: {
-      title: "阶段 3 — 沉寂期（西周中晚期–春秋战国）",
-      history: "西周中期后，礼制变化，新的祭祀器型替代了古老的方形礼器，皿方罍逐渐淡出历史舞台。器物被保存在贵族家族的宝库中，或埋入地下作为陪葬品，开始了漫长的沉寂。",
-      function: "• 不再活跃使用，但作为珍贵遗产保留在贵族家族中。\n• 有些被埋入墓葬，成为永恒的陪伴。\n• 其他则封存在密室或宝库中，等待被发现。",
-      significance: "• 代表一个时代的终结与转变。\n• 见证了礼制的演进和社会的发展。"
-    },
-    en: {
-      title: "Stage 3 — Silent Period (Mid-Late Western Zhou – Spring-Autumn Warring States)",
-      history: "After the middle Western Zhou, ritual systems changed and new sacrifice vessel types replaced the ancient square vessels. The artifact gradually faded from history and was preserved in aristocratic family treasuries or buried underground as grave goods, entering a long period of silence.",
-      function: "• No longer actively used but preserved as a precious family heirloom.\n• Some were buried in tombs as eternal companions.\n• Others were sealed in vaults or treasuries, waiting to be discovered.",
-      significance: "• Represents the end and transition of an era.\n• Witnesses the evolution of rituals and social development."
-    },
-    de: {
-      title: "Phase 3 — Stille Periode (Mitte-Späte Westliche Zhou – Frühling und Herbst Kriegreiche)",
-      history: "Nach der mittleren Westlichen Zhou-Zeit änderten sich die Ritualsysteme. Das Objekt verschwand allmählich aus der Geschichte und wurde in aristokratischen Familienschätzen aufbewahrt oder als Grabbeigabe vergraben.",
-      function: "• Nicht mehr aktiv verwendet, aber als kostbares Familienerbe bewahrt.\n• Einige wurden in Gräbern begraben als ewige Begleiter.\n• Andere wurden in Gewölben oder Schatzkammern versiegelt.",
-      significance: "• Repräsentiert das Ende und den Übergang einer Ära.\n• Zeuge der rituellen Entwicklung und gesellschaftlichen Veränderung."
-    },
-    ja: {
-      title: "第3段階 — 沈黙の期間（西周中期–春秋戦国時代）",
-      history: "西周中期後、礼制が変わり、新しい祭祀器がこの古い方形礼器に取って代わりました。器物は貴族家族の宝庫に保存されるか、埋葬品として地下に埋められ、長い沈黙の時代に入りました。",
-      function: "• 積極的に使用されることはなくなりましたが、貴族家族の貴重な遺産として保存されました。\n• 一部は墓に埋葬され、永遠の伴侶となりました。\n• その他はヴォールトや宝庫に密閉されました。",
-      significance: "• ある時代の終わりと転換を表しています。\n• 儀礼の進化と社会の発展の証人となりました。"
-    }
-  },
-
-  "4_soft": {
-    zh: {
-      title: "阶段 4 — 重生期（现代–今日）",
-      history: "经过数千年的沉寂，皿方罍终于被现代考古学家发现。通过现代科技和学术研究，这件古老的文物被唤醒，重新讲述它的故事，成为连接过去与现在的桥梁。",
-      function: "• 展出于博物馆，供世人瞻仰和学习。\n• 通过AR和数字技术，让文物以新的方式与现代人互动。\n• 成为文化传承和历史教育的重要工具。",
-      significance: "• 象征文化遗产的永恒价值和生命力。\n• 通过现代技术实现古物与现代社会的对话与融合。\n• 提醒我们尊重历史，保护文明。"
-    },
-    en: {
-      title: "Stage 4 — Rebirth Period (Modern Age – Today)",
-      history: "After thousands of years of silence, the artifact was finally discovered by modern archaeologists. Through modern technology and academic research, this ancient relic has been awakened, retelling its story and becoming a bridge connecting the past and present.",
-      function: "• Exhibited in museums for people to admire and learn from.\n• Through AR and digital technology, the artifact interacts with modern people in new ways.\n• Serves as an important tool for cultural heritage preservation and historical education.",
-      significance: "• Symbolizes the eternal value and vitality of cultural heritage.\n• Achieves dialogue and integration between ancient objects and modern society through modern technology.\n• Reminds us to respect history and protect civilization."
-    },
-    de: {
-      title: "Phase 4 — Wiedergeburt (Moderne Zeit – Heute)",
-      history: "Nach Tausenden von Jahren der Stille wurde das Objekt endlich von modernen Archäologen entdeckt. Durch moderne Technologie und akademische Forschung wurde dieses alte Relikt erweckt und erzählt seine Geschichte neu.",
-      function: "• In Museen ausgestellt zur Bewunderung und zum Lernen.\n• Durch AR und digitale Technologie interagiert das Objekt auf neue Weise mit modernen Menschen.\n• Dient als wichtiges Werkzeug für Kulturerbschutz und historische Bildung.",
-      significance: "• Symbolisiert den ewigen Wert und die Vitalität des Kulturerbes.\n• Ermöglicht Dialog und Integration zwischen antiken Objekten und der modernen Gesellschaft.\n• Erinnert uns daran, die Geschichte zu respektieren und die Zivilisation zu schützen."
-    },
-    ja: {
-      title: "第4段階 — 再生期（現代時代–今日）",
-      history: "数千年の沈黙の後、この古い器物は遂に現代の考古学者に発見されました。現代技術と学術研究を通じて、この古い遺物は目覚めさせられ、その物語を語り直し、過去と現在を結ぶ橋となりました。",
-      function: "• 博物館に展示され、人々に鑑賞と学習の機会を提供。\n• AR と デジタル技術を通じて、器物は現代人と新しい方法でインタラクション。\n• 文化遺産保護と歴史教育の重要な手段です。",
-      significance: "• 文化遺産の永遠の価値と生命力を象徴。\n• 現代技術を通じて古い器物と現代社会の対話と融合を実現。\n• 私たちに歴史を尊重し、文明を保護することを思い出させます。"
-    }
-  }
+// 关闭弹窗
+closeGallery.onclick = () => {
+  galleryModal.style.display = 'none';
 };
 
-/* ==============================
-   多语言应用函数
-   ============================== */
-function updateLanguage(lang) {
-  currentLang = lang;
-  const t = translations[lang];
+// 左右切换
+prevImg.onclick = () => {
+  currentIndex = (currentIndex - 1 + galleryImages.length) % galleryImages.length;
+  galleryImg.src = galleryImages[currentIndex];
+};
+nextImg.onclick = () => {
+  currentIndex = (currentIndex + 1) % galleryImages.length;
+  galleryImg.src = galleryImages[currentIndex];
+};
 
-  document.getElementById('back-to-index-btn').textContent = t['back-to-index'];
-  document.getElementById('galleryBtn').textContent = t['gallery-btn'];
-  document.getElementById('loadingText').textContent = t['loading-text'];
+// === 详情弹窗逻辑补完 ===
+const infoBtn = document.getElementById('infoBtn');
+const infoModal = document.getElementById('infoModal');
+const closeInfo = document.getElementById('closeInfo');
 
-  const guideItems = document.querySelectorAll('#arInstructions li');
-  document.querySelector('#arInstructions h2').textContent = t['ar-guide-title'];
-  guideItems[0].innerHTML = `<span class="icon">☝️</span><b>${t['ar-guide-1']}:</b> ${t['ar-guide-1-desc']}`;
-  guideItems[1].innerHTML = `<span class="icon">🖐️</span><b>${t['ar-guide-2']}:</b> ${t['ar-guide-2-desc']}`;
-  guideItems[2].innerHTML = `<span class="icon">✊</span><b>${t['ar-guide-3']}:</b> ${t['ar-guide-3-desc']}`;
-  guideItems[3].innerHTML = `<span class="icon">✌️</span><b>${t['ar-guide-4']}:</b> ${t['ar-guide-4-desc']}`;
-  guideItems[4].innerHTML = `<span class="icon">🤟</span><b>${t['ar-guide-5']}:</b> ${t['ar-guide-5-desc']}`;
-  document.querySelector('#arInstructions button').textContent = t['ar-guide-btn'];
-
-  document.querySelector('.cover-title').textContent = t['title'];
-  document.querySelector('.blind-box-btn').textContent = t['blind-box-btn'];
-  document.querySelector('.ai-title').textContent = t['ai-title'];
-
-  document.getElementById('infoBtn').textContent = t['info-btn'];
-  document.querySelector('.congrats-title').textContent = t['congrats'];
-  document.querySelector('#actionSection p').textContent = t['model-desc'];
-  document.querySelector('.btn-ar').textContent = t['ar-photo-btn'];
-
-  document.getElementById('arExitBtn').textContent = t['ar-exit'];
-  document.getElementById('arHelpBtn').textContent = t['ar-help'];
-  document.getElementById('arMirrorBtn').textContent = t['ar-mirror'];
-  document.getElementById('arResetBtn').textContent = t['ar-reset'];
-  document.getElementById('arToggleGestureBtn').textContent = t['ar-gesture'];
-  document.getElementById('arSwitchCameraBtn').textContent = t['ar-camera'];
-  document.getElementById('arPhotoBtn').textContent = t['ar-photo'];
-  document.getElementById('arVideoBtn').textContent = t['ar-video'];
-
-  // 更新阶段信息弹窗的标签文字
-  updateStageModalLabels(lang);
+// 1. 点击圆球按钮，显示弹窗
+if (infoBtn) {
+    infoBtn.onclick = (e) => {
+        e.stopPropagation(); // 防止干扰模型点击
+        infoModal.style.display = 'flex';
+    };
 }
 
-/* ==============================
-   阶段信息函数
-   ============================== */
-function updateStageModalLabels(lang) {
-  const labels = {
-    zh: { history: '历史背景', function: '功能用途', significance: '历史意义' },
-    en: { history: 'Historical Background', function: 'Function & Use', significance: 'Historical Significance' },
-    de: { history: 'Historischer Hintergrund', function: 'Funktion & Verwendung', significance: 'Historische Bedeutung' },
-    ja: { history: '歴史的背景', function: '機能と用途', significance: '歴史的重要性' }
-  };
-  const l = labels[lang] || labels['zh'];
-  document.getElementById('stageHistoryLabel').textContent = l.history;
-  document.getElementById('stageFunctionLabel').textContent = l.function;
-  document.getElementById('stageSignificanceLabel').textContent = l.significance;
+// 2. 点击弹窗内的“返回”按钮，隐藏弹窗
+if (closeInfo) {
+    closeInfo.onclick = () => {
+        infoModal.style.display = 'none';
+    };
 }
 
-function showStageInfo() {
-  const stage = artifactStages[currentStage];
-  if (!stage) return;
-
-  const stageData = stage[currentLang] || stage['zh'];
-  document.getElementById('stageTitle').textContent = stageData.title;
-  document.getElementById('stageHistory').textContent = stageData.history;
-  document.getElementById('stageFunction').textContent = stageData.function;
-  document.getElementById('stageSignificance').textContent = stageData.significance;
-  
-  document.getElementById('stageModal').style.display = 'flex';
-}
-
-function closeStageModal() {
-  document.getElementById('stageModal').style.display = 'none';
-}
-
-/* ==============================
-   页面初始化
-   ============================== */
-document.addEventListener('DOMContentLoaded', () => {
-  updateLanguage('zh');
-
-  const langSelect = document.getElementById('lang-select');
-  if (langSelect) {
-    langSelect.addEventListener('change', (e) => updateLanguage(e.target.value));
-  }
-
-  // 处理键盘弹出时的画面推移
-  const inputEl = document.getElementById('artifactNameInput');
-  if (inputEl) {
-    inputEl.addEventListener('focus', () => {
-      setTimeout(() => {
-        inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 300);
-    });
-  }
-
-  // 绑定"经历"按钮点击事件
-  const infBtn = document.getElementById('infoBtn');
-  if (infBtn) {
-    infBtn.addEventListener('click', () => {
-      showStageInfo();
-    });
-  }
-
-  // 点击弹窗外部关闭
-  const stageModal = document.getElementById('stageModal');
-  if (stageModal) {
-    stageModal.addEventListener('click', (e) => {
-      if (e.target === stageModal) {
-        closeStageModal();
-      }
-    });
-  }
-});
-
-/* ==============================
-   页面切换与 AI 进度条
-   ============================== */
-function startBlindBoxFlow(){
-  document.querySelector('#mapPage').classList.remove('active');
-  document.querySelector('#aiPage').classList.add('active');
-
-  let progress = 0;
-  const bar = document.getElementById('aiBar');
-  const log = document.getElementById('aiLog');
-  const t = translations[currentLang];
-  const messages = [t['ai-log-1'], t['ai-log-2'], t['ai-log-3']];
-
-  const interval = setInterval(()=>{
-    progress += 1;
-    bar.style.width = progress + '%';
-    if(progress===30) log.textContent = messages[1];
-    if(progress===70) log.textContent = messages[2];
-    if(progress>=100){
-      clearInterval(interval);
-      document.querySelector('#aiPage').classList.remove('active');
-      document.querySelector('#mascotPage').classList.add('active');
+// 3. (可选) 点击弹窗黑色背景也可以关闭
+infoModal.onclick = (e) => {
+    if (e.target === infoModal) {
+        infoModal.style.display = 'none';
     }
-  },50);
-}
-
-/* ==============================
-   AR 控制
-   ============================== */
-function enterARMode(){
-  document.body.classList.add('ar-mode-global');
-  document.getElementById('arControls').style.display='block';
-  document.getElementById('infoBtn').style.display = 'none';
-}
-
-function exitARMode(){
-  document.body.classList.remove('ar-mode-global');
-  document.getElementById('arControls').style.display='none';
-  document.getElementById('infoBtn').style.display = 'block';
-}
-
-function takePhoto(){
-  alert('拍照功能触发');
-}
-
-function backToMap(){
-  document.querySelector('#mascotPage').classList.remove('active');
-  document.querySelector('#mapPage').classList.add('active');
-}
+};
 </script>
-
 </body>
 </html>

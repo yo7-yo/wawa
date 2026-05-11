@@ -232,7 +232,7 @@ function loadModel(modelPath) {
     loadingOverlay.style.display = 'block';
     const loader = new THREE.GLTFLoader();
 
-    loader.setMeshoptDecoder(MeshoptDecoder);
+    //loader.setMeshoptDecoder(MeshoptDecoder);
 
     if (model) {
         scene.remove(model);

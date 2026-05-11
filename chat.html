@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI文物探索</title>
+    <link rel="stylesheet" href="say.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r132/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/meshoptimizer@0.17.0/meshopt_decoder.js"></script>
+</head>
+<body>
+    <div id="app">
+    <header class="app-header">
+        <select id="lang-select" class="secondary-btn">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+            <option value="de">Deutsch</option>
+            <option value="ja">日本語</option>
+        </select>
+
+        <h1>🏛️文物秘语</h1>
+
+        <!-- 修改后的代码 -->
+        <button 
+            onclick="window.location.href='wawa.html?lang=' + (localStorage.getItem('app_language') || 'zh')" 
+            id="blind-box-btn"
+            class="primary-btn blind-box-btn"
+            data-lang-zh="请君启藏"
+            data-lang-en="Draw Box"
+            data-lang-de="Box Ziehen"
+            data-lang-ja="盲箱引く">
+            请君启藏
+        </button>
+
+        <input type="text" id="artifact-name" value="皿方罍" readonly>
+    </header>
+        <div id="canvas-container">
+            <div id="loading-overlay">文物出库中...</div>
+        </div>
+        <div class="chat-panel">
+            <div class="input-area">
+                <input type="text" id="user-input" placeholder="请在此输入您的对话...">
+                <button id="send-btn" class="primary-btn">发送</button>
+            </div>
+            
+            <div id="chat-history">
+                <div class="message system-msg" id="dynamic-greeting">文物之灵苏醒中...</div>
+            </div>
+            
+            <div class="controls-bar">
+                <div class="action-buttons">
+                    <button id="undo-btn" class="secondary-btn">↩️ 撤回</button>
+                    <button id="retry-btn" class="secondary-btn">🔄 重试</button>
+                    <button id="clear-btn" class="secondary-btn">🗑️ 清空</button>
+                    <button id="save-btn" class="secondary-btn">💾 保存</button>
+                </div>
+            </div>
+            
+            <div id="selection-controls" class="controls-bar" style="display: none !important;">
+                <p id="selection-counter">已选中 0 组对话</p>
+                <div class="action-buttons">
+                    <button id="cancel-selection-btn" class="secondary-btn">❌ 取消</button>
+                    <button id="delete-selected-btn" class="primary-btn" style="background: #a33;">🗑️ 删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="clear-modal" class="modal">
+        <div class="modal-content">
+            <h3>⚠️ 警告：记忆消除</h3>
+            <p>您即将清空与文物的对话记录。</p>
+            <p>为了确认您的操作，请输入：<br><span class="highlight-text">确认清空</span></p>
+            <input type="text" id="verify-input" placeholder="在此输入确认文字...">
+            <div class="modal-buttons">
+                <button id="cancel-clear" class="secondary-btn">取消</button>
+                <button id="confirm-clear" class="primary-btn" style="background: #a33;">强制执行</button>
+            </div>
+        </div>
+    </div>
+    <script src="say.js"></script>
+
+    <script>
+        function adjustArtifactNamePosition() {
+            const artifactName = document.getElementById('artifact-name');
+            const header = document.querySelector('.app-header');
+            // 获取第一个 controls-bar（也就是常规按钮那一栏）
+            const controlsBar = document.querySelector('.controls-bar'); 
+            
+            if (window.innerWidth > 768) {
+                // 【PC端】如果屏幕大于768px，把它挪到底部控制栏的最左边
+                if (artifactName.parentNode !== controlsBar) {
+                    controlsBar.insertBefore(artifactName, controlsBar.firstChild);
+                }
+            } else {
+                // 【移动端】如果屏幕小于等于768px，把它放回 header 里面，保持你的完美移动端排版
+                if (artifactName.parentNode !== header) {
+                    header.appendChild(artifactName);
+                }
+            }
+        }
+
+        // 页面加载完成、以及用户拉伸窗口大小时，自动执行
+        window.addEventListener('DOMContentLoaded', adjustArtifactNamePosition);
+        window.addEventListener('resize', adjustArtifactNamePosition);
+    </script>
+</body>
+</html>

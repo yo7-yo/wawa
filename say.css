@@ -1,11 +1,29 @@
 body { margin: 0; background: #1a1a1a; color: #e0c097; font-family: "Songti SC", "SimSun", serif; }
-#app { display: flex; flex-direction: column; height: 100vh; }
-
-header { padding: 15px; text-align: center; border-bottom: 2px solid #5c4d3c; background: #000; }
+#app { 
+    display: flex; 
+    flex-direction: column; 
+    min-height: 100vh; /* 使用 min-height 而不是 height */
+    overflow-x: hidden;
+}
+header { 
+    padding: 15px; 
+    text-align: center; 
+    border-bottom: 2px solid #5c4d3c; 
+    background: #000; 
+    position: relative; 
+    z-index: 100; /* 极高层级，防止模型穿过 */
+}
 header h1 { margin: 0; font-size: 1.5em; text-shadow: 0 2px 5px black; letter-spacing: 2px; }
 header p { margin: 5px 0 0; color: #888; font-size: 0.8em; }
 
-#canvas-container { flex: 1; position: relative; background: radial-gradient(circle at center, #3a3a3a 0%, #000 100%); }
+#canvas-container { 
+    flex: 1; 
+    position: relative; 
+    background: radial-gradient(circle at center, #3a3a3a 0%, #000 100%); 
+    overflow: hidden; /* 核心：裁剪掉任何跑出来的模型部分 */
+    z-index: 1;       /* 放在底层 */
+}/* 新增：强制 Three.js 标签不越界 */
+#canvas-container canvas { display: block; width: 100% !important; height: 100% !important; outline: none; }
 #loading-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #d4af37; font-size: 1.2em; }
 
 .chat-panel { 
@@ -16,6 +34,8 @@ header p { margin: 5px 0 0; color: #888; font-size: 0.8em; }
     display: flex; 
     flex-direction: column; 
     gap: 10px;
+    position: relative; 
+    z-index: 10;
 }
 
 /* 输入区 (因为之前调整过位置，所以放前面) */
@@ -38,7 +58,22 @@ input#user-input {
     background: #222; border: 1px solid #5c4d3c; color: #d4af37; 
     padding: 5px 10px; width: 150px; text-align: center; font-family: inherit;
 }
-.action-buttons { display: flex; gap: 5px; }
+.action-buttons { 
+    display: flex; 
+    gap: 5px; 
+    margin-left: auto; /* ★ 核心秘诀：自动把左边距撑满，从而把按钮挤到最右边 */
+}
+
+/* 仅在 PC 端生效的布局调整 */
+@media (min-width: 769px) {
+    .controls-bar .action-buttons {
+        margin-left: auto; /* 利用 auto 撑开左侧空间，把按钮挤到最右边 */
+    }
+    
+    #artifact-name {
+        margin: 0; /* 清除它在 PC 端可能带有的外边距 */
+    }
+}
 
 /* 消息气泡 */
 .message { padding: 3px 3px; border-radius: 4px; max-width: 70%; line-height: 1.4; }
@@ -74,62 +109,6 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
 .selection-active .message:hover .delete-btn { opacity: 0; }
 .selection-active .message { cursor: pointer; }
 
-
-/* 👇👇👇 (新增) 响应式布局：针对手机等小屏幕设备 👇👇👇 */
-@media (max-width: 768px) {
-    /* 核心改动：让 3D视图 和 聊天面板 各占一半高度 */
-    #app {
-        height: 100vh; /* 确保 app 容器占满整个屏幕高度 */
-    }
-
-    #canvas-container {
-        flex: 1;       /* 分配一份弹性空间 (50%) */
-        min-height: 0; /* (重要) 移除最小高度限制，让flexbox自由分配 */
-    }
-
-    .chat-panel {
-        flex: 1;       /* 同样分配一份弹性空间 (50%)，实现 50/50 划分 */
-        height: auto;  /* (重要) 移除 !important，让flexbox接管高度控制 */
-        min-height: 0; /* (重要) 移除最小高度限制 */
-        padding: 10px;
-    }
-
-    /* 优化字体和间距，让界面在小屏幕上更协调 */
-    header { padding: 8px; }
-    header h1 { font-size: 1.1em; }
-    header p { font-size: 0.7em; margin: 2px 0 0; }
-    
-    .message {
-        max-width: 92%;
-        padding: 8px 12px;
-        font-size: 0.9em;
-        line-height: 1.4;
-    }
-    
-    #user-input {
-        font-size: 1em; /* 保证输入框字体不会太小 */
-    }
-
-    /* 调整底部控制栏的布局 */
-    .controls-bar {
-        flex-wrap: wrap; /* 允许按钮换行 */
-        gap: 8px;
-    }
-
-    #artifact-name {
-        order: 1; /* 强制文物名称在第一位 */
-        flex-basis: 100%; /* 占据一整行 */
-        text-align: center;
-        margin-bottom: 5px;
-    }
-
-    .action-buttons {
-        order: 2; /* 按钮组在第二位 */
-        flex-basis: 100%; /* 让按钮组占据一整行 */
-        justify-content: space-evenly; /* 均匀分布按钮 */
-    }
-}
-
 /* --- 新增代码：用于消息选中的荧光效果 --- */
 .chat-turn.selected {
     background-color: rgba(0, 123, 255, 0.15);
@@ -152,27 +131,22 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
 
 #blind-box-btn {
     /* --- 定位 --- */
-    position: fixed;
-    top: 25px;
-    right: 2px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    right: 15px;
     z-index: 1000;
     
     /* --- 外观 (完整定义，不再依赖其他样式) --- */
     background: linear-gradient(to bottom, #E0B25C, #c99a42);
     color: #403014;
     border: 1px solid #a87d32;
-    border-radius: 50px; /* 椭圆形 */
-    
-    /* --- 字体与尺寸 --- */
-    padding: 9px 18px;
-    font-size: 16px;
-    font-weight: bold; /* 确保字体是粗体 */
-    font-family: inherit; /* 继承整体字体 */
-    
-    /* --- 交互 --- */
-    cursor: pointer; /* 确保是小手光标 */
-    
-    /* --- 动画 --- */
+    border-radius: 50px; 
+    padding: 12px 21px;
+    font-size: 19px;
+    font-weight: bold; 
+    font-family: inherit; 
+    cursor: pointer; 
     animation: breathing-brass 3s infinite ease-in-out;
 }
 
@@ -182,37 +156,217 @@ button { cursor: pointer; border: none; padding: 10px 20px; font-weight: bold; f
     box-shadow: 0 0 25px rgba(224, 178, 92, 1);
 }
 
-header {
-    position: relative;
+/* 信息小圆球按钮样式 */
+.info-sphere-btn {
+    position: absolute;
+    top: 15px;      /* 距离金框顶部距离 */
+    right: 15px;    /* 距离金框右侧距离 */
+    width: 32px;    /* 宽和高相等保证是圆 */
+    height: 32px;
+    padding: 0 !important; /* 取消原有内边距 */
+    border-radius: 50% !important; /* 强制变圆 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-style: italic;
+    font-family: "Times New Roman", serif;
+    font-size: 18px;
+    z-index: 100;   /* 确保在模型之上 */
 }
 
-/* 2. 将语言选择框绝对定位到左上角 */
-#lang-select {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    z-index: 10;
+/* 文字弹窗的通用遮罩样式 (复用图鉴的逻辑) */
+.modal-overlay {
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px); 
+    z-index: 3000; /* 比图鉴更高一点 */
+    display: none; /* 默认隐藏 */
+    justify-content: center; 
+    align-items: center; 
+    color: #fff;
+    padding: 20px;
 }
+
+/* 文字容器样式 */
+.info-text-container {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed rgba(252, 211, 77, 0.3);
+}
+
+#infoTextContent {
+    font-size: 18px;
+    line-height: 1.6;
+    color: #fde68a;
+}
+
+/* 2. 将语言选择框绝对定位到左上角并垂直居中 */
+#lang-select {
+    position: absolute !important;
+    left: 15px !important;       /* ★ 紧贴左侧 */
+    bottom: 12px !important;     /* ★ 核心：紧贴 Header 的底部 */
+    top: auto !important;        /* ★ 必须把 top 设为 auto 清除掉，否则 bottom 不生效 */
+    transform: none !important; 
+    z-index: 1000 !important;   
+    margin: 0 !important;
+    height: 32px !important;
+    font-size: 13px !important;
+}
+
+/* 隐藏 PC 端 #chat-history 滚动条，但仍可滚动 */
+#chat-history::-webkit-scrollbar {
+    width: 0px;       /* Chrome, Safari, Edge */
+    background: transparent;
+}
+#chat-history {
+    -ms-overflow-style: none;  /* IE 10+ */
+    scrollbar-width: none;     /* Firefox */
+}
+
+/* =========================================================
+   新增：角色选择遮罩层样式
+   ========================================================= */
+.overlay-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85); z-index: 9999; 
+    display: flex; justify-content: center; align-items: center;
+    backdrop-filter: blur(8px);
+    transition: opacity 0.5s ease, visibility 0.5s;
+}
+
+.role-modal {
+    background: #1a1a1a; border: 2px solid #d4af37; border-radius: 12px;
+    padding: 30px 20px; width: 85%; max-width: 400px; text-align: center;
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.2);
+}
+
+.role-modal h2 { color: #d4af37; margin-top: 0; margin-bottom: 10px; font-size: 1.5em; letter-spacing: 2px;}
+.role-modal p { color: #aaa; font-size: 0.9em; margin-bottom: 25px; }
+.role-options { display: flex; flex-direction: column; gap: 12px; }
+
+.role-btn {
+    background: #2b2b2b; border: 1px solid #5c4d3c; border-radius: 8px;
+    padding: 12px; cursor: pointer; transition: all 0.3s ease;
+    display: flex; flex-direction: column; align-items: center;
+}
+.role-btn:hover, .role-btn:active { background: #5c4d3c; border-color: #d4af37; transform: scale(1.02); }
+.role-title { font-size: 1.1em; font-weight: bold; color: #d4af37; margin-bottom: 5px; }
+.role-desc { font-size: 0.8em; color: #ccc; }
 
 @media (max-width: 768px) {
-    #blind-box-btn {
-        /* 覆盖默认样式，使其适应手机 */
-        top: 25px;
-        right: 14px;
-
-        /* --- 移除错误的定位属性 --- */
-        left: auto;      /* 取消 left 定位 */
-        bottom: auto;    /* 取消 bottom 定位 */
-        transform: none; /* 移除水平居中的 transform */
-        
-        /* --- 尺寸：让按钮“小小的” --- */
-        padding: 6px 12px;   /* 显著减小内边距 */
-        font-size: 13px;     /* 减小字体大小 */
-        border-radius: 20px; /* 圆角也可以相应变小 */
+/* 1. 让控制栏容器撑满 100% 宽度 */
+    .controls-bar {
+        width: 100% !important;
+        margin-top: 8px !important;
+        display: block !important; /* 取消原来的 flex，让内部的 action-buttons 独占一行 */
     }
-    #lang-select {
-        top: 34px;     /* 距离顶部 */
-        left: 4px;    /* 距离左侧 */
-        font-size: 12px; /* 可选：让下拉框更适合手机 */
+
+    /* 2. 让按钮组容器撑满，并开启 Flex 排版 */
+    .action-buttons {
+        display: flex !important;
+        width: 100% !important;
+        gap: 6px !important; /* 按钮之间的缝隙，觉得挤可以改成 4px */
+        margin: 0 !important;
+    }
+
+    /* 3. ★核心★：让四个按钮平分宽度，一行塞下 */
+    .action-buttons button {
+        flex: 1 !important;           /* 平分剩下的所有空间 */
+        min-width: 0 !important;      /* 防止文字过长时撑破布局 */
+        padding: 10px 0 !important;   /* 增加上下高度，取消左右内边距 */
+        text-align: center !important;/* 文字绝对居中 */
+        font-size: 12px !important;   /* 稍微调小一点字号适应屏幕 */
+        white-space: nowrap !important; /* 强制文字不换行 */
+        border-radius: 6px !important;
+    }
+    /* 1. 顶部 Header：按钮离顶部有距离，且最高处对齐 */
+    header {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        /* ★ 核心修改：改为 flex-end，让这一行的所有元素对齐底边 ★ */
+        align-items: flex-end !important; 
+        justify-content: space-between !important;
+        padding: 10px 8px 0 8px !important; /* 取消底部内边距，让它贴底 */
+        height: auto !important;
+        min-height: 80px; /* 给一个最小高度，防止太挤 */
+    }
+
+    #lang-select, #blind-box-btn {
+        margin: 0 !important;
+        position: static !important;
+        transform: none !important;
+        height: 32px !important;
+        font-size: 12px !important;
+    }
+
+    header h1 {
+        flex: 1;
+        font-size: 1.05em !important;
+        text-align: center;
+        margin: 0 5px !important;
+        padding-top: 4px; /* 视觉微调对齐 */
+    }
+
+    /* 文物名称：header最底部居中 */
+    #artifact-name {
+        flex: 0 0 100% !important;
+        background: transparent !important;
+        border: none !important;
+        color: #B8860B !important;
+        font-weight: bold;
+        text-align: center;
+        font-size: 0.95em !important;
+        margin: 8px 0 0 0 !important;
+        order: 4;
+    }
+
+    /* 2. 中间模型区域回缩 */
+    #canvas-container {
+        margin-top: -20px !important; 
+        height: 42vh !important;
+        min-height: 300px !important;
+    }
+
+    /* 3. 对话面板向上平移 15px，紧贴模型 */
+    .chat-panel {
+        margin-top: -15px !important; 
+        background: #141414;
+        padding: 10px 6px !important; /* 稍微收缩左右内边距给按钮腾空间 */
+    }
+
+    /* 4. 底部四个按钮强行挤在一行 */
+    .controls-bar {
+        width: 100% !important;
+        margin-top: 5px !important;
+    }
+
+    .action-buttons { 
+        display: flex; 
+        gap: 5px; 
+    }
+
+    .action-buttons button {
+        flex: 1 !important;           /* ★ 每个按钮平分空间 ★ */
+        min-width: 0 !important;      /* 允许按钮缩得比内容小 */
+        padding: 8px 2px !important;  /* 极小的内边距 */
+        font-size: 11px !important;   /* 较小的字体以适应德语 */
+        white-space: nowrap !important;/* 禁止文字换行 */
+        overflow: hidden;             /* 超出部分隐藏 */
+        text-overflow: clip;          /* 直接切断或不显示省略号，保证挤得下 */
+        text-align: center;
+        border-radius: 4px !important;
+        letter-spacing: -0.5px;       /* 微调字间距，挤一挤 */
+    }
+
+    /* 长按菜单也同样处理 */
+    #selection-controls .action-buttons button {
+        font-size: 11px !important;
     }
 }

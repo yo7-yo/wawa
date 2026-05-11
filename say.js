@@ -1,3 +1,29 @@
+// === 从 URL 获取角色参数 ===
+function getPersonaFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('role') || 'scholar'; // 没拿到参数默认给“学者”
+}
+
+window.currentAiPersona = getPersonaFromURL();
+
+document.addEventListener('DOMContentLoaded', () => {
+    const greetingMsg = document.getElementById('dynamic-greeting');
+    
+    // 设置对应的专属欢迎语
+    const greetings = {
+        child: "哇！你终于来看我啦！我肚子里装了好多好玩的故事，你想先听哪一个呀？",
+        student: "阁下有礼了。相见即是缘，咱们一同探讨探讨这器物背后的奥秘如何？",
+        storyteller: "惊堂木一拍，咱们话接上回！这位看官，您想听点宫廷秘闻呢，还是江湖传说？",
+        scholar: "您好。此器历经沧桑。若有关于其形制、纹饰或年代断代的学术探讨，但问无妨。"
+    };
+
+    if (greetingMsg) {
+        greetingMsg.innerText = greetings[window.currentAiPersona];
+    }
+    
+    console.log("当前唤醒角色：", window.currentAiPersona);
+});
+
 /**
  * 博物馆奇妙夜 - 交互逻辑核心
  */
@@ -8,7 +34,7 @@ let currentLang = 'zh';
 const translations = {
     'zh': {
         pageTitle: 'AI文物探索',
-        headerTitle: '文物秘语',
+        headerTitle: '🏛️文物秘语',
         loadingArtifact: '文物出库中...',
         inputPlaceholder: '请在此输入您的对话...',
         sendButton: '发送',
@@ -152,7 +178,7 @@ function updateUIText(lang) {
     // 更新全局语言状态
     currentLang = lang;
     // (可选) 保存用户偏好到浏览器
-    localStorage.setItem('preferredLang', lang); 
+    localStorage.setItem('app_language', lang);
     updateLanguage(lang);
 }
 
@@ -420,9 +446,12 @@ async function sendChat(overrideText = null) {
                 language: currentLang
             })
         });
-        const data = await response.json();
-        const aiText = data.answer;
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.detail || data.answer || `HTTP ${response.status}`);
+        }
 
+        const aiText = data.answer;
         document.getElementById('temp-loading').remove();
         chatHistory.push({ role: "assistant", content: aiText });
         saveHistoryToLocal();
@@ -430,10 +459,10 @@ async function sendChat(overrideText = null) {
         speak(aiText);
 
     } catch (error) {
+        console.error('Chat error:', error);
         const loadingElement = document.getElementById('temp-loading');
-        if(loadingElement) {
-            // ✨ 修改：从翻译字典中获取“网络错误”的文本
-            loadingElement.innerText = translations[currentLang].connectionError;
+        if (loadingElement) {
+            loadingElement.innerText = error?.message || translations[currentLang].connectionError;
         }
     }
 }
@@ -463,8 +492,18 @@ async function translateChatHistory(targetLang) {
             })
         });
 
-        const data = await response.json();
-        
+        const rawText = await response.text();
+        let data = {};
+        try {
+            data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+            throw new Error(rawText || `HTTP ${response.status}`);
+        }
+
+        if (!response.ok) {
+            throw new Error(data.detail || data.error || rawText || `HTTP ${response.status}`);
+        }
+
         // 移除翻译提示
         const translatingMsg = document.getElementById('translating-msg');
         if (translatingMsg) translatingMsg.remove();
@@ -610,57 +649,108 @@ function loadHistoryFromLocal() {
     }
 }
 
-// ================= 事件绑定 =================
+// 全局变量
+window.currentAiPersona = 'scholar'; 
+
+// ================= 合并后的初始化 =================
 document.addEventListener('DOMContentLoaded', () => {
-    init3D(); 
-    loadModel('2.glb');
-    animate(); 
+    // 1. 初始化 3D 环境
+    if (typeof init3D === 'function') {
+        init3D(); 
+        loadModel('2.glb');
+        animate();
+    }
+
+    // 2. 处理 URL 传来的角色设定
+    const params = new URLSearchParams(window.location.search);
+    window.currentAiPersona = params.get('role') || 'scholar';
     
+    const greetings = {
+        child: "哇！你终于来看我啦！我肚子里装了好多好玩的故事，你想先听哪一个呀？",
+        student: "阁下有礼了。相见即是缘，咱们一同探讨探讨这器物背后的奥秘如何？",
+        storyteller: "惊堂木一拍，咱们话接上回！这位看官，您想听点宫廷秘闻呢，还是江湖传说？",
+        scholar: "您好。此器历经沧桑。若有关于其形制、纹饰或年代断代的学术探讨，但问无妨。"
+    };
+    const greetingMsg = document.getElementById('dynamic-greeting');
+    if (greetingMsg) greetingMsg.innerText = greetings[window.currentAiPersona];
+
+    // 3. 对话与历史记录加载
     loadHistoryFromLocal();
     renderChat(); 
 
-    document.getElementById('verify-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') verifyAndClear();
-    });
-    document.getElementById('send-btn').addEventListener('click', () => sendChat());
-    document.getElementById('user-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendChat();
+    // 4. 语言选择逻辑 (已完美修复)
+    const langSelect = document.getElementById('lang-select');
+    
+    // 1. 读取时统一使用 'app_language'，和其它页面保持一致
+    const savedLang = localStorage.getItem('app_language') || 'zh'; 
+    if (savedLang && langSelect.querySelector(`[value=${savedLang}]`)) {
+        langSelect.value = savedLang;
+        updateUIText(savedLang);
+    }
+    
+    langSelect.addEventListener('change', () => {
+        const newLang = langSelect.value;
+        
+        // 2. 写入时统一使用 'app_language'
+        localStorage.setItem('app_language', newLang);
+        updateUIText(newLang);
+        
+        // 3. 修复了变量名错误 (原本错写成了 chatHistoryData)
+        chatHistory.length > 0 ? translateChatHistory(newLang) : renderChat(); 
     });
 
+    // 5. 按钮事件绑定
+    document.getElementById('send-btn').addEventListener('click', sendChat);
+    document.getElementById('user-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChat(); });
     document.getElementById('undo-btn').addEventListener('click', undoLast);
     document.getElementById('retry-btn').addEventListener('click', retryLast);
     document.getElementById('save-btn').addEventListener('click', saveChatHistory);
     document.getElementById('clear-btn').addEventListener('click', showClearModal);
-    
     document.getElementById('confirm-clear').addEventListener('click', verifyAndClear);
     document.getElementById('cancel-clear').addEventListener('click', closeClearModal);
 
-    document.getElementById('delete-selected-btn').addEventListener('click', deleteSelectedMessages);
-    document.getElementById('cancel-selection-btn').addEventListener('click', cancelSelection);
-        // 1. 获取下拉菜单元素
-    const langSelect = document.getElementById('lang-select');
+    // 6. ★ 长按显示选择栏逻辑 ★
+    const chatPanel = document.getElementById('chat-history');
+    const selectionControls = document.getElementById('selection-controls');
+    let longPressTimer;
 
-    // 2. 页面加载时，检查本地存储，并设置下拉菜单的默认值
-    const preferredLang = localStorage.getItem('preferredLang');
-    if (preferredLang && langSelect.querySelector(`[value=${preferredLang}]`)) {
-        langSelect.value = preferredLang; // 设置下拉菜单的选中项
-        updateUIText(preferredLang);
-    } else {
-        // 如果没有保存的偏好，则根据默认语言更新UI和下拉菜单
-        langSelect.value = currentLang;
-        updateUIText(currentLang);
-    }
+    chatPanel.addEventListener('touchstart', () => {
+        longPressTimer = setTimeout(() => {
+            selectionControls.style.setProperty('display', 'flex', 'important');
+            if (navigator.vibrate) navigator.vibrate(50); // 震动反馈
+        }, 800); // 800毫秒判定为长按
+    });
 
-    // 3. 为语言选择下拉菜单绑定 change 事件
-    langSelect.addEventListener('change', (event) => {
-        const newLang = langSelect.value;
-        updateUIText(newLang);
-        
-        // ✨ 新增：如果有对话历史，则翻译所有对话
-        if (chatHistory.length > 0) {
-            translateChatHistory(newLang);
-        } else {
-            renderChat(); // 如果没有对话，仅重绘界面
-        }
+    chatPanel.addEventListener('touchend', () => clearTimeout(longPressTimer));
+    chatPanel.addEventListener('touchmove', () => clearTimeout(longPressTimer));
+
+    document.getElementById('cancel-selection-btn').addEventListener('click', () => {
+        selectionControls.style.setProperty('display', 'none', 'important');
     });
 });
+// 获取元素
+const infoBtn = document.getElementById('infoBtn');
+const infoModal = document.getElementById('infoModal');
+const closeInfo = document.getElementById('closeInfo');
+
+// 点击小圆球打开弹窗
+if (infoBtn) {
+    infoBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (infoModal) infoModal.style.display = 'flex';
+    };
+}
+
+if (closeInfo && infoModal) {
+    closeInfo.onclick = () => {
+        infoModal.style.display = 'none';
+    };
+}
+
+if (infoModal) {
+    infoModal.onclick = (e) => {
+        if (e.target === infoModal) {
+            infoModal.style.display = 'none';
+        }
+    };
+}

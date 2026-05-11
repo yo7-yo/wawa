@@ -1,14 +1,14 @@
+
+/* 第一个界面：选择模式 */
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>选择对话模式</title>
-    
     <style>
-        /* =========================================
-           1. 基础重置与全局样式
-           ========================================= */
+        /* 基础页面重置与字体设置 */
         body {
             margin: 0;
             padding: 0;
@@ -19,9 +19,7 @@
             min-height: 100vh;
         }
 
-        /* =========================================
-           2. 顶部标题区域
-           ========================================= */
+        /* 顶部标题区 */
         .header {
             position: relative;
             background-color: #000;
@@ -45,48 +43,35 @@
             letter-spacing: 1px;
         }
 
-        /* =========================================
-           3. 主体内容布局容器
-           ========================================= */
+        /* 中间区域整体容器：开启 flex 列布局 */
         .main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
             padding: 20px;
-            box-sizing: border-box; 
+            box-sizing: border-box; /* 确保内边距不会撑大整个容器 */
         }
 
-        /* 语言控制区容器 */
+        /* 语言控制区：保持在最左上方 */
         .lang-controls {
             width: 100%;
         }
 
-        /* 按钮组外层包裹（处理移动端与PC端的间距差异） */
-        .content-wrapper {
-            margin: 0 auto;
-            margin-top: 50px; /* 移动端默认下移 50px */
-            width: 100%;
-            max-width: 320px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* =========================================
-           4. 语言选择器样式 (Select)
-           ========================================= */
+        /* 语言选择框样式 */
         #lang-select {
             padding: 6px 10px;
             border-radius: 4px;            
             background: rgba(60, 60, 60, 0.8); 
             color: #e5e5e5;                
             border: 1px solid #666;        
+            
             font-size: 14px;
             font-weight: normal;           
             cursor: pointer;
             -webkit-appearance: none;
             appearance: none;
 
-            /* 自定义下拉箭头 */
+            /* 下拉箭头 */
             background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E');
             background-repeat: no-repeat;
             background-position: right 10px top 50%;
@@ -104,9 +89,17 @@
             color: #d4af37;
         }
 
-        /* =========================================
-           5. 模式选择按钮通用样式
-           ========================================= */
+        /* 按钮组包裹层 */
+        .content-wrapper {
+            margin: 0 auto;
+            /* 移动端要求：整体往下精准移动 50px */
+            margin-top: 50px; 
+            width: 100%;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+        }
+
         .button-group {
             display: flex;
             flex-direction: column;
@@ -114,6 +107,43 @@
             width: 100%;
         }
 
+        /* PC端宽屏网格排版 */
+        @media (min-width: 768px) {
+            .content-wrapper {
+                max-width: 800px; /* 适配按钮组的PC端宽度 */
+                margin-top: 0;    /* PC端取消固定外边距 */
+                flex: 1;          /* 撑满中间区域剩余的所有垂直空间 */
+                justify-content: center; /* 在垂直空间内实现完美居中！ */
+            }
+
+            #lang-select {
+                font-size: 16px !important;
+                padding: 8px 30px 8px 10px !important;
+            }
+
+            .button-group {
+                display: grid;            
+                grid-template-columns: repeat(2, 1fr); 
+                gap: 60px;                           
+            }
+            
+            .role-btn {
+                max-width: 100%;          
+                padding: 30px 20px;       
+                transition: all 0.2s ease-in-out;
+            }
+
+            .role-btn:hover {
+                transform: translateY(-5px); 
+                box-shadow: 
+                    inset 0 2px 2px rgba(255, 255, 255, 0.5), 
+                    0 10px 20px rgba(0, 0, 0, 0.8),
+                    0 4px 8px rgba(0, 0, 0, 0.6);
+                filter: brightness(1.1); 
+            }
+        }
+
+        /* 按钮样式 */
         .role-btn {
             display: flex;
             flex-direction: column;
@@ -155,58 +185,18 @@
             opacity: 0.9;
             text-align: center;
         }
-
-        /* =========================================
-           6. 响应式布局 (PC端大屏适配)
-           ========================================= */
-        @media (min-width: 768px) {
-            .content-wrapper {
-                max-width: 800px; 
-                margin-top: 0;    /* PC端取消固定顶部边距 */
-                flex: 1;          /* 占据剩余空间以实现垂直居中 */
-                justify-content: center; 
-            }
-
-            #lang-select {
-                font-size: 16px !important;
-                padding: 8px 30px 8px 10px !important;
-            }
-
-            .button-group {
-                display: grid;            
-                grid-template-columns: repeat(2, 1fr); /* 2x2 网格排版 */
-                gap: 60px;                                           
-            }
-            
-            .role-btn {
-                max-width: 100%;          
-                padding: 30px 20px;       
-                transition: all 0.2s ease-in-out;
-            }
-
-            .role-btn:hover {
-                transform: translateY(-5px); 
-                box-shadow: 
-                    inset 0 2px 2px rgba(255, 255, 255, 0.5), 
-                    0 10px 20px rgba(0, 0, 0, 0.8),
-                    0 4px 8px rgba(0, 0, 0, 0.6);
-                filter: brightness(1.1); 
-            }
-        }
     </style>
 </head>
 <body>
 
-    <!-- 头部区域 -->
     <div class="header">
         <h1 data-i18n="mainTitle">选择对话模式</h1>
         <p data-i18n="subTitle"> </p>
     </div>
 
-    <!-- 中间交互区域 -->
+    <!-- 中间区域 -->
     <div class="main-content">
-        
-        <!-- 语言切换选择器 -->
+        <!-- 语言选择框，稳稳在左上方 -->
         <div class="lang-controls">
             <select id="lang-select" class="lang-select">
                 <option value="zh">中文</option>
@@ -216,25 +206,21 @@
             </select>
         </div>
 
-        <!-- 模式按钮组 -->
+        <!-- 按钮包裹层，移动端通过 margin-top 准确下移 50px，PC端通过 flex 居中 -->
         <div class="content-wrapper">
             <div class="button-group">
-                <!-- 童心模式 -->
                 <a href="chat.html?role=child" class="role-btn">
                     <span class="role-title" data-i18n="modeChildTitle">童心模式</span>
                     <span class="role-desc" data-i18n="modeChildDesc">纯真活泼，用童话视角讲述历史</span>
                 </a>
-                <!-- 探索模式 -->
                 <a href="chat.html?role=student" class="role-btn">
                     <span class="role-title" data-i18n="modeStudentTitle">探索模式</span>
                     <span class="role-desc" data-i18n="modeStudentDesc">通俗易懂，像同窗好友般科普交流</span>
                 </a>
-                <!-- 畅聊模式 -->
                 <a href="chat.html?role=storyteller" class="role-btn">
                     <span class="role-title" data-i18n="modeStoryTitle">畅聊模式</span>
                     <span class="role-desc" data-i18n="modeStoryDesc">风趣幽默，听说书人侃野史秘闻</span>
                 </a>
-                <!-- 专家模式 -->
                 <a href="chat.html?role=scholar" class="role-btn">
                     <span class="role-title" data-i18n="modeScholarTitle">专家模式</span>
                     <span class="role-desc" data-i18n="modeScholarDesc">严谨考究，使用专业术语深度探讨</span>
@@ -243,11 +229,9 @@
         </div>
     </div>
 
-    <!-- =========================================
-         7. 核心 JavaScript 逻辑 (多语言与状态管理)
-         ========================================= -->
+    <!-- 翻译与状态传递脚本 -->
     <script>
-        // 【数据定义】多语言翻译词典
+        // 多语言词典
         const translations = {
             zh: {
                 mainTitle: "选择对话模式",
@@ -299,25 +283,22 @@
             }
         };
 
-        // 【初始化与事件绑定】
         document.addEventListener('DOMContentLoaded', () => {
             const langSelect = document.getElementById('lang-select'); 
             const roleButtons = document.querySelectorAll('.role-btn');
             const i18nElements = document.querySelectorAll('[data-i18n]');
 
-            // 1. 读取本地存储，恢复之前的语言设置
+            // 1. 初始化检查本地存储的语言状态
             const savedLang = localStorage.getItem('app_language');
             if (savedLang && translations[savedLang]) {
                 langSelect.value = savedLang;
             }
 
-            /**
-             * 2. 核心函数：更新界面文本、HTML语言属性及跳转链接
-             */
+            // 2. 核心功能：更新界面语言和链接
             function updateLanguageAndLinks() {
                 const currentLang = langSelect.value;
                 
-                // (1) 遍历带有 data-i18n 属性的元素并更新文字
+                // (1) 动态替换当前页面的文字
                 i18nElements.forEach(el => {
                     const key = el.getAttribute('data-i18n');
                     if (translations[currentLang] && translations[currentLang][key]) {
@@ -325,13 +306,13 @@
                     }
                 });
 
-                // (2) 更新 <html> 标签的 lang 属性
+                // (2) 改变 html 的 lang 属性
                 document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : currentLang;
 
-                // (3) 持久化语言选择到 localStorage
+                // (3) 将语言状态存入 localStorage，供下一个页面使用
                 localStorage.setItem('app_language', currentLang);
 
-                // (4) 动态更新按钮链接中的 lang 参数，确保状态传递到 chat.html
+                // (4) 动态更新按钮的 URL 后缀，确保语言参数带到下一个页面
                 roleButtons.forEach(btn => {
                     const url = new URL(btn.href, window.location.origin);
                     url.searchParams.set('lang', currentLang);
@@ -339,10 +320,10 @@
                 });
             }
 
-            // 3. 执行一次初始化翻译
+            // 3. 首次加载时执行一次翻译和链接更新
             updateLanguageAndLinks();
 
-            // 4. 监听下拉框变化事件
+            // 4. 监听用户下拉切换语言的操作，随时更新
             langSelect.addEventListener('change', updateLanguageAndLinks);
         });
     </script>

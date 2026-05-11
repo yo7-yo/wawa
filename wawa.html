@@ -1,9 +1,6 @@
-
-/* 第三个页面：盲盒页面 */
-
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
+<head>            /* 第三个页面：盲盒页面 */
     <meta charset="UTF-8" />
     <title>数字潇湘 · 灵境</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -740,115 +737,89 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         
 /* === 7. 纯展示模式 (扫码后的页面) === */
-        body.share-mode #qrCodeContainer,
-        body.share-mode #actionSection p,
-        body.share-mode #mapStartButtonContainer,
-        body.share-mode #namingSection,
-        body.share-mode .btn-group,
-        body.share-mode #back-to-index-btn,
-        body.share-mode #infoBtnAction {
-            display: inline-flex !important;   /* 显示按钮 */
-            position: fixed;                   /* 固定位置 */
-            top: 20px;                         /* 距离顶部 */
-            right: 20px;                       /* 距离右边 */
-            z-index: 3000;                     /* 保证在最上层 */
-            height: 42px;
-            padding: 0 16px;
-            border-radius: 12px;
-            font-size: 14px;
-            background: rgba(0,0,0,0.6);
-            color: #fcd34d;
-            border: 1px solid #fcd34d;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        body.share-mode #finalNameDisplay {
-            font-size: 24px;
-            margin-top: 15px;
-            color: #fcd34d;
-            text-shadow: 0 2px 15px rgba(251, 191, 36, 0.6);
-            padding-bottom: 15px;
-        }
-        
-        body.share-mode .result-card {
-            background: transparent;
-            border: none;
-            box-shadow: none;
-            backdrop-filter: none;
-            /* ★ 取消宽度限制并移除内边距，使其撑满屏幕 */
-            width: 100vw;
-            max-width: none;
-            height: 100vh;
-            padding: 0;
-        }
-        
-        /* 保证拍照按钮在 AR 模式下可见 */
-        #arPhotoBtn {
-            display: flex !important;       /* 解除隐藏 */
-            pointer-events: auto !important;/* 允许点击 */
-            z-index: 3000;                  /* 高于 canvas 或覆盖元素 */
-        }
-
-        body.share-mode #mascotPage {
-            background-color: #6a0d23;
-            background-image: 
-                radial-gradient(
-                    circle at center,
-                    #ff7f50 0%,
-                    #6a0d23 55%
-                );
-        }
-        
-        body.share-mode #mascotCanvasWrap {
-            /* ★ 宽度设为满屏 */
-            flex: 1; /* 占据上半部分所有空间 */
-            width: 100%;
-            min-height: 40vh; /* 保证模型有足够的展示区域 */
-            z-index: 1;
-        }
-
-        /* 3. 底部 UI 区域：稳固在底部 */
-.model-info {
-    flex-shrink: 0; /* 严禁被压缩 */
-    padding-top: 10px;
-    z-index: 20;
+body.share-mode > :not(#lang-select):not(#mascotPage) {
+    display: none !important;
 }
 
-/* 4. 二维码与按钮容器：强制垂直居中排版 */
-.qr-action-wrapper {
-    display: flex;
-    flex-direction: column; /* 改为垂直排列，更容易居中 */
-    align-items: center;    /* 水平居中 */
-    justify-content: center;
-    gap: 8px;              /* 二维码和按钮的间距 */
-    margin: 10px 0;
+body.share-mode .result-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    padding: 0;
+    overflow: hidden;
 }
 
-/* 5. 二维码容器：保持原样，不放大 */
-#qrCodeContainer {
-    width: 110px;  /* 回归标准尺寸，不放大 */
-    height: 110px;
-    background: rgba(255,255,255,0.1);
+body.share-mode #mascotPage {
+    background: #000;
+}
+
+body.share-mode #mascotCanvasWrap {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 100vh;
+    z-index: 1;
+}
+
+body.share-mode .model-info,
+body.share-mode #namingSection,
+body.share-mode #actionSection p,
+body.share-mode #finalNameDisplay,
+body.share-mode #mapStartButtonContainer,
+body.share-mode .btn-group,
+body.share-mode #back-to-index-btn,
+body.share-mode #infoBtn,
+body.share-mode #qrCodeContainer,
+body.share-mode #generatedQr,
+body.share-mode #nameErrorMsg {
+    display: none !important;
+}
+
+body.share-mode #actionSection {
+    display: block !important;
+    margin: 0;
+    padding: 0;
+}
+
+body.share-mode #actionSection .qr-action-wrapper {
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+
+body.share-mode #infoBtnAction {
+    display: inline-flex !important;
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    z-index: 3000 !important;
+    width: auto;
+    height: 42px;
+    padding: 0 16px;
     border-radius: 12px;
-    display: flex;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fcd34d;
+    border: 1px solid #fcd34d;
     justify-content: center;
     align-items: center;
-    border: 2px dashed #fcd34d;
+    pointer-events: auto;
 }
 
-/* 6. “经历”按钮：进一步缩小，精致化 */
-#infoBtnAction {
-    width: auto;
-    height: 32px;        /* 显著缩小高度 */
-    padding: 0 18px;     /* 窄一点 */
-    font-size: 12px;     /* 字体调小 */
-    line-height: 32px;
-    border-radius: 14px;
-    background: rgba(0, 0, 0, 0.4);
-    color: #fcd34d;
-    border: 1px solid rgba(252, 211, 77, 0.5);
-    flex: none;
+body.share-mode #lang-select {
+    position: fixed !important;
+    top: 20px !important;
+    left: 20px !important;
+    z-index: 3000 !important;
+}
+
+/* 保证拍照按钮在 AR 模式下可见 */
+#arPhotoBtn {
+    display: flex !important;
+    pointer-events: auto !important;
+    z-index: 3000;
 }
 
 /* === 通用黑底金边按钮（和右上角返回按钮一模一样） === */
@@ -1388,6 +1359,7 @@ const translations = {
     const arPhotoBtn = document.getElementById('arPhotoBtn');
     let arModeActive = true; // 你的 AR 模式状态变量，原文件里可能已有
 
+    //======================手势识别与拍照逻辑===================================================================================
     // 拍照功能
     function takePhoto() {
         if (!arModeActive || !videoElement.srcObject) {
@@ -1412,7 +1384,7 @@ const translations = {
 
     // 按钮绑定事件
     arPhotoBtn.addEventListener('click', takePhoto);
-
+//===============================================================================================
     function switchLanguage(lang) {
         const t = translations[lang] || translations.zh;
         currentLang = lang;
@@ -1533,6 +1505,16 @@ const translations = {
             document.getElementById('actionSection').style.display = 'block';
             document.getElementById('finalNameDisplay').innerText = `✨ ${fullName} ✨`;
             showMascot(false);
+
+            const actionSection = document.getElementById('actionSection');
+            const qrWrapper = actionSection?.querySelector('.qr-action-wrapper');
+            const infoBtnAction = document.getElementById('infoBtnAction');
+            if (actionSection && qrWrapper && infoBtnAction) {
+                actionSection.innerHTML = '';
+                qrWrapper.innerHTML = '';
+                qrWrapper.appendChild(infoBtnAction);
+                actionSection.appendChild(qrWrapper);
+            }
         }
         
         const urlParams = new URLSearchParams(window.location.search);
@@ -1944,6 +1926,7 @@ function showMascot(isAR) {
     if(isAR) wrap.innerHTML = "";
     const width = isAR ? window.innerWidth : wrap.clientWidth;
     const height = isAR ? window.innerHeight : wrap.clientHeight;
+//==================3D 模型 + AR 控制逻辑==（很散）===========================================//
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 100);
     camera.position.set(0, 1.2, 3);

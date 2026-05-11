@@ -243,7 +243,7 @@ function loadModel(modelPath) {
         function (gltf) {
             model = gltf.scene;
             model.scale.set(1, 1, 1);
-            model.position.y = 0;
+            model.position.set(0, 0, 0);
             scene.add(model);
             loadingOverlay.style.display = 'none';
         },

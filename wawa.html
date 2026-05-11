@@ -1,6 +1,9 @@
+
+/* 第三个页面：盲盒页面 */
+
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>                   
+<head>
     <meta charset="UTF-8" />
     <title>数字潇湘 · 灵境</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -14,9 +17,7 @@
     }
     </script>
     <style>
-        
-         /* 第三个页面：盲盒页面 */
-        
+
         .modal-overlay {
             position: fixed; 
             inset: 0; 
@@ -745,8 +746,21 @@
         body.share-mode #namingSection,
         body.share-mode .btn-group,
         body.share-mode #back-to-index-btn,
-        body.share-mode #infoBtnAction /* ★ 分享模式也隐藏经历按钮 */ {
-            display: none !important;
+        body.share-mode #infoBtnAction {
+            display: inline-flex !important;   /* 显示按钮 */
+            position: fixed;                   /* 固定位置 */
+            top: 20px;                         /* 距离顶部 */
+            right: 20px;                       /* 距离右边 */
+            z-index: 3000;                     /* 保证在最上层 */
+            height: 42px;
+            padding: 0 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            background: rgba(0,0,0,0.6);
+            color: #fcd34d;
+            border: 1px solid #fcd34d;
+            justify-content: center;
+            align-items: center;
         }
         
         body.share-mode #finalNameDisplay {
@@ -2501,6 +2515,7 @@ const ARTIFACT_INFO = {
 
 const infoBtn = document.getElementById('infoBtn');
 const infoBtnAction = document.getElementById('infoBtnAction'); 
+if (infoBtnAction) infoBtnAction.innerText = t.infoBtnText;
 const infoModal = document.getElementById('infoModal');
 const closeInfo = document.getElementById('closeInfo');
 const infoTextContent = document.getElementById('infoTextContent');

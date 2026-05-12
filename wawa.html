@@ -1071,7 +1071,7 @@ const translations = {
             awakenLog1: '解析历史印记...',
             awakenLog2: '描绘人形轮廓...',
             awakenLog3: '赋予文物灵性...',
-            exclusiveText: '文物拟人形态已生成，现专属于你',
+            exclusiveText: '',
             nameErrorMsg: '起个名字，让它真正属于你吧~',
             awakenSuccess: '🎉 唤醒成功！',
             youAwakened: '您唤醒了：',
@@ -1125,7 +1125,7 @@ const translations = {
             awakenSuccess: '🎉 Awakening Success!',
             youAwakened: 'You awakened: ',
             generateCard: 'Bring TA Home',
-            exclusiveText: 'Spirit form generated, now yours alone',
+            exclusiveText: '',
             nameErrorMsg: 'Please give it a name!',
             cardGenerated: 'The pact is sealed!',
             saveQrHint: 'Long press to keep TA forever',
@@ -1176,7 +1176,7 @@ const translations = {
             awakenSuccess: '🎉 覚醒成功！',
             youAwakened: 'あなたが呼び覚ましたのは：',
             generateCard: '連れて帰る',
-            exclusiveText: '擬人化完了、あなたの専属です',
+            exclusiveText: '',
             nameErrorMsg: '名前を付けてください！',
             cardGenerated: '契約が結ばれました！',
             saveQrHint: '長押しして保存する',
@@ -1228,7 +1228,7 @@ const translations = {
             youAwakened: 'Du hast erweckt: ',
             generateCard: 'Mit nach Hause',
             cardGenerated: 'Verbindung hergestellt!',
-            exclusiveText: 'Form erstellt, jetzt dein Begleiter',
+            exclusiveText: '',
             nameErrorMsg: 'Gib ihm einen Namen!',
             saveQrHint: 'Gedrückt halten zum Speichern',
             arPhoto: '📸 Foto machen',
@@ -2447,8 +2447,7 @@ const ARTIFACT_INFO = {
 };
 
 const infoBtn = document.getElementById('infoBtn');
-const infoBtnAction = document.getElementById('infoBtnAction'); 
-if (infoBtnAction) infoBtnAction.innerText = t.infoBtnText;
+const infoBtnAction = document.getElementById('infoBtnAction');
 const infoModal = document.getElementById('infoModal');
 const closeInfo = document.getElementById('closeInfo');
 const infoTextContent = document.getElementById('infoTextContent');

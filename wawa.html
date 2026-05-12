@@ -270,6 +270,22 @@
             font-size: clamp(35px, 8vw, 38px);
         }
 
+        /* 结果页右上角"经历"按钮：和返回按钮保持同样的浮层样式 */
+        #infoBtnAction {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2001;
+            padding: 3px 11px;
+            border-radius: 20px;
+            font-size: 9px;
+        }
+
+        #infoBtnAction:hover {
+            background: rgba(252, 211, 77, 0.2);
+            box-shadow: 0 0 10px rgba(252, 211, 77, 0.5);
+        }
+
         /* 移动端"经历"按钮增大 */
         #infoBtn {
             height: 42px !important;
@@ -587,9 +603,9 @@
             position: relative; 
             z-index: 10; 
             
-            /* 新增：高度贴满屏幕，保证所有内容都有独立空间 */
-            height: 88vh; 
-            max-height: 850px;
+            /* 结果卡片上下扩展，不通过位移来调整 */
+            height: 92vh; 
+            max-height: 900px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -628,7 +644,7 @@
         #namingSection { display: none; margin-top: 5px; animation: fadeIn 0.5s; }
         .btn-confirm { background: linear-gradient(to bottom, #fcd34d, #d97706); color: #450a0a; font-weight: 900; padding: 12px 40px; border-radius: 30px; border: none; box-shadow: 0 4px 0 #92400e; cursor: pointer; font-size: 18px; margin-top: 15px; }
         
-        #actionSection { display: none; margin-top: 5px; animation: fadeIn 0.5s; }
+        #actionSection { display: none; margin-top: 12px; animation: fadeIn 0.5s; }
         
         /* ★★★ 修改：3D 模型画布改为自动填满上方空间 ★★★ */
         #mascotCanvasWrap {
@@ -647,7 +663,7 @@
 
         /* ★★★ 修改：二维码尺寸放大 ★★★ */
         #qrCodeContainer { 
-            margin: 0; 
+            margin: 14px auto 10px; 
             width: 130px; /* 变大 */
             height: 130px; 
             background: rgba(255,255,255,0.1); 
@@ -1054,13 +1070,14 @@ body.share-mode #mascotCanvasWrap {
             </div>
 
             <div id="actionSection">
+                <!-- 经历按钮移到这里：原本是返回按钮一样样式的黑暗金边 -->
+                <button class="dark-gold-btn" id="infoBtnAction">经历</button>
+
                 <h2 id="finalNameDisplay" style="color:#fcd34d; font-size:16px; margin-bottom:15px; white-space: normal; line-height: 1.2;"></h2>
                 
                 <div id="qrCodeContainer" style="margin: 0 auto 10px;">
                     <img id="generatedQr" src="" alt="QR Code">
                 </div>
-                
-                <button class="action-btn dark-gold-btn" id="infoBtnAction" style="width: auto; height: 38px; padding: 0 16px; font-size: 13px; flex: none; margin: 0 auto 10px; display: inline-block;">经历</button>
 
                 <p style="font-size:8px; color:#aaa; margin-bottom:8px;" data-lang-key="qrSaveHint">长按二维码保存专属名片</p>
                 <div class="btn-group">
@@ -1514,14 +1531,22 @@ const translations = {
 
         switchLanguage(savedLang);
     });
+    // 全局缓存已经预加载的模型，避免重复加载
+    let preloadedModelScene = null;
+
     window.startBlindBoxFlow = function() {
         let matchedKey = "博物馆"; 
         const pool = ZONE_CONFIG[matchedKey].models;
         selectedModelPath = (pool && pool.length > 0) ? pool[Math.floor(Math.random() * pool.length)] : ZONE_CONFIG["默认"].models[0];
         currentArtifactName = getChineseNameFromPath(selectedModelPath);
+        
+        // 重置状态
+        preloadedModelScene = null;
+        
         window.gotoPage('aiPage');
         runAIProgress();
     }
+    
     function runAIProgress() {
         const bar = document.getElementById('aiBar');
         const log = document.getElementById('aiLog');
@@ -1530,19 +1555,50 @@ const translations = {
 
         bar.style.width = "0%";
         log.innerText = t.awakenLog1; 
-        let width = 0;
-        const timer = setInterval(() => {
-            width += Math.random() * 4;
-            if (width > 30 && width < 60) log.innerText = t.awakenLog2; 
-            if (width > 60 && width < 90) log.innerText = t.awakenLog3; 
-            if (width >= 100) {
-                clearInterval(timer);
+        
+        // 我们需要确保 KTX2Loader 正常初始化，如果不经过 showMascot 里的初始化，可能会报错，故在此手动确保其依附的 renderer 环境
+        // 由于这只是下载模型，我们尝试在后台通过 gltfLoader 进行加载
+        // 由于依赖了 KTX，我们需要一个临时的 WebGLRenderer 给它 detectSupport
+        if (!ktx2Loader.workerLimit) {
+            const tempRenderer = new THREE.WebGLRenderer();
+            const basisPath = 'https://unpkg.com/three@0.158.0/examples/jsm/libs/basis/';
+            ktx2Loader.setTranscoderPath(basisPath).detectSupport(tempRenderer);
+            gltfLoader.setKTX2Loader(ktx2Loader);
+        }
+
+        gltfLoader.load(
+            selectedModelPath, 
+            // 1. 加载成功回调
+            (gltf) => {
+                preloadedModelScene = gltf.scene; // 缓存下来
+                
+                // 收到模型后，立刻达到 100% 并跳转
+                bar.style.width = "100%";
                 log.innerText = t.awakenSuccess; 
                 setTimeout(showResult, 500);
+            },
+            // 2. 加载进度回调
+            (xhr) => {
+                if (xhr.lengthComputable) {
+                    const percentComplete = (xhr.loaded / xhr.total) * 100;
+                    // 保留一点余地给这 100%，比如不要直接填满
+                    bar.style.width = Math.min(percentComplete, 95) + "%";
+                    
+                    if (percentComplete > 30 && percentComplete < 60) log.innerText = t.awakenLog2; 
+                    if (percentComplete >= 60) log.innerText = t.awakenLog3; 
+                }
+            },
+            // 3. 错误回调
+            (error) => {
+                console.error("模型预加载失败:", error);
+                log.innerText = "模型加载失败，请重试";
+                bar.style.backgroundColor = "red";
+                // 失败了让用户可以点击返回
+                setTimeout(() => window.location.reload(), 2000);
             }
-            bar.style.width = width + "%";
-        }, 80);
+        );
     }
+    
     function showResult() {
         window.gotoPage('mascotPage');
         
@@ -1957,32 +2013,48 @@ function showMascot(isAR) {
     const backLight = new THREE.DirectionalLight(0xffffff, 1.5);
     backLight.position.set(-5, 5, -7);
     scene.add(backLight);
-    const basisPath = 'https://unpkg.com/three@0.158.0/examples/jsm/libs/basis/';
-    ktx2Loader
-        .setTranscoderPath(basisPath)
-        .detectSupport(renderer); 
-    gltfLoader.setKTX2Loader(ktx2Loader);
-    gltfLoader.load(selectedModelPath, (gltf) => {
-        model = gltf.scene;
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        const baseScale = 2.0 / Math.max(size.x, size.y, size.z);
-        model.scale.set(baseScale, baseScale, baseScale);
-        const center = box.getCenter(new THREE.Vector3());
-        model.position.x = -center.x * baseScale;
-        model.position.y = -center.y * baseScale;
-        model.position.z = -center.z * baseScale;
-        if (isAR) {
-            model.position.y = -0.5;
-            model.position.z = -3;
-            model.rotation.y = Math.PI + (Math.PI / 2);
-        }
-        scene.add(model);
-        animate();
-    }, undefined, (err) => {
-        console.error('模型加载失败:', err);
-        alert(`加载失败: ${selectedModelPath}。\n请确认模型文件存在且网络正常。`);
-    });
+    
+    // 如果没有全局初始化过了
+    if (!ktx2Loader.workerLimit) {
+        const basisPath = 'https://unpkg.com/three@0.158.0/examples/jsm/libs/basis/';
+        ktx2Loader.setTranscoderPath(basisPath).detectSupport(renderer); 
+        gltfLoader.setKTX2Loader(ktx2Loader);
+    }
+    
+    // 我们已经有缓存好的模型的时候，直接克隆并执行
+    if (preloadedModelScene && !isAR) {
+        // 由于模型在结果页会展示，而在AR模式又会被加载，最安全的做法是 clone，但这里先复用即可，
+        // 对 AR 会清除缓存从走下方的重新加载
+        model = preloadedModelScene;
+        setupAndAddModelToScene(model, isAR);
+    } else {
+        // AR 模式或者其它特殊情况下未缓存时，再去重新加载
+        gltfLoader.load(selectedModelPath, (gltf) => {
+            model = gltf.scene;
+            setupAndAddModelToScene(model, isAR);
+        }, undefined, (err) => {
+            console.error('模型加载失败:', err);
+            alert(`加载失败: ${selectedModelPath}。\n请确认模型文件存在且网络正常。`);
+        });
+    }
+}
+
+function setupAndAddModelToScene(modelData, isAR) {
+    const box = new THREE.Box3().setFromObject(modelData);
+    const size = box.getSize(new THREE.Vector3());
+    const baseScale = 2.0 / Math.max(size.x, size.y, size.z);
+    modelData.scale.set(baseScale, baseScale, baseScale);
+    const center = box.getCenter(new THREE.Vector3());
+    modelData.position.x = -center.x * baseScale;
+    modelData.position.y = -center.y * baseScale;
+    modelData.position.z = -center.z * baseScale;
+    if (isAR) {
+        modelData.position.y = -0.5;
+        modelData.position.z = -3;
+        modelData.rotation.y = Math.PI + (Math.PI / 2);
+    }
+    scene.add(modelData);
+    animate();
 }
     function animate() {
         animationId = requestAnimationFrame(animate);

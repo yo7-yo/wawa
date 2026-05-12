@@ -2,10 +2,21 @@ import json
 import os
 from urllib import error, request
 
+# -----------------------
+# 配置区域
+# -----------------------
+# 使用专属 API Key，本地测试可以写死
 API_KEY = os.environ.get("XIAOMI_KEY", "").strip()
-BASE_URL = os.environ.get("XIAOMI_BASE_URL", "https://api.xiaomimimo.com/v1").rstrip("/")
-MODEL_NAME = os.environ.get("XIAOMI_MODEL", "MiMo-V2.5-Pro").strip()
 
+# 官方 chat/completions 接口
+BASE_URL = os.environ.get("XIAOMI_BASE_URL", "https://api.xiaomimimo.com/v1").rstrip("/")
+
+# 官方可调用的模型名称（不要用套餐名）
+MODEL_NAME = os.environ.get("XIAOMI_MODEL", "mimo-v2-flash").strip()
+
+# -----------------------
+# 语言和人物配置
+# -----------------------
 LANGUAGE_MAP = {
     "zh": "Simplified Chinese (中文)",
     "en": "English",
@@ -49,22 +60,26 @@ Choose ONE topic to focus on in this turn to keep the conversation fresh:
 4. **[Language]**: Your ENTIRE response MUST be in {language_name}.
 """
 
-
+# -----------------------
+# 请求头
+# -----------------------
 def build_headers():
     headers = {"Content-Type": "application/json"}
     if API_KEY:
-        headers["Authorization"] = f"Bearer {API_KEY}"
         headers["api-key"] = API_KEY
-        headers["x-api-key"] = API_KEY
     return headers
 
-
+# -----------------------
+# 解析返回内容
+# -----------------------
 def extract_message_content(result):
     choice = (result.get("choices") or [{}])[0]
     message = choice.get("message") or {}
     return message.get("content") or choice.get("text") or "没有返回内容"
 
-
+# -----------------------
+# 历史处理
+# -----------------------
 def normalize_history(history):
     return [
         {
@@ -74,7 +89,6 @@ def normalize_history(history):
         for item in history
         if isinstance(item, dict) and item.get("content")
     ]
-
 
 def build_chat_messages(history, artifact_name, lang_code, role_key):
     language_name = LANGUAGE_MAP.get(lang_code, "English")
@@ -86,24 +100,24 @@ def build_chat_messages(history, artifact_name, lang_code, role_key):
     )
     return [{"role": "system", "content": final_system_prompt}] + normalize_history(history)
 
-
 def translation_prompt(lang_code):
     language_name = LANGUAGE_MAP.get(lang_code, "English")
     return f"Translate the user's text into {language_name}. Maintain the original tone. Return ONLY the translated text."
 
-
+# -----------------------
+# 调用 MiMo API
+# -----------------------
 def post_mimo(messages, temperature=0.8, max_tokens=800, timeout=60):
     if not API_KEY:
         raise RuntimeError("服务器未配置 XIAOMI_KEY")
 
-    payload = json.dumps(
-        {
-            "model": MODEL_NAME,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-    ).encode("utf-8")
+    payload = json.dumps({
+        "model": MODEL_NAME,
+        "messages": messages,
+        "temperature": temperature,
+        "max_completion_tokens": max_tokens
+    }).encode("utf-8")
+
     req = request.Request(
         f"{BASE_URL}/chat/completions",
         data=payload,
@@ -117,14 +131,13 @@ def post_mimo(messages, temperature=0.8, max_tokens=800, timeout=60):
             return resp.status, text
     except error.HTTPError as e:
         text = e.read().decode("utf-8", errors="replace")
+        print("MiMo API 返回错误:", text)  # 调试打印
         return e.code, text
     except error.URLError as e:
         raise RuntimeError(str(e.reason)) from e
 
-
 def parse_json_text(text):
     return json.loads(text or "{}")
-
 
 def read_json_body(handler):
     length = int(handler.headers.get("Content-Length", "0") or 0)
@@ -132,7 +145,6 @@ def read_json_body(handler):
         return {}
     raw = handler.rfile.read(length).decode("utf-8")
     return json.loads(raw or "{}")
-
 
 def write_json(handler, status, payload):
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -144,7 +156,6 @@ def write_json(handler, status, payload):
     handler.send_header("Access-Control-Allow-Headers", "Content-Type")
     handler.end_headers()
     handler.wfile.write(body)
-
 
 def write_no_content(handler):
     handler.send_response(204)

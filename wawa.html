@@ -270,6 +270,17 @@
             font-size: clamp(35px, 8vw, 38px);
         }
 
+        /* 结果页右上角"经历"按钮：和返回按钮保持同样的浮层样式 */
+        #infoBtnAction {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2001;
+            padding: 3px 11px;
+            border-radius: 20px;
+            font-size: 9px;
+        }
+
         #infoBtnAction:hover {
             background: rgba(252, 211, 77, 0.2);
             box-shadow: 0 0 10px rgba(252, 211, 77, 0.5);
@@ -341,7 +352,8 @@
                 position: relative !important;
             }
 
-            #infoBtn {
+            #infoBtn,
+            #infoBtnAction {
                 position: absolute !important;
                 top: 15px !important;
                 right: 15px !important;
@@ -363,16 +375,39 @@
                 transition: transform 0.2s;
             }
 
+            #infoBtn:active,
+            #infoBtnAction:active {
+                transform: scale(0.96);
+            }
+
+            /* 强制保持 #infoBtnAction 的原始位置和尺寸，仅修改颜色与边框（PC 端） */
             #infoBtnAction {
+                position: static !important;
+                top: auto !important;
+                right: auto !important;
+                width: unset !important;
+                height: unset !important;
+                border-radius: unset !important;
+                padding: unset !important;
+                font-size: unset !important;
+                display: unset !important;
+                /* 颜色与边框覆盖（你之前要求的） */
                 background: rgba(0, 0, 0, 0.6) !important;
                 color: #fcd34d !important;
                 border: 1px solid #fcd34d !important;
                 box-shadow: none !important;
             }
 
-            #infoBtn:active,
-            #infoBtnAction:active {
-                transform: scale(0.96);
+            /* PC-only: 仅改变二维码出现后按钮的颜色与边框，保持尺寸/形状/字号不变 */
+            #infoBtnAction {
+                background: rgba(0, 0, 0, 0.6) !important;
+                color: #fcd34d !important;
+                border: 1px solid #fcd34d !important;
+                box-shadow: none !important;
+            }
+            #infoBtnAction:hover {
+                background: rgba(252, 211, 77, 0.2) !important;
+                box-shadow: 0 0 10px rgba(252, 211, 77, 0.5) !important;
             }
 
             /* PC端二维码区域上移 */

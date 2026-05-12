@@ -3,7 +3,38 @@ function getPersonaFromURL() {
     const params = new URLSearchParams(window.location.search);
     return params.get('role') || 'scholar'; // 没拿到参数默认给“学者”
 }
+const LOCAL_BACKEND_URL = 'http://localhost:8000';
+const API_BASE_URLS = (() => {
+    if (window.location.protocol === 'file:' || window.location.origin === 'null') {
+        return [LOCAL_BACKEND_URL];
+    }
+    return [window.location.origin, LOCAL_BACKEND_URL];
+})();
 
+async function postJsonWithFallback(path, body) {
+    let lastError = null;
+
+    for (const baseUrl of API_BASE_URLS) {
+        try {
+            const response = await fetch(`${baseUrl}${path}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if ([404, 405, 501].includes(response.status) && baseUrl !== LOCAL_BACKEND_URL) {
+                lastError = new Error(`HTTP ${response.status}`);
+                continue;
+            }
+
+            return response;
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    throw lastError || new Error('请求失败');
+}
 window.currentAiPersona = getPersonaFromURL();
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -463,14 +494,10 @@ async function sendChat(overrideText = null) {
     historyDiv.scrollTop = historyDiv.scrollHeight;
 
     try {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                history: chatHistory,
-                artifact_name: artifactName,
-                language: currentLang
-            })
+        const response = await postJsonWithFallback('/api/chat', {
+            history: chatHistory,
+            artifact_name: artifactName,
+            language: currentLang
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
@@ -509,13 +536,9 @@ async function translateChatHistory(targetLang) {
     historyDiv.scrollTop = historyDiv.scrollHeight;
 
     try {
-        const response = await fetch('/api/translate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                messages: chatHistory,
-                target_lang: targetLang
-            })
+        const response = await postJsonWithFallback('/api/translate', {
+            messages: chatHistory,
+            target_lang: targetLang
         });
 
         const rawText = await response.text();

@@ -146,38 +146,55 @@ function updateUIText(lang) {
     document.title = t.pageTitle;
 
     // 更新 Header
-    document.querySelector('header h1').innerText = t.headerTitle;
+    const headerH1 = document.querySelector('header h1');
+    if (headerH1) headerH1.innerText = t.headerTitle;
 
     // 更新 Loading 提示
-    document.getElementById('loading-overlay').innerText = t.loadingArtifact;
+    const loadingEl = document.getElementById('loading-overlay');
+    if (loadingEl) loadingEl.innerText = t.loadingArtifact;
 
     // 更新输入框和发送按钮
-    document.getElementById('user-input').placeholder = t.inputPlaceholder;
-    document.getElementById('send-btn').innerText = t.sendButton;
+    const userInput = document.getElementById('user-input');
+    if (userInput) userInput.placeholder = t.inputPlaceholder;
+
+    const sendBtn = document.getElementById('send-btn');
+    if (sendBtn) sendBtn.innerText = t.sendButton;
 
     // 更新底部控制栏按钮
-    document.getElementById('undo-btn').innerText = t.undoButton;
-    document.getElementById('retry-btn').innerText = t.retryButton;
-    document.getElementById('clear-btn').innerText = t.clearButton;
-    document.getElementById('save-btn').innerText = t.saveButton;
-    
+    const undoBtn = document.getElementById('undo-btn');
+    if (undoBtn) undoBtn.innerText = t.undoButton;
+
+    const retryBtn = document.getElementById('retry-btn');
+    if (retryBtn) retryBtn.innerText = t.retryButton;
+
+    const clearBtn = document.getElementById('clear-btn');
+    if (clearBtn) clearBtn.innerText = t.clearButton;
+
+    const saveBtn = document.getElementById('save-btn');
+    if (saveBtn) saveBtn.innerText = t.saveButton;
+
     // 更新清空确认弹窗
-    document.querySelector('#clear-modal h3').innerText = t.clearModalTitle;
+    const clearModalH3 = document.querySelector('#clear-modal h3');
+    if (clearModalH3) clearModalH3.innerText = t.clearModalTitle;
+
     const modalPs = document.querySelectorAll('#clear-modal p');
-    modalPs[0].innerText = t.clearModalPrompt;
-    modalPs[1].innerHTML = `${t.clearModalInstruction}<br><span class="highlight-text">${t.clearModalConfirmText}</span>`;
-    document.getElementById('cancel-clear').innerText = t.modalCancel;
-    document.getElementById('confirm-clear').innerText = t.modalConfirm;
+    if (modalPs[0]) modalPs[0].innerText = t.clearModalPrompt;
+    if (modalPs[1]) modalPs[1].innerHTML = `${t.clearModalInstruction}<br><span class="highlight-text">${t.clearModalConfirmText}</span>`;
+
+    const cancelClear = document.getElementById('cancel-clear');
+    if (cancelClear) cancelClear.innerText = t.modalCancel;
+
+    const confirmClear = document.getElementById('confirm-clear');
+    if (confirmClear) confirmClear.innerText = t.modalConfirm;
 
     // 更新聊天历史中的初始消息（如果存在）
     const initialMsgEl = document.querySelector('.system-msg');
     if (initialMsgEl && chatHistory.length === 0) {
         initialMsgEl.innerText = t.initialMessage;
     }
-    
+
     // 更新全局语言状态
     currentLang = lang;
-    // (可选) 保存用户偏好到浏览器
     localStorage.setItem('app_language', lang);
     updateLanguage(lang);
 }
@@ -261,7 +278,7 @@ function loadModel(modelPath) {
 }
 
 // ================ 聊天交互逻辑 (核心修改) =================
-
+//！=======================渲染对话===========================================
 function renderChat() {
     const historyDiv = document.getElementById('chat-history');
     historyDiv.innerHTML = ''; 
@@ -320,9 +337,9 @@ function renderChat() {
     
     historyDiv.scrollTop = historyDiv.scrollHeight;
 }
+//==========================================================================================
 
 // --- 批量删除相关函数 ---
-
 function updateSelectionUI() {
     const selectionControls = document.getElementById('selection-controls');
     const controlsBar = document.querySelector('.controls-bar');
@@ -419,7 +436,8 @@ function deleteTurn(index) {
     saveHistoryToLocal();
     renderChat();
 }
-
+//====================================================================
+//！！！！！发送用户消息并获取 AI 回复！！！！！
 async function sendChat(overrideText = null) {
     const input = document.getElementById('user-input');
     const text = overrideText || input.value.trim();
@@ -530,6 +548,8 @@ async function translateChatHistory(targetLang) {
         }
     }
 }
+
+//==================================语音播报=================================
 function speak(text) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -543,6 +563,7 @@ function speak(text) {
     utterance.rate = 1.0;
     window.speechSynthesis.speak(utterance);
 }
+//================================================================================
 
 function undoLast() {
     if (chatHistory.length >= 2) {

@@ -1,6 +1,9 @@
+
+/* 第三个页面：盲盒页面 */
+
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>  
+<head>
     <meta charset="UTF-8" />
     <title>数字潇湘 · 灵境</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -12,9 +15,9 @@
             "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm"
         }
     }
-    </script> 
+    </script>
     <style>
-                                                                    /* 第三个页面：盲盒页面 */
+
         .modal-overlay {
             position: fixed; 
             inset: 0; 
@@ -741,33 +744,37 @@ body.share-mode > :not(#lang-select):not(#mascotPage) {
     display: none !important;
 }
 
-body.share-mode .result-card {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    backdrop-filter: none;
-    width: 100vw;
-    max-width: none;
-    height: 100vh;
-    padding: 0;
-    overflow: hidden;
+body.share-mode #mascotPage {
+    background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #7f1d1d 100%);
 }
 
-body.share-mode #mascotPage {
-    background: #000;
+body.share-mode .result-card {
+    background: rgba(140, 20, 20, 0.6);
+    border: 2px solid #fcd34d;
+    border-radius: 24px;
+    width: 92%;
+    max-width: 450px;
+    height: 88vh;
+    padding: 25px;
+    box-shadow: none;
 }
 
 body.share-mode #mascotCanvasWrap {
-    flex: 1 1 auto;
+    flex: 1;
     width: 100%;
-    min-height: 100vh;
+    min-height: 40vh;
     z-index: 1;
 }
 
-body.share-mode .model-info,
+body.share-mode .model-info {
+    flex-shrink: 0;
+    padding-top: 10px;
+    z-index: 20;
+    pointer-events: auto;
+}
+
 body.share-mode #namingSection,
 body.share-mode #actionSection p,
-body.share-mode #finalNameDisplay,
 body.share-mode #mapStartButtonContainer,
 body.share-mode .btn-group,
 body.share-mode #back-to-index-btn,
@@ -780,8 +787,17 @@ body.share-mode #nameErrorMsg {
 
 body.share-mode #actionSection {
     display: block !important;
-    margin: 0;
-    padding: 0;
+    margin-top: 5px;
+    animation: fadeIn 0.5s;
+}
+
+body.share-mode #finalNameDisplay {
+    display: block !important;
+    color: #fcd34d !important;
+    font-size: 16px !important;
+    margin-bottom: 3px !important;
+    white-space: normal;
+    line-height: 1.2;
 }
 
 body.share-mode #actionSection .qr-action-wrapper {
@@ -805,7 +821,7 @@ body.share-mode #infoBtnAction {
     border: 1px solid #fcd34d;
     justify-content: center;
     align-items: center;
-    pointer-events: auto;
+    pointer-events: auto !important;
 }
 
 body.share-mode #lang-select {
@@ -813,13 +829,6 @@ body.share-mode #lang-select {
     top: 20px !important;
     left: 20px !important;
     z-index: 3000 !important;
-}
-
-/* 保证拍照按钮在 AR 模式下可见 */
-#arPhotoBtn {
-    display: flex !important;
-    pointer-events: auto !important;
-    z-index: 3000;
 }
 
 /* === 通用黑底金边按钮（和右上角返回按钮一模一样） === */
@@ -1506,14 +1515,11 @@ const translations = {
             document.getElementById('finalNameDisplay').innerText = `✨ ${fullName} ✨`;
             showMascot(false);
 
-            const actionSection = document.getElementById('actionSection');
-            const qrWrapper = actionSection?.querySelector('.qr-action-wrapper');
             const infoBtnAction = document.getElementById('infoBtnAction');
-            if (actionSection && qrWrapper && infoBtnAction) {
-                actionSection.innerHTML = '';
+            const qrWrapper = document.querySelector('#actionSection .qr-action-wrapper');
+            if (infoBtnAction && qrWrapper) {
                 qrWrapper.innerHTML = '';
                 qrWrapper.appendChild(infoBtnAction);
-                actionSection.appendChild(qrWrapper);
             }
         }
         

@@ -1,2522 +1,778 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8" />
-    <title>数字潇湘 · 灵境</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/",
-            "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm"
-        }
-    }
-    </script>
-    <style>
-                        /* 第三个页面：盲盒页面 */
-
-        .modal-overlay {
-            position: fixed; 
-            inset: 0; 
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px); 
-            z-index: 5000;
-            display: none; 
-            justify-content: center; 
-            align-items: center; 
-        }
-
-        /* 2. 信息按钮样式（防止它在 AR 模式下乱跑） */
-        .info-sphere-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 32px;
-            height: 32px;
-            z-index: 200; 
-            border-radius: 50% !important;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.6);
-            color: #fcd34d;
-            border: 1px solid #fcd34d;
-            cursor: pointer;
-        }
-
-        .result-card {
-            background: rgba(140, 20, 20, 0.6);
-            border: 4px solid #fcd34d;
-            border-radius: 30px;
-            padding: 25px;
-            width: 92%;
-            max-width: 450px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            
-            /* 核心：黄框高度围着屏幕走 (88%屏幕高度) */
-            height: 88vh; 
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between; 
-            position: relative;
-            z-index: 10;
-        }
-
-        /* 4. 文字内容容器 */
-        .info-text-container {
-            padding: 20px 20px 40px 20px; /* ★ 底部加厚 40px，防止最后一行字被吞掉 */
-            color: #fde68a;
-            font-size: 16px; 
-            text-align: left;
-            max-height: 50vh;
-            overflow-y: auto;
-            line-height: 1.6;
-            
-            overscroll-behavior: contain;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        /* --- 新增：详情弹窗内的标题和列表排版 --- */
-        .info-text-container h3 {
-            color: #fcd34d;
-            font-size: 20px; /* 比正文 16px 大两个字号（4px） */
-            margin-top: 20px;
-            margin-bottom: 10px;
-            font-weight: bold;
-            border-bottom: 1px solid rgba(252, 211, 77, 0.3);
-            padding-bottom: 5px;
-        }
-
-        /* 阶段大标题单独居中且稍微再大一点 */
-        .info-text-container .phase-title {
-            text-align: center;
-            color: #fff;
-            font-size: 22px;
-            margin-bottom: 20px;
-            border-bottom: none;
-        }
-
-        .info-text-container p {
-            margin-bottom: 10px;
-            text-indent: 2em; /* 首行缩进 */
-        }
-
-        .info-text-container ul {
-            margin-bottom: 15px;
-            padding-left: 20px;
-        }
-
-        .info-text-container li {
-            margin-bottom: 8px;
-            list-style-type: disc; /* 圆点列表 */
-        }
-
-        body.ar-mode-global #back-to-index-btn,
-        body.ar-mode-global #lang-select {
-            display: none !important;
-        }
-        #lang-select {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        z-index: 2001; /* 确保在最上层 */
-
-        padding: 8px 12px;
-        border-radius: 8px;
-        background: rgba(0, 0, 0, 0.6); /* 半透明黑色背景 */
-        color: #fcd34d;                 /* 金色文字 */
-        border: 1px solid #fcd34d;      /* 金色边框 */
-        
-        font-weight: bold;
-        cursor: pointer;
-        -webkit-appearance: none;
-        appearance: none;
-
-        /* 添加自定义的下拉箭头 */
-        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FCD34D%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E');
-        background-repeat: no-repeat;
-        background-position: right 12px top 50%;
-        background-size: .65em auto;
-        padding-right: 30px;
-    }
-
-    /* --- 解决手机端软键盘遮挡的完美方案 --- */
-    /* 仅在屏幕宽度小于 768px（手机端）时，激活输入框才会触发形变 */
-    @media screen and (max-width: 768px) {
-        /* 手机端返回按钮放大 */
-        #back-to-index-btn {
-            font-size: 12px !important;
-            padding: 6px 14px !important;
-            border-radius: 25px !important;
-            top: 15px !important;
-            right: 15px !important;
-        }
-        
-        /* 输入时：彻底隐藏模型区域，输入框和按钮紧密往上 */
-        #mascotPage.input-focused #mascotCanvasWrap {
-            display: none !important;    /* 彻底隐藏模型 */
-        }
-        
-        /* 隐藏所有不必要的文字，为输入框腾出空间 */
-        #mascotPage.input-focused .congrats-title,
-        #mascotPage.input-focused #namingSection p:first-of-type,
-        #mascotPage.input-focused #nameErrorMsg {
-            display: none !important;
-        }
-        
-        /* namingSection 紧密排列 */
-        #mascotPage.input-focused #namingSection {
-            gap: 0 !important;
-            margin: 0 !important;
-            padding: 10px 15px !important;
-        }
-        
-        /* 输入框容器（flex）：消除所有间隔 */
-        #mascotPage.input-focused div[style*="display: flex"][style*="gap"] {
-            gap: 0 !important;
-            margin: 0 !important;
-        }
-        
-        /* 输入框：贴边，无外边距 */
-        #mascotPage.input-focused #mascotNameInput {
-            margin: 0 !important;
-            padding: 10px 12px !important;
-        }
-        
-        /* 经历按钮：紧贴输入框，无间隔 */
-        #mascotPage.input-focused #infoBtn {
-            margin: 0 !important;
-            flex-shrink: 0;
-            height: 40px !important;
-            padding: 0 14px !important;
-        }
-    }
-    /* PC端完全不受影响，不发生任何形变 */
-
-    #mascotPage {
-        position: relative;      /* 相对定位，限制子元素绝对定位范围 */
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        overflow: hidden;        /* 限制子元素不能溢出 */
-        height: 100vh;           /* 整个结果页高度 */
-        width: 100%;
-    }
-
-    #arControls .ar-btn {
-        z-index: 3000;   /* 控件总是最上层 */
-    }
-
-    #lang-select:hover {
-        background-color: rgba(20, 20, 20, 0.8);
-    }
-        /* --- ★★★ 新增：右上角返回按钮的样式 ★★★ --- */
-        #back-to-index-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 2001; /* 确保在最上层 */
-            
-            background: rgba(0, 0, 0, 0.6);   /* 半透明黑色背景 */
-            color: #fcd34d;                  /* 金色文字 */
-            border: 1px solid #fcd34d;      /* 金色边框 */
-            
-            padding: 3px 11px;
-            border-radius: 20px;             /* 圆角 */
-            text-decoration: none;           /* 移除链接下划线 */
-            font-weight: bold;
-            font-size: 9px;
-            
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        #back-to-index-btn:hover {
-            background: rgba(252, 211, 77, 0.2); /* 悬浮时增加金色辉光效果 */
-            box-shadow: 0 0 10px rgba(252, 211, 77, 0.5);
-        }
-
-        /* 标题样式：字号再次加大，视觉冲击力极强 */
-        .cover-title {
-            color: #fcd34d;
-            font-weight: bold;
-            text-shadow: 0 4px 15px rgba(245, 158, 11, 0.8); /* 稍微加强阴影，字大了要有厚度感 */
-            
-            /* 再次增加顶部外边距，防止超大字号撞到右上角按钮 */
-            margin-top: 110px; 
-            margin-bottom: 30px; 
-            
-            animation: fadeInDown 1.5s ease-out; 
-            line-height: 1.3; /* 字号大了，行间距稍微收紧一点点更有力 */
-            padding: 0 15px;  
-
-            /* --- 核心修改：在之前基础上再加 8px --- */
-            /* 最小值约 41px，最大值 56px */
-            font-size: clamp(41px, 12vw, 56px); 
-            
-            text-align: center;
-            width: 100%;
-            
-            /* 保证中文成词显示，配合 <br> 换行 */
-            word-break: keep-all; 
-            white-space: normal;
-        }
-
-        /* 德语和日语单词太长，字号不能无限制大，否则会撑破屏幕 */
-        body[lang="ja"] .cover-title{
-            font-size: clamp(35px, 8vw, 38px);
-        }
-
-        /* 移动端"经历"按钮增大 */
-        #infoBtn {
-            height: 42px !important;
-            padding: 0 20px !important;
-            font-size: 13px !important;
-            line-height: 42px;
-        }
-
-        /* --- ★★★ 仅在 PC 端生效 (屏幕宽度大于 1024px) ★★★ --- */
-        @media screen and (min-width: 1024px) {
-            /* PC端调整布局防止文字与模型重叠 */
-            #mascotCanvasWrap {
-                max-height: 45vh !important;
-                flex: 0 0 45vh !important;
-            }
-
-            /* 1. 标题：强制一行，字号依然保持大气 */
-            .cover-title {
-                font-size: 70px !important; 
-                white-space: nowrap !important; 
-                margin-top: 70px !important;    
-                margin-bottom: 30px !important;
-                letter-spacing: 3px !important;
-            }
-
-            /* 隐藏标题里的换行指令 */
-            .cover-title br {
-                display: none !important;
-            }
-
-            /* 2. 返回按钮：缩小 4px (从 26px 调至 22px) */
-            #back-to-index-btn {
-                font-size: 14px !important; 
-                padding: 4px 22px !important; /* 填充也同步微调，显得更精致 */
-                border-radius: 35px !important;
-                top: 25px !important; 
-                right: 25px !important;
-            }
-
-            /* 3. 语言选择器：同步微调字号 */
-            #lang-select {
-                font-size: 18px !important;
-                padding: 10px 35px 10px 12px !important;
-                top: 25px !important;
-                left: 25px !important;
-            }
-
-            /* 4. 首页按钮布局：PC 端保持垂直排列 (图鉴在抽取下方) */
-            #mapStartButtonContainer {
-                display: flex !important;
-                flex-direction: column !important; /* 强制垂直排列 */
-                align-items: center !important;
-                gap: 35px !important; /* 按钮之间的上下间距 */
-                margin-top: 30px !important;
-            }
-
-            /* PC 端按钮宽度可以稍微加宽，适应大屏幕 */
-            .blind-box-btn {
-                max-width: 320px !important;
-            }
-
-            /* 5. PC端经历按钮定位到右上角 */
-            .result-card {
-                position: relative !important;
-            }
-
-            #infoBtn,
-            #infoBtnAction {
-                position: absolute !important;
-                top: 15px !important;
-                right: 15px !important;
-                width: 50px !important;
-                height: 50px !important;
-                border-radius: 50% !important;
-                padding: 0 !important;
-                font-size: 14px !important;
-                z-index: 100 !important;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                background: linear-gradient(to bottom, #fcd34d, #d97706);
-                color: #450a0a;
-                font-weight: 900;
-                border: none;
-                box-shadow: 0 4px 0 #92400e;
-                cursor: pointer;
-                transition: transform 0.2s;
-            }
-
-            #infoBtn:active,
-            #infoBtnAction:active {
-                transform: scale(0.96);
-            }
-
-            /* PC端二维码区域上移 */
-            .qr-action-wrapper {
-                margin: -20px 0 15px 0 !important; /* 负margin让二维码整体上移 */
-            }
-        }
-        /* 5. 修正起名字环节的文字排版，防止它们太靠近屏幕边缘 */
-        #namingSection p, #actionSection p {
-            padding: 0 15px;
-            line-height: 1.6;
-            /* ★★★ 缩小边距，为在一页内显示留空间 */
-            margin-bottom: 8px;
-            font-size: 15px;
-        }
-
-        #namingSection p, #actionSection p {
-            margin: 5px 0;
-            line-height: 1.5;
-        }
-
-        /* 专门针对日语的缩放，防止长难句溢出 */
-        body[lang="ja"] .cover-title {
-            font-size: clamp(24px, 6.5vw, 34px);
-            letter-spacing: -1px; /* 紧凑一点 */
-        }
-
-        /* 按钮文字自动缩小，防止四字以上溢出 */
-        .instructions-btn {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* 盲盒按钮：保持原本较宽的尺寸 */
-        .blind-box-btn {
-            width: 100%;
-            max-width: 280px;
-            padding: 15px 0 !important;
-            font-size: 20px !important;
-        }
-
-        /* 图鉴按钮：宽度自适应字数，高度和字号与盲盒按钮一致 */
-        #galleryBtn {
-            width: auto !important;         /* 宽度自适应 */
-            padding: 10px 28px !important;  /* 左右边距撑开宽度 */
-            font-size: 16px !important;
-            margin: 0 0 30px 0;             /* 手机端：增加底部距离 */
-        }
-
-        /* --- ★★★ PC 端专属适配 ★★★ --- */
-        @media screen and (min-width: 768px) {
-            .cover-title {
-                /* PC端字号：保持加大的 65px */
-                font-size: 65px; 
-            }
-            
-            /* PC端图鉴按钮：固定到左下角 */
-            #galleryBtn {
-                            padding: 10px 28px !important; 
-                            font-size: 16px !important;
-                            margin: 0 !important;           /* PC端：取消底部距离 */
-                        }
-        }
-        /* ★★★ 新增：标题入场动画 ★★★ */
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        /* --- ★★★ 新增：动态光点装饰 ★★★ --- */
-        #sparkles-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            pointer-events: none; /* 确保装饰不会干扰点击 */
-        }
-        .sparkle {
-            position: absolute;
-            bottom: -20px; /* 从底部开始 */
-            background-color: #fcd34d; /* 光点颜色 */
-            border-radius: 50%;
-            opacity: 0;
-            animation: floatUp 10s infinite linear;
-        }
-        @keyframes floatUp {
-            0% {
-                transform: translateY(0);
-                opacity: 0;
-            }
-            10%, 90% {
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(-100vh); /* 向上移动整个屏幕的高度 */
-                opacity: 0;
-            }
-        }
-        /* --- ★★★ 新增：默认隐藏切换镜头按钮 ★★★ --- */
-        #arSwitchCameraBtn {
-            display: none; /* ★ 默认是隐藏的 */
-            top: 74px; 
-            right: 20px;
-        }
-        /* === 基础重置 === */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: "Microsoft YaHei", sans-serif; background: #020617; color: #fff; overflow: hidden; width: 100vw; height: 100vh; }
-        /* 通用 UI */
-        section { position: absolute; inset: 0; display: none; z-index: 10; width: 100%; height: 100%; }
-        section.active { display: flex; z-index: 100; }
-        div.full-page { position: absolute; inset: 0; display: none; z-index: 50; width: 100%; height: 100%; }
-        div.full-page.active { display: block; z-index: 100; }
-        /* === AR 操作指南样式 === */
-        #arInstructions {
-            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(8px); z-index: 200; display: none;
-            justify-content: center; align-items: center; color: #fff;
-            text-align: center; padding: 20px;
-        }
-        .instructions-content {
-            background: rgba(20, 20, 20, 0.8); padding: 25px 30px;
-            border-radius: 20px; border: 1px solid #fcd34d;
-            width: 100%; max-width: 380px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-        }
-        .instructions-content h2 { color: #fcd34d; font-size: 24px; margin-bottom: 25px; text-shadow: 0 0 10px #f59e0b; }
-        .instructions-content ul { list-style: none; padding: 0; margin-bottom: 30px; text-align: left; }
-        .instructions-content li { font-size: 16px; margin-bottom: 15px; display: flex; align-items: center; }
-        .instructions-content .icon { font-size: 24px; margin-right: 15px; width: 30px; display: inline-block; }
-        .instructions-btn {
-            background: linear-gradient(to bottom, #fcd34d, #d97706); color: #450a0a;
-            font-weight: 900; padding: 14px 40px; border-radius: 30px; border: none;
-            box-shadow: 0 4px 0 #92400e; cursor: pointer; font-size: 18px;
-            width: 100%; transition: transform 0.2s;
-        }
-        .instructions-btn:active { transform: scale(0.96); }
-        /* === 2. 地图 (首页) - 修改后 === */
-        #mapPage {
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            /* ★★★ 修改：背景改为亮红色渐变 ★★★ */
-            background: radial-gradient(ellipse at center, #e63946 0%, #8d0812 70%);
-        }
-        #mapStage {
-            position: relative;
-            text-align: center;
-        }
-        #mapImg {
-            display: none; /* 隐藏旧地图 */
-        }
-        
-        /* 新增：礼物盒样式 */
-        #giftBox {
-            font-size: 150px;
-            text-shadow: 0 0 15px #fcd34d, 0 0 30px #f59e0b;
-            animation: float 3s ease-in-out infinite;
-            margin-bottom: 30px;
-            /* ★★★ 修改：移除点击手势 ★★★ */
-            cursor: default; 
-        }
-        
-        /* 新增：浮动动画 */
-        @keyframes float {
-            0% { transform: translateY(0px) rotate(-2deg); }
-            50% { transform: translateY(-25px) rotate(2deg); }
-            100% { transform: translateY(0px) rotate(-2deg); }
-        }
-        #mapStartButtonContainer {
-            display: flex;
-            flex-direction: column; /* 垂直排列 */
-            align-items: center;    /* 居中 */
-            
-            /* --- 核心修改：拉开按钮之间的间距 --- */
-            gap: 40px; 
-            
-            width: 100%;
-            margin-top: 20px;
-        }
-        
-        /* === 3. 抽取页 === */
-        #aiPage { flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle, #5e0a0a, #000); }
-        .ai-box { width: 80%; max-width: 320px; text-align: center; }
-        .shake-jar { 
-            font-size: 180px; 
-            margin-bottom: 30px; 
-            animation: jarShake 0.6s infinite ease-in-out; 
-            display: inline-block; 
-            filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.6)); 
-        }
-        @keyframes jarShake { 
-            0%, 100% { transform: rotate(0deg); } 
-            25% { transform: rotate(-12deg) translateY(-5px); } 
-            50% { transform: rotate(0deg); } 
-            75% { transform: rotate(12deg) translateY(-5px); } 
-        }
-        .ai-title { color: #fcd34d; font-size: 22px; margin-bottom: 24px; font-weight: bold; text-shadow: 0 0 10px #b45309; }
-        .progress-track { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; }
-        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #fbbf24, #f59e0b); transition: width 0.1s linear; }
-        .ai-log { margin-top: 15px; color: #fbbf24; font-family: monospace; font-size: 14px; }
-        /* === 4. 结果页 === */
-        #mascotPage { flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #7f1d1d 100%); }
-
-        /* ★★★ 修改：结果卡片包裹整个屏幕高度，并采用 Flex 上下布局 ★★★ */
-        .result-card { 
-            background: rgba(140, 20, 20, 0.6); 
-            border: 2px solid #fcd34d; 
-            border-radius: 24px; 
-            padding: 15px 20px; 
-            width: 90%; 
-            max-width: 400px; 
-            text-align: center; 
-            backdrop-filter: blur(10px); 
-            transition: all 0.5s; 
-            position: relative; 
-            z-index: 10; 
-            
-            /* 新增：高度贴满屏幕，保证所有内容都有独立空间 */
-            height: 88vh; 
-            max-height: 850px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        
-        /* 键盘弹出时只在 PC 端向上滑动（手机端不移动背景） */
-        #mascotPage.input-focused {
-            transform: none;  /* 手机端不移动 */
-        }
-        
-        @media screen and (min-width: 768px) {
-            /* PC 端保持原来的向上滑动 */
-            #mascotPage.input-focused {
-                transform: translateY(-20vh);
-            }
-        }
-
-        #mascotPage.naming-active #mascotCanvasWrap {
-            height: auto; /* 废弃固定高度，交给 Flex 接管 */
-        }
-
-        /* ★★★ 新增：底部文字区独立，绝对不被压缩，永远在最上层 ★★★ */
-        .model-info {
-            flex-shrink: 0;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            padding-bottom: 5px;
-            z-index: 20;
-        }
-
-        .model-info h2 { color: #fcd34d; font-size: 24px; margin-bottom: 5px; }
-        .model-info p { color: #fed7aa; font-size: 14px; margin-bottom: 10px; }
-        
-        #namingSection { display: none; margin-top: 5px; animation: fadeIn 0.5s; }
-        .btn-confirm { background: linear-gradient(to bottom, #fcd34d, #d97706); color: #450a0a; font-weight: 900; padding: 12px 40px; border-radius: 30px; border: none; box-shadow: 0 4px 0 #92400e; cursor: pointer; font-size: 18px; margin-top: 15px; }
-        
-        #actionSection { display: none; margin-top: 5px; animation: fadeIn 0.5s; }
-        
-        /* ★★★ 修改：3D 模型画布改为自动填满上方空间 ★★★ */
-        #mascotCanvasWrap {
-            position: relative;      /* canvas 在父容器内 */
-            z-index: 2;              
-            width: 100%;
-            
-            /* 重点：让画布伸缩，不抢占底部文字的高度 */
-            flex: 1;                 
-            min-height: 30vh;
-            height: auto;
-            max-height: none;
-            
-            transition: height 0.3s ease, transform 0.3s ease, flex 0.3s ease;
-        }
-
-        /* ★★★ 修改：二维码尺寸放大 ★★★ */
-        #qrCodeContainer { 
-            margin: 0; 
-            width: 130px; /* 变大 */
-            height: 130px; 
-            background: rgba(255,255,255,0.1); 
-            border-radius: 12px; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            border: 2px dashed #fcd34d; 
-        }
-        #generatedQr { 
-            width: 100%; 
-            height: 100%; 
-            border-radius: 10px; 
-            padding: 6px;
-            background: #fff;
-            display: none; 
-        }
-        /* ★★★ 修改按钮组的外边距，更紧凑 ★★★ */
-        .btn-group { display: flex; gap: 10px; margin-bottom: 3px; margin-top: 8px; }
-        .action-btn { padding: 8px 0; width: 100%; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; color: #fff; flex: 1; transition: 0.3s; }
-        .btn-ar { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-        .btn-back { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fcd34d; width: 100%; }
-        @keyframes fadeIn { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
-        
-        /* === 5. AR 界面 === */
-        #bgVideo { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; display: none; transform: scaleX(1); transition: transform 0.3s; }
-        #bgVideo.mirrored { transform: scaleX(-1); }
-        #mascotPage.ar-mode-active { background: none !important; pointer-events: none; }
-        .ar-mode-active .result-card { background: transparent !important; border: none !important; backdrop-filter: none !important; box-shadow: none !important; }
-        .ar-mode-active .model-info, .ar-mode-active .btn-group, .ar-mode-active .btn-back, .ar-mode-active #actionSection, .ar-mode-active #namingSection { display: none !important; }
-        .ar-mode-active #infoBtn { display: none !important; } /* ★ 新增：在AR模式下强制隐藏详情按钮 */
-
-        #arControls { display: none; position: fixed; inset: 0; z-index: 100; pointer-events: none; }
-        .ar-btn {
-            position: absolute;
-            height: 44px;
-            width: auto;
-            min-width: 44px;
-            padding: 0 16px;
-            border-radius: 22px;
-            border: none;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(5px);
-            color: #fff;
-            font-size: 14px;
-            font-weight: bold;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            pointer-events: auto;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        .ar-btn:active {
-            transform: scale(0.95);
-            background: rgba(255,255,255,0.2);
-        }
-        .ar-btn.active-yellow {
-            background: rgba(245, 158, 11, 0.9);
-            color: #fff;
-        }
-        #arExitBtn { top: 20px; left: 20px; background: rgba(220, 38, 38, 0.8); }
-        #arHelpBtn { top: 74px; left: 20px; }
-        #arToggleGestureBtn { bottom: 94px; left: 20px; }
-        #arResetBtn { bottom: 40px; left: 20px; }
-        #arMirrorBtn { top: 20px; right: 20px; }
-        #arSwitchCameraBtn { top: 74px; right: 20px; display: none; }
-        #arPhotoBtn { bottom: 100px; right: 20px; background: rgba(59, 130, 246, 0.8); }
-        #arVideoBtn { bottom: 40px; right: 20px; background: rgba(239, 68, 68, 0.8); }
-        #arVideoBtn.recording { animation: pulseRed 1s infinite; border: 2px solid #fff; background: red; }
-        body.mobile-device #arSwitchCameraBtn {
-            display: flex;
-        }
-        
-        @keyframes pulseRed { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        
-        /* === 6. 状态与加载 === */
-        #aiStatus {
-            position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%);
-            background: rgba(16, 185, 129, 0.8); padding: 8px 16px; border-radius: 20px;
-            color: #fff; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-            white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.5s;
-        }
-        #loadingToast { position: fixed; top: 45%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 20px 40px; border-radius: 12px; display: none; flex-direction: column; align-items: center; z-index: 999; pointer-events: none; }
-        .spinner { width: 30px; height: 30px; border: 4px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s infinite linear; margin-bottom: 10px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-/* === 7. 纯展示模式 (扫码后的页面) === */
-body.share-mode > :not(#lang-select):not(#mascotPage) {
-    display: none !important;
+// === 从 URL 获取角色参数 ===
+function getPersonaFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('role') || 'scholar'; // 没拿到参数默认给“学者”
 }
 
-body.share-mode #qrCodeContainer,
-body.share-mode #generatedQr,
-body.share-mode #actionSection p,
-body.share-mode #mapStartButtonContainer,
-body.share-mode #namingSection,
-body.share-mode .btn-group,
-body.share-mode #back-to-index-btn,
-body.share-mode #nameErrorMsg {
-    display: none !important;
-}
+window.currentAiPersona = getPersonaFromURL();
 
-body.share-mode #actionSection {
-    display: block !important;
-}
-
-body.share-mode #infoBtnAction {
-    display: inline-flex !important;
-    position: fixed !important;
-    top: 20px !important;
-    right: 20px !important;
-    z-index: 3000 !important;
-    pointer-events: auto !important;
-}
-
-body.share-mode #lang-select {
-    position: fixed !important;
-    top: 20px !important;
-    left: 20px !important;
-    z-index: 3000 !important;
-}
-
-body.share-mode #finalNameDisplay {
-    display: block !important;
-    font-size: 32px;
-    margin-top: 20px;
-    color: #fcd34d;
-    text-shadow: 0 2px 15px rgba(251, 191, 36, 0.6);
-    padding-bottom: 20px;
-}
-
-body.share-mode .result-card {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    backdrop-filter: none;
-    /* ★ 取消宽度限制并移除内边距，使其撑满屏幕 */
-    width: 100vw;
-    max-width: none;
-    padding: 0;
-}
-
-body.share-mode #mascotPage {
-    background-color: #6a0d23;
-    background-image: 
-        radial-gradient(
-            circle at center,
-            #ff7f50 0%,
-            #6a0d23 55%
-        );
-}
-
-body.share-mode #mascotCanvasWrap {
-    /* ★ 宽度设为满屏 */
-    width: 100vw;
-    /* ★ 高度增加 50px */
-    height: calc(60vh + 60px);
-    /* ★ 顶部边距减少 50px，实现“只向上加长，不向下延伸”的效果 */
-    margin-top: calc(10vh - 60px);
-}
-
-/* === 通用黑底金边按钮（和右上角返回按钮一模一样） === */
-        .dark-gold-btn {
-            background: rgba(0, 0, 0, 0.6);
-            color: #fcd34d;
-            border: 1px solid #fcd34d;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            text-decoration: none;
-        }
-        .dark-gold-btn:hover {
-            background: rgba(252, 211, 77, 0.2);
-            box-shadow: 0 0 10px rgba(252, 211, 77, 0.5);
-        }
-        
-        /* === 图鉴弹窗背景 === */
-        #galleryModal {
-            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(8px); z-index: 2000; display: none;
-            justify-content: center; align-items: center; color: #fff;
-            text-align: center; padding: 20px;
-        }
-
-        /* --- ★★★ 美化文字容器的滚动条 ★★★ --- */
-        
-        /* 针对 Chrome, Safari, Edge 等 Webkit 内核浏览器 */
-        .info-text-container::-webkit-scrollbar {
-            width: 6px; /* 让滚动条变得非常纤细 */
-        }
-        
-        .info-text-container::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1); /* 轨道背景几乎透明 */
-            border-radius: 4px;
-        }
-        
-        .info-text-container::-webkit-scrollbar-thumb {
-            background: rgba(252, 211, 77, 0.4); /* 使用半透明的暗金色作为滑块 */
-            border-radius: 4px;
-        }
-        
-        .info-text-container::-webkit-scrollbar-thumb:hover {
-            background: rgba(252, 211, 77, 0.8); /* 鼠标放上去时提亮成金色 */
-        }
-
-        /* 针对 Firefox 浏览器的优雅降级 */
-        .info-text-container {
-            scrollbar-width: thin; /* 变细 */
-            scrollbar-color: rgba(252, 211, 77, 0.5) transparent; /* 滑块颜色 轨道颜色 */
-        }
-        .gallery-content {
-            background: transparent;
-            padding: 25px 30px;
-            border-radius: 20px; border: 1px solid #fcd34d;
-            width: 100%; max-width: 380px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-        }
-        .gallery-content h2 { 
-            color: #fcd34d; font-size: 24px; margin-bottom: 20px; text-shadow: 0 0 10px #f59e0b; 
-        }
-        /* 针对箭头的按下微调 */
-        #prevImg:active, #nextImg:active {
-            transform: translateY(-50%) scale(0.9) !important;
-        }
-
-        /* === 取名输入框及提示样式 === */
-        #mascotNameInput {
-            width: 80%;
-            padding: 12px;
-            margin-top: 10px;
-            border: 2px solid #fcd34d;
-            border-radius: 12px;
-            background: rgba(0, 0, 0, 0.5);
-            color: #fff;
-            font-size: 16px;
-            text-align: center;
-            outline: none;
-            transition: all 0.3s;
-        }
-        #mascotNameInput::placeholder {
-            color: #aaa;
-        }
-        #mascotNameInput:focus {
-            background: rgba(0, 0, 0, 0.8);
-            box-shadow: 0 0 10px rgba(252, 211, 77, 0.8);
-        }
-        #nameErrorMsg {
-            color: #ef4444; /* 红色 */
-            font-size: 13px;
-            font-weight: bold;
-            height: 16px;
-            margin-top: 8px;
-            margin-bottom: -5px;
-            opacity: 0; /* 默认隐藏 */
-            transition: opacity 0.3s;
-            pointer-events: none;
-        }
-
-        /* ★★★ 修改：将排版改为水平居中，让缩小后的按钮和二维码对齐 ★★★ */
-        .qr-action-wrapper {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 20px; /* 稍微拉开间距显得更精致 */
-            margin: 15px 0;
-        }
-/* --- ★★★ PC端详情弹窗专属优化：右侧侧边栏设计 ★★★ --- */
-        @media screen and (min-width: 1024px) {
-            /* 1. 将详情遮罩层的内容推到最右侧，降低变黑程度露出左侧模型 */
-            #infoModal {
-                justify-content: flex-end !important;
-                background: rgba(0, 0, 0, 0.5) !important; 
-                backdrop-filter: blur(4px) !important;
-            }
-
-            /* 2. 将弹窗盒子改造成通顶的侧边栏 */
-            #infoModal .gallery-content {
-                height: 100vh;
-                max-width: 450px; 
-                border-radius: 30px 0 0 30px; /* 只有左侧有圆角 */
-                border: none;
-                border-left: 2px solid #fcd34d; /* 左侧加金边过渡 */
-                margin: 0;
-                display: flex;
-                flex-direction: column;
-                
-                /* 增加右侧滑入的动态效果 */
-                animation: slideInRight 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
-            }
-
-            /* 3. 让文字容器自然占据剩余高度，解除最大高度限制 */
-            #infoModal .info-text-container {
-                flex: 1;
-                max-height: none; 
-                padding: 10px 10px 40px 10px; /* 侧边栏较宽，内边距可以自由呼吸 */
-                overflow-y: auto;
-            }
-        }
-
-        /* 右侧滑入动画关键帧 */
-        @keyframes slideInRight {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
-
-    </style>
-</head>
-<body>
-<a href="index.html" id="back-to-index-btn">返回 ↩</a>
-<select id="lang-select">
-    <option value="zh">中文</option>
-    <option value="en">English</option>
-    <option value="de">Deutsch</option>
-    <option value="ja">日本語</option>
-</select>
-<div id="arInstructions">
-    <div class="instructions-content">
-        <h2>AR 互动指南</h2>
-        <ul>
-            <li><span class="icon">☝️</span><b>单指跟随:</b> 伸出食指，模型将跟随您的指尖。</li>
-            <li><span class="icon">🖐️</span><b>张开手掌:</b> 放大模型。</li>
-            <li><span class="icon">✊</span><b>握紧拳头:</b> 缩小模型。</li>
-            <li><span class="icon">✌️</span><b>"V"字手势:</b> 顺时针旋转30°。</li>
-            <li><span class="icon">🤟</span><b>三指手势:</b> 逆时针旋转30°。</li>
-        </ul>
-        <button class="instructions-btn" onclick="startArExperience()">开启奇妙之旅</button>
-    </div>
-</div>
-<div id="loadingToast"><div class="spinner"></div><div id="loadingText">处理中...</div></div>
-<video id="bgVideo" autoplay playsinline muted></video>
-<div id="aiStatus"></div>
-<section id="mapPage" class="active">
-    <div id="sparkles-container"></div>
+document.addEventListener('DOMContentLoaded', () => {
+    const greetingMsg = document.getElementById('dynamic-greeting');
     
-    <div id="mapStage">
-       <h1 class="cover-title">古物有灵，待知音唤醒</h1>
-       <div id="giftBox">🎁</div>
-       
-       <div id="mapStartButtonContainer" class="action-btn-group">
-           <button class="instructions-btn blind-box-btn" onclick="startBlindBoxFlow()">抽取文物盲盒</button>
-           
-           <button id="galleryBtn" class="instructions-btn">图鉴</button>
-       </div>
-       
-       <img id="mapImg" src="map.png" alt="MAP">
-    </div>
-</section>
+    // 设置对应的专属欢迎语
+    const greetings = {
+        child: "哇！你终于来看我啦！我肚子里装了好多好玩的故事，你想先听哪一个呀？",
+        student: "阁下有礼了。相见即是缘，咱们一同探讨探讨这器物背后的奥秘如何？",
+        storyteller: "惊堂木一拍，咱们话接上回！这位看官，您想听点宫廷秘闻呢，还是江湖传说？",
+        scholar: "您好。此器历经沧桑。若有关于其形制、纹饰或年代断代的学术探讨，但问无妨。"
+    };
 
-<div id="galleryModal">
-    <div class="gallery-content">
-        <h2>文物图鉴</h2>
-        <div id="galleryContainer" style="position:relative; margin-bottom: 25px;">
-            <button id="prevImg" class="dark-gold-btn" style="position: absolute; top: 50%; transform: translateY(-50%); left: -15px; padding: 8px 12px; z-index: 10;">◀</button>
-            
-            <img id="galleryImg" src="picture/1.png" 
-                style="max-width:100%; height: 300px; object-fit: contain; border-radius:12px; display: block; margin: 0 auto; background: rgba(0,0,0,0.4); padding: 5px;" />
-            
-            <button id="nextImg" class="dark-gold-btn" style="position: absolute; top: 50%; transform: translateY(-50%); right: -15px; padding: 8px 12px; z-index: 10;">▶</button>
-        </div>
-        
-        <button id="closeGallery" class="instructions-btn" style="width: auto; padding: 12px 40px; font-size: 18px; margin-top: 10px;">返回</button>
-    </div>
-</div>
-
-<section id="aiPage">
-    <div class="ai-box">
-        <div class="shake-jar">🏺</div>
-        <div class="ai-title">正在唤醒文物之灵...</div>
-        <div class="progress-track"><div class="progress-fill" id="aiBar"></div></div>
-        <div class="ai-log" id="aiLog">解析历史印记...</div>
-    </div>
-</section>
-<section id="mascotPage">
-    <div class="result-card" id="resCard">
-            <div id="mascotCanvasWrap"></div>
-            <div id="infoModal" class="modal-overlay">
-            <div class="gallery-content">
-                <h2>详情</h2>
-                <div class="info-text-container">
-                    <div id="infoTextContent"></div>
-                </div>
-                <button id="closeInfo" class="instructions-btn" style="width: auto; padding: 12px 40px; font-size: 18px; margin-top: 10px;">返回</button>
-            </div>
-        </div>
-        <div class="model-info">
-            <div id="namingSection">
-                <h2 class="congrats-title">🎉 唤醒成功！</h2>
-                <p style="color:#fde68a; font-size:14px; margin-bottom:10px;">您唤醒了：<span id="artifactNameDisplay" style="color:#fff;font-weight:bold;font-size:18px;"></span></p>
-                
-                <div style="display: flex; justify-content: center; align-items: center; gap: 8px; width: 90%; margin: 5px auto 0;">
-                    <input type="text" id="mascotNameInput" style="width: 100%; margin-top: 0;" placeholder="赐予TA一个名字..." maxlength="10" oninput="document.getElementById('nameErrorMsg').style.opacity = '0'">
-                    <button id="infoBtn" class="dark-gold-btn" style="height: 46px; padding: 0 16px; border-radius: 12px; white-space: nowrap; font-size: 15px;">经历</button>
-                </div>
-                <div id="nameErrorMsg">起个名字，让它真正属于你吧~</div>
-                
-                <button class="btn-confirm" onclick="confirmModelName()">✨ 生成专属名片 ✨</button>
-            </div>
-
-            <div id="actionSection">
-                <h2 id="finalNameDisplay" style="color:#fcd34d; font-size:16px; margin-bottom:3px; white-space: normal; line-height: 1.2;"></h2>
-                <p style="color:#fca5a5; font-size:10px; margin-bottom:5px;">文物拟人化形态已生成</p>
-                
-                <div class="qr-action-wrapper">
-                    <div id="qrCodeContainer">
-                        <img id="generatedQr" src="" alt="QR Code">
-                    </div>
-                    <!-- ★★★ 修改：将经历按钮做小一些，保持美观且避免喧宾夺主 ★★★ -->
-                    <button class="action-btn dark-gold-btn" id="infoBtnAction" style="width: auto; height: 38px; padding: 0 16px; font-size: 13px; flex: none;">经历</button>
-                </div>
-
-                <p style="font-size:8px; color:#aaa; margin-bottom:8px;" data-lang-key="qrSaveHint">长按二维码保存专属名片</p>
-                <div class="btn-group">
-                    <button class="action-btn btn-ar" onclick="enterARMode()">📸 与TA合影</button>
-                    <!-- 原来的经历按钮已移除 -->
-                    <button class="action-btn btn-back" onclick="backToMap()">↺ 返回</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    if (greetingMsg) {
+        greetingMsg.innerText = greetings[window.currentAiPersona];
+    }
     
-    <div id="arControls">
-        <button class="ar-btn" id="arExitBtn" onclick="exitARMode()">❌ 退出</button>
-        <button class="ar-btn" id="arHelpBtn" onclick="showArInstructions()">❓ 帮助</button>
-        <button class="ar-btn" id="arMirrorBtn" onclick="toggleMirror()">🔁 镜像</button>
-        <button class="ar-btn" id="arResetBtn" onclick="resetModelPos()">📍 归位</button>
-        <button class="ar-btn" id="arToggleGestureBtn" onclick="toggleGestureRecognition()">✋ 无识别</button>
-        <button class="ar-btn" id="arSwitchCameraBtn" onclick="switchCamera()">🔄 切换镜头</button>
-        <button class="ar-btn" id="arPhotoBtn" onclick="takePhoto()">📷 拍照</button>
-        <button class="ar-btn" id="arVideoBtn" onclick="toggleVideoRecord()">🎥 录像</button>
-    </div>
-</section>
-<script type="module">
-    import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
-    import { GLTFLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/GLTFLoader.js';
-    import { OrbitControls } from 'https://unpkg.com/three@0.158.0/examples/jsm/controls/OrbitControls.js';
-    import { KTX2Loader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/KTX2Loader.js';
-    import { DRACOLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/DRACOLoader.js';
-    import { FilesetResolver, HandLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm';
-    import { MeshoptDecoder } from 'https://unpkg.com/three@0.158.0/examples/jsm/libs/meshopt_decoder.module.js';
-    let currentLang = 'zh';
+    console.log("当前唤醒角色：", window.currentAiPersona);
+});
+
+/**
+ * 博物馆奇妙夜 - 交互逻辑核心
+ */
+
+let currentLang = 'zh';
+
+// ✨ 新增：UI 文本翻译字典
 const translations = {
-        'zh': {
-            docTitle: '数字潇湘 · 灵境',
-            coverTitle: '古物有灵，<br>待知音唤醒',
-            blindBoxBtn: '抽取文物盲盒',
-            galleryBtn: '图鉴',
-            namingPlaceholder: '为ta取一个名字吧~',
-            awakeningTitle: '正在唤醒文物之灵...',
-            awakenLog1: '解析历史印记...',
-            awakenLog2: '描绘人形轮廓...',
-            awakenLog3: '赋予文物灵性...',
-            exclusiveText: '',
-            nameErrorMsg: '起个名字，让它真正属于你吧~',
-            awakenSuccess: '🎉 唤醒成功！',
-            youAwakened: '您唤醒了：',
-            generateCard: '带TA回家',
-            cardGenerated: '缘分已定，TA现在归你了',
-            saveQrHint: '长按保存，让TA永远陪伴你',
-            arPhoto: '📸 与TA合影',
-            goBack: '↺ 返回',
-            backButton: '返回 ↩',
-            loadingAI: '正在加载灵觉模型...',
-            loadingCamera: '正在开启现实之眼...',
-            photoSavedToast: '照片已保存至相册',
-            videoSavedToast: '灵境影像录制成功',
-            videoRecordingToast: '正在记录灵动瞬间...',
-            camSwitchedToast: '已切换至 {camType}',
-            camTypeFront: '前置镜头',
-            camTypeBack: '后置镜头',
-            resetPosToast: '模型已归位',
-            arGestureOn: '✋ 手势开启',
-            arGestureOff: '🚫 手势关闭',
-            gestureOnToast: '手势识别已启动',
-            gestureOffToast: '手势识别已关闭',
-            infoBtnText: '经历', 
-            exitAr: '❌ 退出',
-            arHelp: '❓ 帮助',
-            arMirror: '🔁 镜像',
-            arReset: '📍 归位',
-            arSwitchCam: '🔄 切换镜头',
-            arPhotoBtn: '📷 拍照',
-            arVideoBtn: '🎥 录像',
-            qrSaveHint: '长按二维码保存专属名片',
-            arTitle: 'AR 互动指南',
-            arInst1: '单指跟随：伸出食指，模型将跟随您的指尖。',
-            arInst2: '张开手掌：放大模型。',
-            arInst3: '握紧拳头：缩小模型。',
-            arInst4: '"V"字手势：顺时针旋转30°。',
-            arInst5: '三指手势：逆时针旋转30°。',
-            arBtnStart: '开启奇妙之旅',
-            arBtnClose: '返回'
-        },
-        'en': {
-            docTitle: 'Digital Hunan · Spirit Realm',
-            coverTitle: 'Ancient Spirits<br>Await Your Call',
-            blindBoxBtn: 'Open Mystery Box',
-            galleryBtn: 'Gallery',
-            namingPlaceholder: 'Give it a name~',
-            awakeningTitle: 'Awakening the Spirit...',
-            awakenLog1: 'Analyzing history...',
-            awakenLog2: 'Shaping the form...',
-            awakenLog3: 'Granting spirituality...',
-            awakenSuccess: '🎉 Awakening Success!',
-            youAwakened: 'You awakened: ',
-            generateCard: 'Bring TA Home',
-            exclusiveText: '',
-            nameErrorMsg: 'Please give it a name!',
-            cardGenerated: 'The pact is sealed!',
-            saveQrHint: 'Long press to keep TA forever',
-            arPhoto: '📸 Take a Photo',
-            goBack: '↺ Back',
-            backButton: 'Back ↩',
-            loadingAI: 'Loading AI eyes...',
-            loadingCamera: 'Opening Camera...',
-            photoSavedToast: 'Photo saved!',
-            videoSavedToast: 'Video recorded!',
-            videoRecordingToast: 'Recording moments...',
-            camSwitchedToast: 'Switched to {camType}',
-            camTypeFront: 'Front Cam',
-            camTypeBack: 'Rear Cam',
-            resetPosToast: 'Position Reset',
-            arGestureOn: '✋ Gestures ON',
-            arGestureOff: '🚫 Gestures OFF',
-            gestureOnToast: 'Gestures enabled',
-            gestureOffToast: 'Gestures disabled',
-            infoBtnText: 'Story', 
-            exitAr: '❌ Exit',
-            arHelp: '❓ Help',
-            arMirror: '🔁 Mirror',
-            arReset: '📍 Reset',
-            arSwitchCam: '🔄 Switch Cam',
-            arPhotoBtn: '📷 Photo',
-            arVideoBtn: '🎥 Video',
-            qrSaveHint: 'Long press QR code to save',
-            arTitle: 'AR Guide',
-            arInst1: 'Point with finger: Your finger controls the model.',
-            arInst2: 'Open palm: Enlarge the model.',
-            arInst3: 'Closed fist: Shrink the model.',
-            arInst4: 'V gesture: Rotate 30° clockwise.',
-            arInst5: 'Three fingers: Rotate 30° counter-clockwise.',
-            arBtnStart: 'Start AR Experience',
-            arBtnClose: 'Back'
-        },
-        'ja': {
-            docTitle: 'デジタル湖南 · 霊境',
-            coverTitle: '古き遺物に霊あり<br>知音を待つ',
-            blindBoxBtn: 'ボックスを引く',
-            galleryBtn: '図鑑',
-            namingPlaceholder: '名前をつけてあげてて~',
-            awakeningTitle: '霊を呼び覚ましています...',
-            awakenLog1: '歴史を分析中...',
-            awakenLog2: '姿を描いています...',
-            awakenLog3: '霊性を付与中...',
-            awakenSuccess: '🎉 覚醒成功！',
-            youAwakened: 'あなたが呼び覚ましたのは：',
-            generateCard: '連れて帰る',
-            exclusiveText: '',
-            nameErrorMsg: '名前を付けてください！',
-            cardGenerated: '契約が結ばれました！',
-            saveQrHint: '長押しして保存する',
-            arPhoto: '📸 一緒に写真を撮る',
-            goBack: '↺ 戻る',
-            backButton: '戻る ↩',
-            loadingAI: 'AIを読み込み中...',
-            loadingCamera: 'カメラを起動中...',
-            photoSavedToast: '保存しました',
-            videoSavedToast: '動画を保存しました',
-            videoRecordingToast: '録画中...',
-            camSwitchedToast: '{camType}に切り替えました',
-            camTypeFront: 'フロントカメラ',
-            camTypeBack: 'メインカメラ',
-            resetPosToast: '位置を戻しました',
-            arGestureOn: '✋ ジェスチャーON',
-            arGestureOff: '🚫 ジェスチャーOFF',
-            gestureOnToast: '起動しました',
-            gestureOffToast: '停止しました',
-            infoBtnText: '経歴', 
-            exitAr: '❌ 終了',
-            arHelp: '❓ ヘルプ',
-            arMirror: '🔁 ミラー',
-            arReset: '📍 リセット',
-            arSwitchCam: '🔄 カメラ切替',
-            arPhotoBtn: '📷 撮影',
-            arVideoBtn: '🎥 録画',
-            qrSaveHint: 'QRコードを長押しして保存',
-            arTitle: 'AR ガイド',
-            arInst1: '一本指で指す：モデルが指に従います。',
-            arInst2: '手のひらを広げる：モデルを拡大します。',
-            arInst3: '拳を握る：モデルを縮小します。',
-            arInst4: 'V字ジェスチャー：時計回りに30°回転します。',
-            arInst5: '3本指ジェスチャー：反時計回りに30°回転します。',
-            arBtnStart: 'AR体験を開始',
-            arBtnClose: '戻る'
-        },
-        'de': {
-            docTitle: 'Digitales Hunan · Geisterreich',
-            coverTitle: 'Alte Geister<br>Warten auf dich',
-            blindBoxBtn: 'Überraschungsbox',
-            galleryBtn: 'Galerie',
-            namingPlaceholder: 'Geben Sie ihm einen Namen~',
-            awakeningTitle: 'Geist wird erweckt...',
-            awakenLog1: 'Geschichte analysieren...',
-            awakenLog2: 'Form gestalten...',
-            awakenLog3: 'Leben einhauchen...',
-            awakenSuccess: '🎉 Erwachen erfolgreich!',
-            youAwakened: 'Du hast erweckt: ',
-            generateCard: 'Mit nach Hause',
-            cardGenerated: 'Verbindung hergestellt!',
-            exclusiveText: '',
-            nameErrorMsg: 'Gib ihm einen Namen!',
-            saveQrHint: 'Gedrückt halten zum Speichern',
-            arPhoto: '📸 Foto machen',
-            goBack: '↺ Zurück',
-            backButton: 'Zurück ↩',
-            loadingAI: 'KI wird geladen...',
-            loadingCamera: 'Kamera startet...',
-            photoSavedToast: 'Foto gespeichert',
-            videoSavedToast: 'Video aufgenommen',
-            videoRecordingToast: 'Aufnahme läuft...',
-            camSwitchedToast: 'Kamera gewechselt: {camType}',
-            camTypeFront: 'Frontkamera',
-            camTypeBack: 'Hauptkamera',
-            resetPosToast: 'Position zurückgesetzt',
-            arGestureOn: '✋ Gesten AN',
-            arGestureOff: '🚫 Gesten AUS',
-            gestureOnToast: 'Gesten aktiviert',
-            gestureOffToast: 'Gesten deaktiviert',
-            infoBtnText: 'Historie', 
-            exitAr: '❌ Beenden',
-            arHelp: '❓ Hilfe',
-            arMirror: '🔁 Spiegeln',
-            arReset: '📍 Reset',
-            arSwitchCam: '🔄 Kamera',
-            arPhotoBtn: '📷 Foto',
-            arVideoBtn: '🎥 Video',
-            qrSaveHint: 'QR-Code drücken zum Speichern',
-            arTitle: 'AR Anleitung',
-            arInst1: 'Mit Finger zeigen: Das Modell folgt Ihrem Finger.',
-            arInst2: 'Handfläche öffnen: Modell vergrößern.',
-            arInst3: 'Faust ballen: Modell verkleinern.',
-            arInst4: 'V-Geste: Um 30° im Uhrzeigersinn drehen.',
-            arInst5: 'Drei-Finger-Geste: Um 30° gegen den Uhrzeigersinn drehen.',
-            arBtnStart: 'AR-Erlebnis starten',
-            arBtnClose: 'Zurück'
-        }
-    };
-    const ZONE_CONFIG = {
-        "博物馆": { 
-            models: [ 
-                "modell/1_soft.glb", "modell/2_soft.glb", "modell/3_soft.glb", "modell/4_soft.glb"
-            ] 
-        },
-        "默认": { models: [ "modell/1_soft.glb" ] }
-    };
-    // === 花名册 ===
-    const MODEL_NAME_MAP = {
-       "modell/1_soft.glb": "皿方罍",
-        "modell/2_soft.glb": "皿方罍",
-        "modell/3_soft.glb": "皿方罍",
-        "modell/4_soft.glb": "皿方罍",
-    };
-    
-    function getChineseNameFromPath(path) {
-        return MODEL_NAME_MAP[path] || "神秘文物";
+    'zh': {
+        pageTitle: 'AI文物探索',
+        headerTitle: '🏛️文物秘语',
+        loadingArtifact: '文物出库中...',
+        inputPlaceholder: '请在此输入您的对话...',
+        sendButton: '发送',
+        initialMessage: '有兴趣和我一起聊聊天吗,我定知无不言、言无不尽...',
+        undoButton: '↩️ 撤回',
+        retryButton: '🔄 重试',
+        clearButton: '🗑️ 清空',
+        saveButton: '💾 保存',
+        clearModalTitle: '⚠️ 警告：记忆消除',
+        clearModalPrompt: '您即将清空与文物的对话记录。',
+        clearModalInstruction: '为了确认您的操作，请输入：',
+        clearModalConfirmText: '确认清空',
+        modalCancel: '取消',
+        modalConfirm: '强制执行',
+        thinking: '思考中...', 
+        langToggle: 'Switch to English',
+        connectionError: '连接断开 (请检查 server.py)'
+    },
+    'en': {
+        pageTitle: 'AI Artifact Explorer',
+        headerTitle: 'Artifact Secrets',
+        loadingArtifact: 'Loading artifact...',
+        inputPlaceholder: 'Type your message here...',
+        sendButton: 'Send',
+        initialMessage: 'Would you like to have a chat with me? I will tell you everything I know...',
+        undoButton: '↩️ Undo',
+        retryButton: '🔄 Retry',
+        clearButton: '🗑️ Clear',
+        saveButton: '💾 Save',
+        clearModalTitle: '⚠️ WARNING: Memory Wipe',
+        clearModalPrompt: 'You are about to clear the conversation history with the artifact.',
+        clearModalInstruction: 'To confirm this action, please type:',
+        clearModalConfirmText: 'Confirm Clear',
+        modalCancel: 'Cancel',
+        modalConfirm: 'Execute',
+        langToggle: '切换为中文',
+        thinking: 'Thinking...',
+        connectionError: 'Connection lost (please check server.py)'
+    },
+    'de': { // ✨ 新增：德语 (完整版)
+        pageTitle: 'KI Artefakt-Explorer',
+        headerTitle: 'Artefakt-Geheimnisse',
+        loadingArtifact: 'Artefakt wird geladen...',
+        inputPlaceholder: 'Nachricht hier eingeben...',
+        sendButton: 'Senden',
+        initialMessage: 'Möchtest du mit mir plaudern? Ich werde dir alles erzählen, was ich weiß...',
+        undoButton: '↩️ Rückgängig',
+        retryButton: '🔄 Wiederholen',
+        clearButton: '🗑️ Leeren',
+        saveButton: '💾 Speichern',
+        clearModalTitle: '⚠️ WARNUNG: Gedächtnis löschen',
+        clearModalPrompt: 'Du bist dabei, den Gesprächsverlauf mit dem Artefakt zu löschen.',
+        clearModalInstruction: 'Zur Bestätigung bitte eingeben:',
+        clearModalConfirmText: 'Löschen bestätigen',
+        modalCancel: 'Abbrechen',
+        modalConfirm: 'Endgültig löschen',
+        langToggle: 'zu Chinesisch wechseln',
+        thinking: 'Denkt nach...', // ✨ 新增
+        connectionError: 'Verbindung unterbrochen (bitte server.py prüfen)'
+    },
+    'ja': { // ✨ 新増：日語 (完整版)
+        pageTitle: 'AIアーティファクト探索',
+        headerTitle: 'アーティファクトの秘密',
+        loadingArtifact: 'アーティファクトを読み込み中...',
+        inputPlaceholder: 'ここにメッセージを入力...',
+        sendButton: '送信',
+        initialMessage: '私とチャットしませんか？知っていることは何でもお話しします...',
+        undoButton: '↩️ 元に戻す',
+        retryButton: '🔄 再試行',
+        clearButton: '🗑️ クリア',
+        saveButton: '💾 保存',
+        clearModalTitle: '⚠️ 警告：記憶消去',
+        clearModalPrompt: 'アーティファクトとの対話履歴を消去しようとしています。',
+        clearModalInstruction: 'この操作を確定するには、次のように入力してください：',
+        clearModalConfirmText: '消去を確定',
+        modalCancel: 'キャンセル',
+        modalConfirm: '実行',
+        langToggle: '中国語に切り替え',
+        thinking: '考え中...', 
+        connectionError: '接続が切れました (server.py を確認してください)'
     }
-    
-    let selectedModelPath = "";
-    let currentArtifactName = ""; // 系统定义的前缀名
-    let isDragging = false;
-    let raycaster;
-    let isGestureRecognitionActive = true; // 默认开启手势识别
-    let currentFacingMode = 'environment';   // 默认是后置摄像头
-    const pointer = new THREE.Vector2();
-    const dragPlane = new THREE.Plane();
-    const intersection = new THREE.Vector3();
-    const offset = new THREE.Vector3();
-    let scene, camera, renderer, model, animationId;
-    let controls; // 轨道控制器
-    let lastRotationAngle = null; 
-    let arStreamObj = null, isMirrored = false;
-    let handLandmarker = undefined;
-    let lastVideoTime = -1, isAiRunning = false, aiLoadFailed = false;
-    let statusTimer = null;
-    let mediaRecorder = null, recordedChunks = [], isRecording = false,recorderAnimationId = null;
-    window.gotoPage = function(id) {
-        document.querySelectorAll('section, div.full-page').forEach(el => el.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-    }
+};
+function updateLanguage(lang) {
+    // 查找页面上所有包含 "data-lang-zh" 属性的元素
+    // 我们使用 'zh' 作为基准，假设所有可翻译元素都至少有中文版
+    const elementsToTranslate = document.querySelectorAll('[data-lang-zh]');
 
-    // 确保 video 元素引用正确
-    const videoElement = document.getElementById('bgVideo'); 
-    const arPhotoBtn = document.getElementById('arPhotoBtn');
-    let arModeActive = true; // 你的 AR 模式状态变量，原文件里可能已有
-
-    //======================手势识别与拍照逻辑===================================================================================
-    // 拍照功能
-    function takePhoto() {
-        if (!arModeActive || !videoElement.srcObject) {
-            alert('请先进入AR模式并允许摄像头');
-            return;
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = videoElement.videoWidth;
-        canvas.height = videoElement.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-
-        // 生成下载
-        const dataURL = canvas.toDataURL('image/png');
-        const a = document.createElement('a');
-        a.href = dataURL;
-        a.download = 'AR_Photo.png';
-        a.click();
-
-        alert('📸 照片已保存');
-    }
-
-    // 按钮绑定事件
-    arPhotoBtn.addEventListener('click', takePhoto);
-//===============================================================================================
-    function switchLanguage(lang) {
-        const t = translations[lang] || translations.zh;
-        currentLang = lang;
-
-        // 给 body 贴标签，方便 CSS 调整不同语言的排版
-        document.body.setAttribute('lang', lang);
-
-        localStorage.setItem('app_language', lang);
-
-        const coverTitle = document.querySelector('.cover-title');
-        if (coverTitle) {
-            coverTitle.innerHTML = t.coverTitle; 
-        }
-
-        const nameInput = document.getElementById('mascotNameInput');
-        if (nameInput) {
-            nameInput.placeholder = t.namingPlaceholder;
-        }
-
-        const elementsToTranslate = {
-            '#mapPage .instructions-btn': 'blindBoxBtn',
-            '#galleryBtn': 'galleryBtn',
-            '.ai-title': 'awakeningTitle', 
-            '.congrats-title': 'awakenSuccess',
-            '.btn-confirm': 'generateCard', 
-            '.btn-ar': 'arPhoto', 
-            '.btn-back': 'goBack',
-            '#infoBtn': 'infoBtnText',
-            '#infoBtnAction': 'infoBtnText',
-            '#back-to-index-btn': 'backButton',
-            '#actionSection p[style*="font-size:10px"]': 'saveQrHint',
-            '#actionSection p[style*="font-size:12px"]': 'exclusiveText', // 对应“专属于你”
-            '#nameErrorMsg': 'nameErrorMsg',
-            '#arInstructions h2': 'arTitle', 
-            '#arExitBtn': 'exitAr', 
-            '#arHelpBtn': 'arHelp',
-            '#arMirrorBtn': 'arMirror', 
-            '#arResetBtn': 'arReset',
-            '#arSwitchCameraBtn': 'arSwitchCam', 
-            '#arPhotoBtn': 'arPhotoBtn',
-            '#arVideoBtn': 'arVideoBtn'
-        };
-
-        for (const selector in elementsToTranslate) {
-            const el = document.querySelector(selector);
-            if (el) el.innerText = t[elementsToTranslate[selector]] || '';
-        }
-
-        // 处理所有带有 data-lang-key 属性的元素
-        const langKeyElements = document.querySelectorAll('[data-lang-key]');
-        langKeyElements.forEach(el => {
-            const key = el.getAttribute('data-lang-key');
-            if (t[key]) el.innerText = t[key];
-        });
-
-        const youAwakenedEl = document.querySelector('#namingSection p');
-        if (youAwakenedEl) {
-            youAwakenedEl.innerHTML = `${t.youAwakened}<span id="artifactNameDisplay" style="color:#fff;font-weight:bold;font-size:18px;">${currentArtifactName || ''}</span>`;
-        }
-
-        const instructionsList = document.querySelectorAll('#arInstructions li');
-        if (instructionsList.length > 0 && t.arInst1) {
-            instructionsList[0].innerHTML = `<span class="icon">☝️</span>${t.arInst1}`;
-            instructionsList[1].innerHTML = `<span class="icon">🖐️</span>${t.arInst2}`;
-            instructionsList[2].innerHTML = `<span class="icon">✊</span>${t.arInst3}`;
-            instructionsList[3].innerHTML = `<span class="icon">✌️</span>${t.arInst4}`;
-            instructionsList[4].innerHTML = `<span class="icon">🤟</span>${t.arInst5}`;
-        }
-
-        const arInstBtn = document.querySelector('#arInstructions .instructions-btn');
-        if (arInstBtn && arInstBtn.innerText !== t.arBtnClose) {
-            arInstBtn.innerText = t.arBtnStart;
-        }
+    elementsToTranslate.forEach(element => {
+        // 构建当前语言对应的 data 属性名，例如 "data-lang-en"
+        const attributeName = `data-lang-${lang}`;
         
-        const gestureBtn = document.getElementById('arToggleGestureBtn');
-        if (gestureBtn) {
-            gestureBtn.innerText = isGestureRecognitionActive ? t.arGestureOn : t.arGestureOff;
-        }
-        const backBtn = document.getElementById('back-to-index-btn');
-        if (backBtn) {
-            backBtn.href = `index.html?lang=${lang}`;
-        }
-    } 
+        // 从元素的 data 属性中获取翻译文本
+        const translatedText = element.getAttribute(attributeName);
 
-    window.addEventListener('load', () => {
-        const langSelect = document.getElementById('lang-select');
-        if (langSelect) {
-            langSelect.addEventListener('change', (event) => {
-                switchLanguage(event.target.value);
-            });
+        if (translatedText) {
+            // 如果找到了翻译，则更新元素的显示文本
+            element.innerText = translatedText;
         }
-
-        const sparkleContainer = document.getElementById('sparkles-container');
-        if (sparkleContainer) {
-            const numSparkles = 50;
-            for (let i = 0; i < numSparkles; i++) {
-                const sparkle = document.createElement('div');
-                sparkle.className = 'sparkle';
-                const size = Math.random() * 5 + 2;
-                sparkle.style.width = `${size}px`;
-                sparkle.style.height = `${size}px`;
-                sparkle.style.left = `${Math.random() * 100}%`;
-                sparkle.style.animationDelay = `${Math.random() * 10}s`;
-                sparkle.style.animationDuration = `${Math.random() * 5 + 8}s`;
-                sparkleContainer.appendChild(sparkle);
-            }
-        }
-
-        const params = new URLSearchParams(window.location.search);
-        const m = params.get('m');
-        const n = params.get('n');
-        if (m && n) {
-            document.body.classList.add('share-mode');
-            selectedModelPath = decodeURIComponent(m);
-            const fullName = decodeURIComponent(n);
-            window.gotoPage('mascotPage');
-            document.getElementById('namingSection').style.display = 'none';
-            document.getElementById('actionSection').style.display = 'block';
-            document.getElementById('finalNameDisplay').innerText = `✨ ${fullName} ✨`;
-            showMascot(false);
-
-            const infoBtnAction = document.getElementById('infoBtnAction');
-            if (infoBtnAction) {
-                infoBtnAction.onclick = openInfoModal;
-            }
-        }
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        let savedLang = urlParams.get('lang') || localStorage.getItem('app_language') || 'zh';
-
-        if (!translations[savedLang]) {
-            savedLang = 'zh';
-        }
-
-        if (langSelect) {
-            langSelect.value = savedLang;
-        }
-
-        switchLanguage(savedLang);
     });
-    window.startBlindBoxFlow = function() {
-        let matchedKey = "博物馆"; 
-        const pool = ZONE_CONFIG[matchedKey].models;
-        selectedModelPath = (pool && pool.length > 0) ? pool[Math.floor(Math.random() * pool.length)] : ZONE_CONFIG["默认"].models[0];
-        currentArtifactName = getChineseNameFromPath(selectedModelPath);
-        window.gotoPage('aiPage');
-        runAIProgress();
-    }
-    function runAIProgress() {
-        const bar = document.getElementById('aiBar');
-        const log = document.getElementById('aiLog');
-        const lang = document.getElementById('lang-select').value || 'zh'; 
-        const t = translations[lang];
-
-        bar.style.width = "0%";
-        log.innerText = t.awakenLog1; 
-        let width = 0;
-        const timer = setInterval(() => {
-            width += Math.random() * 4;
-            if (width > 30 && width < 60) log.innerText = t.awakenLog2; 
-            if (width > 60 && width < 90) log.innerText = t.awakenLog3; 
-            if (width >= 100) {
-                clearInterval(timer);
-                log.innerText = t.awakenSuccess; 
-                setTimeout(showResult, 500);
-            }
-            bar.style.width = width + "%";
-        }, 80);
-    }
-    function showResult() {
-        window.gotoPage('mascotPage');
-        
-        document.getElementById('mascotPage').classList.add('naming-active');
-        
-        setupInputListeners(); 
-
-        document.getElementById('namingSection').style.display = 'block';
-        document.getElementById('actionSection').style.display = 'none';
-        document.getElementById('artifactNameDisplay').innerText = currentArtifactName;
-        
-        const nameInput = document.getElementById('mascotNameInput');
-        if(nameInput) nameInput.value = '';
-        
-        const errorMsg = document.getElementById('nameErrorMsg');
-        if(errorMsg) errorMsg.style.opacity = '0';
-
-        document.getElementById('generatedQr').style.display = 'none';
-        document.getElementById('generatedQr').src = "";
-        
-        showMascot(false);
-    }
-
-function setupInputListeners() {
-        const nameInput = document.getElementById('mascotNameInput');
-        const mascotPage = document.getElementById('mascotPage');
-        const wrap = document.getElementById("mascotCanvasWrap");
-
-        if (nameInput) {
-            // ★ 杀手锏：真正的移动端检测（直接识别操作系统），避免 PC 窄屏被误判
-            const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-            // --- 聚焦：仅在真实手机上触发画布缩小 ---
-            nameInput.addEventListener('focus', () => {
-                if (isMobileDevice) {
-                    mascotPage.classList.add('input-focused');
-                    
-                    // 模型稍微下沉，防止画布变矮后头被切掉
-                    if(model) {
-                        model.position.y -= 0.8; 
-                    }
-
-                    setTimeout(() => {
-                        if (renderer && camera) {
-                            camera.aspect = wrap.clientWidth / wrap.clientHeight;
-                            camera.updateProjectionMatrix();
-                            renderer.setSize(wrap.clientWidth, wrap.clientHeight);
-                        }
-                    }, 300); 
-                }
-            });
-
-            // --- 失焦：仅在真实手机上恢复原状 ---
-            nameInput.addEventListener('blur', () => {
-                if (isMobileDevice) {
-                    mascotPage.classList.remove('input-focused');
-                    
-                    // 模型位置复原
-                    if(model) {
-                        model.position.y += 0.8; 
-                    }
-
-                    setTimeout(() => {
-                        if (renderer && camera) {
-                            camera.aspect = wrap.clientWidth / wrap.clientHeight;
-                            camera.updateProjectionMatrix();
-                            renderer.setSize(wrap.clientWidth, wrap.clientHeight);
-                        }
-                    }, 300);
-                }
-            });
-        }
-    }
-
-    window.confirmModelName = function() {
-        const nameInput = document.getElementById('mascotNameInput');
-        const customName = nameInput ? nameInput.value.trim() : '';
-        
-        if (!customName) {
-            document.getElementById('nameErrorMsg').style.opacity = '1';
-            return; 
-        }
-
-        const finalFullName = `${currentArtifactName} · ${customName}`;
-        
-        document.getElementById('mascotPage').classList.remove('naming-active');
-        
-        // 动态调整画布尺寸以匹配容器
-        const wrap = document.getElementById("mascotCanvasWrap");
-        if(renderer && camera) {
-            camera.aspect = wrap.clientWidth / wrap.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(wrap.clientWidth, wrap.clientHeight);
-        }
-        
-        document.getElementById('namingSection').style.display = 'none';
-        document.getElementById('actionSection').style.display = 'block';
-        document.getElementById('finalNameDisplay').innerText = `✨ ${finalFullName} ✨`;
-        
-        const baseUrl = window.location.href.split('?')[0];
-        const shareUrl = `${baseUrl}?m=${encodeURIComponent(selectedModelPath)}&n=${encodeURIComponent(finalFullName)}`;
-        
-        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
-        const qrImg = document.getElementById('generatedQr');
-        qrImg.src = qrApiUrl;
-        qrImg.onload = () => { qrImg.style.display = "block"; };
-    }
-    window.backToMap = function() {
-        cleanUpThreeJS(); 
-        window.location.href = `index.html?lang=${currentLang}`;
-    }
-
-    // === THREE.js & AR Logic ===
-    async function loadAiModels() {
-        if (handLandmarker) return true;
-        if (aiLoadFailed) return false;
-        showLoading(true, 'loadingAI');
-        try {
-            const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
-            if (!handLandmarker) {
-                handLandmarker = await HandLandmarker.createFromOptions(vision, {
-                    baseOptions: { modelAssetPath: "./hand_landmarker.task", delegate: "GPU", modelComplexity: 0 },
-                    runningMode: "VIDEO",
-                    numHands: 1
-                });
-            }
-            return true;
-        } catch (error) {
-            aiLoadFailed = true;
-            alert("⚠️ AI模型加载失败！\n(已自动切换为手动模式)");
-            showLoading(false);
-            return false;
-        }
-    }
-    window.enterARMode = async function() {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            alert("⚠️ 请使用 HTTPS 或 Localhost。"); return;
-        }
-        const modelsLoaded = await loadAiModels();
-        if (!modelsLoaded) { showLoading(false); return; }
-        
-        showLoading(false);
-        const btn = document.querySelector('#arInstructions .instructions-btn');
-        const t = translations[currentLang] || translations.zh; 
-        btn.textContent = t.arBtnStart; 
-        btn.onclick = startArExperience;
-        document.getElementById('arInstructions').style.display = 'flex';
-    }
-    window.startArExperience = async function() {
-        document.getElementById('arInstructions').style.display = 'none';
-        showLoading(true, 'loadingCamera');
-        try {
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            if (isMobile) {
-            document.body.classList.add('mobile-device');
-            }
-            document.getElementById('arSwitchCameraBtn').style.display = isMobile ? 'flex' : 'none';
-            currentFacingMode = isMobile ? 'environment' : 'user';
-            
-            let videoConstraints;
-            if (isMobile) {
-                videoConstraints = { facingMode: { exact: currentFacingMode }, width: { ideal: 640 }, height: { ideal: 480 } };
-            } else {
-                videoConstraints = { width: { ideal: 640 }, height: { ideal: 480 } };
-                if (!isMirrored) { toggleMirror(); } 
-            }
-            try {
-                arStreamObj = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
-            } catch (e) {
-                console.warn("请求指定摄像头失败，尝试备用方案...", e);
-                currentFacingMode = 'user'; 
-                arStreamObj = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            }
-            
-            const bgVideo = document.getElementById('bgVideo');
-            bgVideo.srcObject = arStreamObj;
-            bgVideo.style.display = "block";
-            await bgVideo.play();
-            
-            showMascot(true);
-            document.body.classList.add('ar-mode-global');
-            document.getElementById('mascotPage').classList.add('ar-mode-active');
-            document.getElementById('arControls').style.display = 'block';
-            
-            raycaster = new THREE.Raycaster();
-            const domElement = renderer.domElement;
-            domElement.addEventListener('pointerdown', onDragStart);
-            domElement.addEventListener('pointermove', onDragMove);
-            domElement.addEventListener('pointerup', onDragEnd);
-            domElement.addEventListener('pointercancel', onDragEnd);
-            isAiRunning = true;
-            isGestureRecognitionActive = true; 
-            const gestureBtn = document.getElementById('arToggleGestureBtn');
-            gestureBtn.classList.add('active-yellow'); 
-            predictWebcam();
-            showTempStatus("探索AR模式已开启");
-        } catch (err) {
-            alert("相机启动失败！\n\n错误信息: " + err.message + "\n\n请确认：\n1. 您已授权浏览器使用摄像头。\n2. 摄像头没有被其他程序占用。");
-            exitARMode();
-        } finally {
-            showLoading(false);
-        }
-    }
-    window.showArInstructions = function() {
-        const btn = document.querySelector('#arInstructions .instructions-btn');
-        const t = translations[currentLang] || translations.zh;
-        btn.textContent = t.arBtnClose; 
-        btn.onclick = () => { document.getElementById('arInstructions').style.display = 'none'; };
-        document.getElementById('arInstructions').style.display = 'flex';
-    }
-    async function predictWebcam() {
-        if (!isAiRunning) return;
-        if (!isGestureRecognitionActive) {
-            requestAnimationFrame(predictWebcam); 
-            return; 
-        }
-        const video = document.getElementById('bgVideo');
-        if (video.readyState >= 2) {
-            let startTimeMs = performance.now();
-            if (video.currentTime !== lastVideoTime) {
-                lastVideoTime = video.currentTime;
-                if (!aiLoadFailed && handLandmarker) {
-                    const handResult = handLandmarker.detectForVideo(video, startTimeMs);
-                    if (handResult.landmarks && handResult.landmarks.length > 0) {
-                        handleHandGestures(handResult.landmarks[0]);
-                    }
-                }
-            }
-        }
-        requestAnimationFrame(predictWebcam);
-    }
-function handleHandGestures(landmarks) {
-    if (isDragging) return;
-    
-    if (!model || !landmarks || landmarks.length === 0) {
-        lastRotationAngle = null; 
-        return;
-    }
-    const [wrist, thumb_cmc, thumb_mcp, thumb_ip, thumb_tip, index_mcp, index_pip, index_dip, index_tip, middle_mcp, middle_pip, middle_dip, middle_tip, ring_mcp, ring_pip, ring_dip, ring_tip, pinky_mcp, pinky_pip, pinky_dip, pinky_tip] = landmarks;
-    const isIndexStraight = index_tip.y < index_pip.y;
-    const isMiddleStraight = middle_tip.y < middle_pip.y;
-    const isRingStraight = ring_tip.y < ring_pip.y;
-    const isPinkyStraight = pinky_tip.y < pinky_pip.y;
-    const straightFingers = [isIndexStraight, isMiddleStraight, isRingStraight, isPinkyStraight].filter(Boolean).length;
-    if (straightFingers === 0) { 
-        if (model.scale.x > 0.4) model.scale.multiplyScalar(0.98); 
-        showTempStatus("✊ 缩小");
-        lastRotationAngle = null;
-    } 
-    else if (straightFingers === 1 && isIndexStraight) { 
-        let x = index_tip.x * 2 - 1;
-        if (isMirrored) x = -x;  
-        const y = -(index_tip.y * 2 - 1);
-        
-        const vec = new THREE.Vector3(x, y, 0.5);
-        vec.unproject(camera);
-        const dir = vec.sub(camera.position).normalize();
-        const newPos = camera.position.clone().add(dir.multiplyScalar(3));
-        
-        model.position.lerp(newPos, 0.05);
-        showTempStatus("☝️ 贴近");
-        lastRotationAngle = null;
-    } else if (straightFingers === 2 && isIndexStraight && isMiddleStraight) { 
-        if (lastRotationAngle === null) {
-            model.rotation.y -= Math.PI / 6; 
-            showTempStatus("✌️ 顺时针旋转30°");
-            lastRotationAngle = 1;
-        }
-    } else if (straightFingers === 3 && isIndexStraight && isMiddleStraight && isRingStraight) { 
-        if (lastRotationAngle === null) {
-            model.rotation.y += Math.PI / 6;
-            showTempStatus("🤟 逆时针旋转30°");
-            lastRotationAngle = 1;
-        }
-    } else if (straightFingers === 4) { 
-        if (model.scale.x < 2.5) model.scale.multiplyScalar(1.02);
-        showTempStatus("🖐️ 放大");
-        lastRotationAngle = null;
-    } else { 
-        lastRotationAngle = null;
-    }
 }
-    function showTempStatus(text) {
-        const el = document.getElementById('aiStatus');
-        el.innerText = text; el.style.opacity = '1';
-        if(statusTimer) clearTimeout(statusTimer);
-        statusTimer = setTimeout(() => { el.style.opacity = '0'; }, 3000);
+
+// ✨ 新增：根据语言更新所有 UI 文本的函数
+function updateUIText(lang) {
+    if (!translations[lang]) return;
+
+    const t = translations[lang];
+
+    // 更新页面标题
+    document.title = t.pageTitle;
+
+    // 更新 Header
+    const headerH1 = document.querySelector('header h1');
+    if (headerH1) headerH1.innerText = t.headerTitle;
+
+    // 更新 Loading 提示
+    const loadingEl = document.getElementById('loading-overlay');
+    if (loadingEl) loadingEl.innerText = t.loadingArtifact;
+
+    // 更新输入框和发送按钮
+    const userInput = document.getElementById('user-input');
+    if (userInput) userInput.placeholder = t.inputPlaceholder;
+
+    const sendBtn = document.getElementById('send-btn');
+    if (sendBtn) sendBtn.innerText = t.sendButton;
+
+    // 更新底部控制栏按钮
+    const undoBtn = document.getElementById('undo-btn');
+    if (undoBtn) undoBtn.innerText = t.undoButton;
+
+    const retryBtn = document.getElementById('retry-btn');
+    if (retryBtn) retryBtn.innerText = t.retryButton;
+
+    const clearBtn = document.getElementById('clear-btn');
+    if (clearBtn) clearBtn.innerText = t.clearButton;
+
+    const saveBtn = document.getElementById('save-btn');
+    if (saveBtn) saveBtn.innerText = t.saveButton;
+
+    // 更新清空确认弹窗
+    const clearModalH3 = document.querySelector('#clear-modal h3');
+    if (clearModalH3) clearModalH3.innerText = t.clearModalTitle;
+
+    const modalPs = document.querySelectorAll('#clear-modal p');
+    if (modalPs[0]) modalPs[0].innerText = t.clearModalPrompt;
+    if (modalPs[1]) modalPs[1].innerHTML = `${t.clearModalInstruction}<br><span class="highlight-text">${t.clearModalConfirmText}</span>`;
+
+    const cancelClear = document.getElementById('cancel-clear');
+    if (cancelClear) cancelClear.innerText = t.modalCancel;
+
+    const confirmClear = document.getElementById('confirm-clear');
+    if (confirmClear) confirmClear.innerText = t.modalConfirm;
+
+    // 更新聊天历史中的初始消息（如果存在）
+    const initialMsgEl = document.querySelector('.system-msg');
+    if (initialMsgEl && chatHistory.length === 0) {
+        initialMsgEl.innerText = t.initialMessage;
     }
-    window.toggleGestureRecognition = function() {
-        isGestureRecognitionActive = !isGestureRecognitionActive; 
-        const btn = document.getElementById('arToggleGestureBtn');
-        const t = translations[currentLang]; 
-        
-        if (isGestureRecognitionActive) {
-            btn.classList.add('active-yellow'); 
-            btn.innerText = t.arGestureOn; 
-            showTempStatus(t.gestureOnToast); 
-        } else {
-            btn.classList.remove('active-yellow'); 
-            btn.innerText = t.arGestureOff; 
-            showTempStatus(t.gestureOffToast);
-        }
+
+    // 更新全局语言状态
+    currentLang = lang;
+    localStorage.setItem('app_language', lang);
+    updateLanguage(lang);
+}
+
+let scene, camera, renderer, controls, model;
+
+// 核心：在前端维护对话历史 [{role: 'user', content: '...'}, ...]
+let chatHistory = []; 
+
+// 批量删除模式的状态变量
+let isInSelectionMode = false;
+let selectedMessages = new Set(); // 存储被选中的“单个”消息的索引
+let longPressTimer = null;
+const LONG_PRESS_DURATION = 500; // 500ms 定义为长按
+
+// ================= 3D 渲染部分 =================
+function init3D() {
+    const container = document.getElementById('canvas-container');
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera.position.set(0, 1.5, 5);
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    container.appendChild(renderer.domElement);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 6.0;
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const dirLight = new THREE.DirectionalLight(0xffedd0, 1.5);
+    dirLight.position.set(5, 5, 5);
+    scene.add(dirLight);
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+}
+
+function loadModel(modelPath) {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    loadingOverlay.style.display = 'block';
+    const loader = new THREE.GLTFLoader();
+
+    loader.setMeshoptDecoder(MeshoptDecoder);
+
+    if (model) {
+        scene.remove(model);
     }
-    window.toggleMirror = function() {
-        isMirrored = !isMirrored;
-        const v = document.getElementById('bgVideo');
-        const t = translations[currentLang] || translations.zh; 
-        if (isMirrored) { 
-            v.classList.add('mirrored'); 
-            showTempStatus(t.mirrorOnToast); 
-        } else { 
-            v.classList.remove('mirrored'); 
-            showTempStatus(t.mirrorOffToast); 
-        }
-    }
-    window.resetModelPos = function() {
-        if(model) {
-            model.position.set(0, -0.5, -3); 
-            model.rotation.y = Math.PI + (Math.PI / 2); 
-            
+
+    loader.load(
+        modelPath,
+        function (gltf) {
+            model = gltf.scene;
+
+            // 自动缩放和居中
             const box = new THREE.Box3().setFromObject(model);
             const size = box.getSize(new THREE.Vector3());
-            const s = 1.5 / Math.max(size.x, size.y, size.z);
-            model.scale.set(s,s,s);
-            
-            if (controls) controls.reset();
-            showTempStatus(translations[currentLang].resetPosToast);
-        }
-    }
-    window.exitARMode = function() {
-    isAiRunning = false;
-    document.body.classList.remove('ar-mode-global');
-    if (arStreamObj) arStreamObj.getTracks().forEach(track => track.stop());
-    arStreamObj = null;
-    document.body.classList.remove('mobile-device');
-    
-    if (renderer) {
-        const domElement = renderer.domElement;
-        domElement.removeEventListener('pointerdown', onDragStart);
-        domElement.removeEventListener('pointermove', onDragMove);
-        domElement.removeEventListener('pointerup', onDragEnd);
-        domElement.removeEventListener('pointercancel', onDragEnd);
-    }
-    document.getElementById('bgVideo').style.display = "none";
-    document.getElementById('mascotPage').classList.remove('ar-mode-active');
-    document.getElementById('arControls').style.display = 'none';
-    showMascot(false);
-}
-    function cleanUpThreeJS() {
-        if (animationId) cancelAnimationFrame(animationId);
-        if (renderer) { renderer.domElement.remove(); renderer.dispose(); }
-        if (controls) { controls.dispose(); }
-        scene = null; camera = null; renderer = null; model = null; controls = null;
-    }
-const gltfLoader = new GLTFLoader();
-const ktx2Loader = new KTX2Loader();
-gltfLoader.setMeshoptDecoder(MeshoptDecoder);
-const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('https://unpkg.com/three@0.158.0/examples/jsm/libs/draco/'); 
-gltfLoader.setDRACOLoader(dracoLoader);
-function showMascot(isAR) {
-    cleanUpThreeJS();
-    const wrap = document.getElementById("mascotCanvasWrap");
-    if(!wrap) return;
-    if(isAR) wrap.innerHTML = "";
-    const width = isAR ? window.innerWidth : wrap.clientWidth;
-    const height = isAR ? window.innerHeight : wrap.clientHeight;
-//==================3D 模型 + AR 控制逻辑==（很散）===========================================//
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 100);
-    camera.position.set(0, 1.2, 3);
-    camera.lookAt(0, 0.5, 0);
-    renderer = new THREE.WebGLRenderer({ 
-        alpha: true, 
-        antialias: true, 
-        preserveDrawingBuffer: true,
-        logarithmicDepthBuffer: true 
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.outputColorSpace = THREE.SRGBColorSpace; 
-    renderer.toneMappingExposure = 1.2; 
-    if (isAR) {
-        document.body.appendChild(renderer.domElement);
-        renderer.domElement.style.position = 'fixed';
-        renderer.domElement.style.top = '0';
-        renderer.domElement.style.left = '0';
-        renderer.domElement.style.zIndex = '50';
-    } else {
-        wrap.appendChild(renderer.domElement);
-        controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.autoRotate = true;
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        controls.autoRotateSpeed = isMobile ? 5.0 : 15.0; 
-        controls.enableZoom = true;
-        controls.maxPolarAngle = Math.PI / 2 + Math.PI / 9;
-    }
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
-    scene.add(ambientLight);
+            const center = box.getCenter(new THREE.Vector3());
 
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
-    hemiLight.position.set(0, 20, 0);
-    scene.add(hemiLight);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 4 / maxDim; // 设定目标显示大小
+            model.scale.set(scale, scale, scale);
 
-    const mainLight = new THREE.DirectionalLight(0xffffff, 3.0);
-    mainLight.position.set(5, 10, 7);
-    scene.add(mainLight);
+            model.position.sub(center.multiplyScalar(scale));
 
-    const backLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    backLight.position.set(-5, 5, -7);
-    scene.add(backLight);
-    const basisPath = 'https://unpkg.com/three@0.158.0/examples/jsm/libs/basis/';
-    ktx2Loader
-        .setTranscoderPath(basisPath)
-        .detectSupport(renderer); 
-    gltfLoader.setKTX2Loader(ktx2Loader);
-    gltfLoader.load(selectedModelPath, (gltf) => {
-        model = gltf.scene;
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        const baseScale = 2.0 / Math.max(size.x, size.y, size.z);
-        model.scale.set(baseScale, baseScale, baseScale);
-        const center = box.getCenter(new THREE.Vector3());
-        model.position.x = -center.x * baseScale;
-        model.position.y = -center.y * baseScale;
-        model.position.z = -center.z * baseScale;
-        if (isAR) {
-            model.position.y = -0.5;
-            model.position.z = -3;
-            model.rotation.y = Math.PI + (Math.PI / 2);
+            scene.add(model);
+            loadingOverlay.style.display = 'none';
+        },
+        undefined, 
+        function (error) {
+            console.error('模型加载失败:', error);
+            loadingOverlay.innerText = '模型加载失败，请检查文件路径。';
         }
-        scene.add(model);
-        animate();
-    }, undefined, (err) => {
-        console.error('模型加载失败:', err);
-        alert(`加载失败: ${selectedModelPath}。\n请确认模型文件存在且网络正常。`);
-    });
+    );
 }
-    function animate() {
-        animationId = requestAnimationFrame(animate);
-        if (controls) {
-            controls.update();
-        } 
-        else if (model && document.getElementById('mascotPage').classList.contains('ar-mode-active')) {
-        }
-        renderer.render(scene, camera);
-    }
-    window.takePhoto = function() {
-        const bgVideo = document.getElementById('bgVideo');
-        const glCanvas = renderer.domElement;
-        const canvas = document.createElement('canvas');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        const ctx = canvas.getContext('2d');
-        const vRatio = bgVideo.videoWidth / bgVideo.videoHeight;
-        const cRatio = canvas.width / canvas.height;
-        let sW, sH, sX, sY;
-        if (vRatio > cRatio) {
-            sH = bgVideo.videoHeight; sW = sH * cRatio; sX = (bgVideo.videoWidth - sW)/2; sY = 0;
-        } else {
-            sW = bgVideo.videoWidth; sH = sW / cRatio; sX = 0; sY = (bgVideo.videoHeight - sH)/2;
-        }
-        ctx.save();
-        if (isMirrored) { ctx.translate(canvas.width, 0); ctx.scale(-1, 1); }
-        ctx.drawImage(bgVideo, sX, sY, sW, sH, 0, 0, canvas.width, canvas.height);
-        ctx.restore();
-        ctx.drawImage(glCanvas, 0, 0, canvas.width, canvas.height);
-        const link = document.createElement('a');
-        link.download = `AR_${Date.now()}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        showTempStatus(translations[currentLang].photoSavedToast);
-    }
-window.toggleVideoRecord = function() {
-    if (isRecording) {
-        if (mediaRecorder) mediaRecorder.stop();
-        if (recorderAnimationId) cancelAnimationFrame(recorderAnimationId);
-        recorderAnimationId = null;
-        isRecording = false;
-        document.getElementById('arVideoBtn').classList.remove('recording');
-    } else {
-        const bgVideo = document.getElementById('bgVideo');
-        const glCanvas = renderer.domElement;
-        const compositeCanvas = document.createElement('canvas');
-        compositeCanvas.width = window.innerWidth;
-        compositeCanvas.height = window.innerHeight;
-        const compositeCtx = compositeCanvas.getContext('2d');
-        function recordFrame() {
-            const vRatio = bgVideo.videoWidth / bgVideo.videoHeight;
-            const cRatio = compositeCanvas.width / compositeCanvas.height;
-            let sW, sH, sX, sY;
-            if (vRatio > cRatio) {
-                sH = bgVideo.videoHeight;
-                sW = sH * cRatio;
-                sX = (bgVideo.videoWidth - sW) / 2;
-                sY = 0;
-            } else {
-                sW = bgVideo.videoWidth;
-                sH = sW / cRatio;
-                sX = 0;
-                sY = (bgVideo.videoHeight - sH) / 2;
-            }
-            
-            compositeCtx.save();
-            if (isMirrored) { 
-                compositeCtx.translate(compositeCanvas.width, 0); 
-                compositeCtx.scale(-1, 1); 
-            }
-            compositeCtx.drawImage(bgVideo, sX, sY, sW, sH, 0, 0, compositeCanvas.width, compositeCanvas.height);
-            compositeCtx.restore();
-            
-            compositeCtx.drawImage(glCanvas, 0, 0, compositeCanvas.width, compositeCanvas.height);
-            
-            recorderAnimationId = requestAnimationFrame(recordFrame);
-        }
-        recordFrame(); 
-        const stream = compositeCanvas.captureStream(30); 
-        recordedChunks = [];
-        try {
-            const options = { 
-                mimeType: 'video/webm',
-                videoBitsPerSecond: 2500000 
-            };
-            
-            mediaRecorder = new MediaRecorder(stream, options);
-            mediaRecorder.ondataavailable = (e) => { 
-                if (e.data.size > 0) recordedChunks.push(e.data); 
-            };
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `AR_Video_${Date.now()}.webm`;
-                a.click();
-                showTempStatus(translations[currentLang].videoSavedToast);
-            };
-            mediaRecorder.start();
-            isRecording = true;
-            document.getElementById('arVideoBtn').classList.add('recording');
-            showTempStatus(translations[currentLang].videoRecordingToast);
-        } catch(e) { 
-            alert("录制不支持或出错: " + e.message);
-            if(recorderAnimationId) cancelAnimationFrame(recorderAnimationId); 
-        }
-    }
-}
-    function showLoading(show, textKey = '') {
-        const el = document.getElementById('loadingToast');
-        el.style.display = show ? 'flex' : 'none';
-        if (show && textKey) {
-            const t = translations[currentLang] || translations.zh;
-            document.getElementById('loadingText').innerText = t[textKey] || textKey;
-        }
-    }
-function onDragStart(event) {
-    event.preventDefault(); 
-    
-    const touch = event.touches ? event.touches[0] : event;
-    if (!touch || !model) return;
-    isDragging = true;
-    
-    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-    
-    raycaster.setFromCamera(pointer, camera);
-    const intersects = raycaster.intersectObject(model, true);
-    
-    if (intersects.length > 0) {
-        const cameraDirection = camera.getWorldDirection(new THREE.Vector3());
-        dragPlane.setFromNormalAndCoplanarPoint(cameraDirection, intersects[0].point);
-        if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
-            offset.copy(intersection).sub(model.position);
-        }
-    }
-}
-function onDragMove(event) {
-    event.preventDefault();
-    const touch = event.touches ? event.touches[0] : event;
-    if (!touch || !isDragging) return;
-    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-    
-    raycaster.setFromCamera(pointer, camera);
-    if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
-        model.position.copy(intersection.sub(offset));
-    }
-}
-function onDragEnd(event) {
-    isDragging = false; 
-}
-window.switchCamera = async function() {
-    const t = translations[currentLang] || translations.zh;
 
-    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-        alert("您的浏览器不支持摄像头切换。");
+// ================ 聊天交互逻辑 (核心修改) =================
+//！=======================渲染对话===========================================
+function renderChat() {
+    const historyDiv = document.getElementById('chat-history');
+    historyDiv.innerHTML = ''; 
+    document.body.classList.toggle('selection-active', isInSelectionMode);
+
+    if (chatHistory.length === 0) {
+        historyDiv.innerHTML = `<div class="message system-msg">${translations[currentLang].initialMessage}</div>`;
         return;
     }
 
-    if (arStreamObj) {
-        arStreamObj.getTracks().forEach(track => track.stop());
-    }
-
-    currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-    showLoading(true, 'loadingCamera'); 
-    try {
-        const videoConstraints = {
-            facingMode: currentFacingMode,
-            width: { ideal: 640 },
-            height: { ideal: 480 }
-        };
-
-        const newStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
-        arStreamObj = newStream;
-        const bgVideo = document.getElementById('bgVideo');
-        bgVideo.srcObject = newStream;
-        await bgVideo.play();
+    chatHistory.forEach((msg, index) => {
+        const div = document.createElement('div');
+        div.className = `message ${msg.role === 'user' ? 'user' : 'ai'}`;
         
-        if (currentFacingMode === 'user' && !isMirrored) {
-            isMirrored = true;
-            bgVideo.classList.add('mirrored');
-        } else if (currentFacingMode === 'environment' && isMirrored) {
-            isMirrored = false;
-            bgVideo.classList.remove('mirrored');
+        // --- FIXED --- 在重绘时，正确地为已选中的消息加上 'selected' 类
+        if (selectedMessages.has(index)) {
+            div.classList.add('selected');
         }
-        const camType = t[currentFacingMode === 'user' ? 'camTypeFront' : 'camTypeBack'];
-        showTempStatus(t.camSwitchedToast.replace('{camType}', camType));
-    } catch (err) {
-        alert("切换摄像头失败: " + err.message);
-        currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-    } finally {
-        showLoading(false);
+
+        div.innerHTML = msg.role === 'user' ? msg.content : `<strong>${document.getElementById('artifact-name').value}:</strong><br>${msg.content}`;
+        
+        // --- 绑定事件 ---
+        div.addEventListener('click', () => {
+            if (isInSelectionMode) {
+                toggleMessageSelection(index);
+            }
+        });
+
+        div.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            toggleMessageSelection(index);
+        });
+
+        div.addEventListener('mousedown', () => {
+            clearTimeout(longPressTimer);
+            longPressTimer = setTimeout(() => {
+                toggleMessageSelection(index);
+            }, LONG_PRESS_DURATION);
+        });
+
+        const clearLongPress = () => clearTimeout(longPressTimer);
+        div.addEventListener('mouseup', clearLongPress);
+        div.addEventListener('mouseleave', clearLongPress);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '🗑️';
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteTurn(index);
+        };
+        div.appendChild(deleteBtn);
+
+        historyDiv.appendChild(div);
+    });
+    
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+}
+//==========================================================================================
+
+// --- 批量删除相关函数 ---
+function updateSelectionUI() {
+    const selectionControls = document.getElementById('selection-controls');
+    const controlsBar = document.querySelector('.controls-bar');
+    const selectionCounter = document.getElementById('selection-counter');
+
+    if (isInSelectionMode) {
+        selectionControls.style.display = 'flex';
+        controlsBar.style.display = 'none';
+        selectionCounter.textContent = `已选中 ${selectedMessages.size} 条消息`; 
+    } else {
+        selectionControls.style.display = 'none';
+        controlsBar.style.display = 'flex';
+        // 退出选择模式时，selectedMessages 应该已经被清空了
     }
 }
-const galleryBtn = document.getElementById('galleryBtn');
-const galleryModal = document.getElementById('galleryModal');
-const closeGallery = document.getElementById('closeGallery');
-const galleryImg = document.getElementById('galleryImg');
-const prevImg = document.getElementById('prevImg');
-const nextImg = document.getElementById('nextImg');
 
-const galleryImages = [
-  'picture/1.png',
-  'picture/2.png',
-  'picture/3.png',
-  'picture/4.png'
-];
 
-let currentIndex = 0;
-
-galleryBtn.onclick = () => {
-  galleryModal.style.display = 'flex';
-  galleryImg.src = galleryImages[currentIndex];
-};
-
-closeGallery.onclick = () => {
-  galleryModal.style.display = 'none';
-};
-
-prevImg.onclick = () => {
-  currentIndex = (currentIndex - 1 + galleryImages.length) % galleryImages.length;
-  galleryImg.src = galleryImages[currentIndex];
-};
-nextImg.onclick = () => {
-  currentIndex = (currentIndex + 1) % galleryImages.length;
-  galleryImg.src = galleryImages[currentIndex];
-};
-
-const ARTIFACT_INFO = {
-    "zh": {
-        "modell/1_soft.glb": `
-            <h3 class="phase-title">铸造诞生期<br><span style="font-size:16px;">（商末 / 西周初）</span></h3>
-            <h3>历史背景</h3>
-            <p>商末至西周初，青铜冶炼技术高度成熟，青铜器不仅是日常用品，更是祭祀和权力象征。皿方罍作为方形礼器在王室或贵族青铜作坊铸造，承载宗族与王权的庄重使命。</p>
-            <h3>器物命运 / 功能</h3>
-            <ul>
-                <li>盛放酒水，用于祖先祭祀和重大典礼。</li>
-                <li>方形腹体、四足、高颈设计稳固庄重，适合礼仪场合。</li>
-                <li>器身饰饕餮纹、几何纹及铭文，记录祭祀程序、家族关系及王室功绩。</li>
-            </ul>
-            <h3>文化与历史意义</h3>
-            <ul>
-                <li>象征权力、尊贵与威严，反映社会等级和宗法制度。</li>
-                <li>铭文与纹饰为研究商周政治、宗族和礼制提供重要资料。</li>
-            </ul>
-        `,
-        "modell/2_soft.glb": `
-            <h3 class="phase-title">使用期<br><span style="font-size:16px;">（商末–西周早期）</span></h3>
-            <h3>历史背景</h3>
-            <p>商末至西周早期，皿方罍成为王室和贵族祭祀、宴会及礼仪的核心青铜器，礼器规格、纹饰和铭文体现社会等级和礼制规范。</p>
-            <h3>器物命运 / 功能</h3>
-            <ul>
-                <li>盛放酒水，参与祭祀、宴会及重大典礼。</li>
-                <li>祭祀者小心奉献酒水，体现对祖先和神灵的敬意。</li>
-                <li>铭文记录礼制、家族关系及王室功绩，是礼仪和宗法制度的重要凭证。</li>
-            </ul>
-            <h3>文化与历史意义</h3>
-            <ul>
-                <li>象征权威、尊贵和家族荣耀，是贵族和王室礼仪不可或缺的器物。</li>
-                <li>反映社会等级和政治秩序，展现礼制在贵族生活中的核心地位。</li>
-            </ul>
-        `,
-        "modell/3_soft.glb": `
-            <h3 class="phase-title">战乱与易手期<br><span style="font-size:16px;">（西周中晚期）</span></h3>
-            <h3>历史背景</h3>
-            <p>西周中晚期，政治格局复杂，王室权力争夺和诸侯征战频繁，青铜礼器的命运也随之多舛。</p>
-            <h3>器物命运</h3>
-            <ul>
-                <li>皿方罍可能被掠夺、缴获或埋藏以避战乱。</li>
-                <li>长期流转导致器物磨损或破损。</li>
-                <li>铜表面由亮黄铜色逐渐暗淡，甚至出现氧化斑纹。</li>
-            </ul>
-            <h3>文化与历史意义</h3>
-            <ul>
-                <li>尽管经历战乱和易手，皿方罍仍是礼仪、社会等级和宗族权力的重要象征。</li>
-                <li>反映西周中晚期社会动荡及青铜礼器在贵族礼仪体系中的坚守。</li>
-                <li>铭文和纹饰保存情况不一，为研究当时社会与政治提供线索。</li>
-            </ul>
-        `,
-        "modell/4_soft.glb": `
-            <h3 class="phase-title">出土与研究期<br><span style="font-size:16px;">（近现代，19世纪末–20世纪）</span></h3>
-            <h3>历史背景</h3>
-            <p>经过数百年的沉寂，皿方罍在考古发掘中重见天日，成为博物馆展品和学术研究对象。</p>
-            <h3>器物命运 / 功能</h3>
-            <ul>
-                <li>考古学家记录器物形制、铭文、纹饰及铸造工艺，为历史研究提供依据。</li>
-                <li>文物成为公众展览对象，传递历史文化。</li>
-            </ul>
-            <h3>文化与历史意义</h3>
-            <ul>
-                <li>铭文提供商周政治、宗族和礼制的重要参考。</li>
-                <li>青铜工艺展示古代冶铸和雕刻水平。</li>
-                <li>文物价值获得确认与传承，同时让公众理解和欣赏历史文化。</li>
-            </ul>
-        `
-    },
-    "en": {
-        "modell/1_soft.glb": `
-            <h3 class="phase-title">Phase 1 — Casting and Birth<br><span style="font-size:16px;">(Late Shang / Early Western Zhou)</span></h3>
-            <h3>Historical Background</h3>
-            <p>From the late Shang to the early Western Zhou dynasty, bronze smelting technology reached high maturity. Min Fanglei was cast in royal or aristocratic bronze workshops as a square ritual vessel, carrying the solemn mission of patriarchal clan and royal power.</p>
-            <h3>Artifact Destiny / Function</h3>
-            <ul>
-                <li>Held wine, used for ancestor worship and major ceremonies.</li>
-                <li>Its square body, four legs, and high neck design were stable and solemn, suitable for ritual occasions.</li>
-                <li>Decorated with Taotie motifs and inscriptions recording ritual procedures and royal achievements.</li>
-            </ul>
-            <h3>Cultural Significance</h3>
-            <ul>
-                <li>Symbolized power, dignity, and majesty, reflecting social hierarchy.</li>
-                <li>Inscriptions and patterns provide crucial data for studying Shang and Zhou politics.</li>
-            </ul>
-        `,
-        "modell/2_soft.glb": `
-            <h3 class="phase-title">Phase 2 — Period of Use<br><span style="font-size:16px;">(Late Shang – Early Western Zhou)</span></h3>
-            <h3>Historical Background</h3>
-            <p>During this period, Min Fanglei became a core bronze vessel for royal and aristocratic sacrifices, banquets, and rituals.</p>
-            <h3>Artifact Destiny / Function</h3>
-            <ul>
-                <li>Held wine, participating in sacrifices, banquets, and major ceremonies.</li>
-                <li>Worshipers carefully offered wine to show respect to ancestors and deities.</li>
-                <li>Inscriptions recorded the ritual system, family relations, and royal merits.</li>
-            </ul>
-            <h3>Cultural Significance</h3>
-            <ul>
-                <li>An indispensable artifact for noble and royal rituals, symbolizing authority.</li>
-                <li>Reflected the social hierarchy and political order of the time.</li>
-            </ul>
-        `,
-        "modell/3_soft.glb": `
-            <h3 class="phase-title">Phase 3 — War and Changing Hands<br><span style="font-size:16px;">(Mid-Late Western Zhou)</span></h3>
-            <h3>Historical Background</h3>
-            <p>During the mid-to-late Western Zhou dynasty, the political landscape was complex, with frequent wars among feudal lords. The destiny of bronze ritual vessels was also turbulent.</p>
-            <h3>Artifact Destiny</h3>
-            <ul>
-                <li>Min Fanglei might have been plundered, captured, or buried to avoid war.</li>
-                <li>Long-term circulation led to wear and tear of the artifact.</li>
-                <li>The copper surface gradually dimmed from bright brass, developing oxidation spots.</li>
-            </ul>
-            <h3>Cultural Significance</h3>
-            <ul>
-                <li>Despite the wars, it remained an important symbol of ritual and social status.</li>
-                <li>Reflects the social turmoil of the mid-late Western Zhou dynasty.</li>
-            </ul>
-        `,
-        "modell/4_soft.glb": `
-            <h3 class="phase-title">Phase 4 — Excavation and Research<br><span style="font-size:16px;">(Late 19th - 20th Century)</span></h3>
-            <h3>Historical Background</h3>
-            <p>After centuries of silence, Min Fanglei saw the light of day again in archaeological excavations, becoming a museum exhibit and a subject of academic research.</p>
-            <h3>Artifact Destiny / Function</h3>
-            <ul>
-                <li>Archaeologists recorded its shape, inscriptions, patterns, and casting techniques.</li>
-                <li>The artifact became an object of public exhibition, passing on historical culture.</li>
-            </ul>
-            <h3>Cultural Significance</h3>
-            <ul>
-                <li>Inscriptions provide a crucial reference for Shang and Zhou politics and rituals.</li>
-                <li>The bronze craftsmanship demonstrates the high level of ancient metallurgy.</li>
-                <li>Its value has been confirmed and passed down for public appreciation.</li>
-            </ul>
-        `
-    },
-    "ja": {
-        "modell/1_soft.glb": `
-            <h3 class="phase-title">第1段階 — 鋳造と誕生<br><span style="font-size:16px;">(商末 / 西周初期)</span></h3>
-            <h3>歴史的背景</h3>
-            <p>商末から西周初期にかけて、青銅製錬技術は高度に成熟しました。皿方罍（みんほうらい）は方形の礼器として王室や貴族の工房で鋳造され、宗族と王権の厳粛な使命を担いました。</p>
-            <h3>器物の運命 / 機能</h3>
-            <ul>
-                <li>酒を入れ、祖先の祭祀や重要な儀式に使用されました。</li>
-                <li>方形の胴部、四本足、高い首の設計は重厚で、儀式に適していました。</li>
-                <li>饕餮（とうてつ）文や幾何学模様、銘文が施されています。</li>
-            </ul>
-            <h3>文化・歴史的意義</h3>
-            <ul>
-                <li>権力、尊厳、威厳の象徴であり、社会階層と宗法制度を反映しています。</li>
-                <li>銘文と文様は、当時の政治や礼制を研究するための重要な資料です。</li>
-            </ul>
-        `,
-        "modell/2_soft.glb": `
-            <h3 class="phase-title">第2段階 — 使用期<br><span style="font-size:16px;">(商末–西周早期)</span></h3>
-            <h3>歴史的背景</h3>
-            <p>商末から西周早期にかけて、皿方罍は王室や貴族の祭祀、宴会、儀式の中心的な青銅器となりました。</p>
-            <h3>器物の運命 / 機能</h3>
-            <ul>
-                <li>酒を入れ、祭祀や重要な儀式に参加しました。</li>
-                <li>祭祀者は祖先や神々への敬意を表すために酒を捧げました。</li>
-                <li>銘文は礼制、家族関係、王室の功績を記録しています。</li>
-            </ul>
-            <h3>文化・歴史的意義</h3>
-            <ul>
-                <li>権威、尊厳、家族の栄光を象徴し、貴族や王室の儀式に不可欠でした。</li>
-                <li>社会階層と政治秩序を反映しています。</li>
-            </ul>
-        `,
-        "modell/3_soft.glb": `
-            <h3 class="phase-title">第3段階 — 戦乱と流転<br><span style="font-size:16px;">(西周中晩期)</span></h3>
-            <h3>歴史的背景</h3>
-            <p>西周中晩期は政治状況が複雑で、王室の権力闘争や諸侯の戦争が頻発し、青銅礼器的運命も波乱に満ちていました。</p>
-            <h3>器物の運命</h3>
-            <ul>
-                <li>戦乱を避けるために略奪、捕獲、または埋蔵された可能性があります。</li>
-                <li>長期間の流転により、器物が摩耗または破損しました。</li>
-                <li>銅の表面は徐々にくすみ、酸化斑点が生じました。</li>
-            </ul>
-            <h3>文化・歴史的意義</h3>
-            <ul>
-                <li>戦乱を経てもなお、礼儀、社会階層、宗族の権力の重要な象徴でした。</li>
-                <li>西周中晩期の社会の動揺を反映しています。</li>
-            </ul>
-        `,
-        "modell/4_soft.glb": `
-            <h3 class="phase-title">第4段階 — 出土と研究<br><span style="font-size:16px;">(近現代、19世紀末–20世紀)</span></h3>
-            <h3>歴史的背景</h3>
-            <p>数百年の沈黙を経て、皿方罍は考古学的発掘によって再び日の目を見ることになり、博物館の展示品となりました。</p>
-            <h3>器物の運命 / 機能</h3>
-            <ul>
-                <li>考古学者はその形状、銘文、文様、鋳造技術を記録しました。</li>
-                <li>文化財は一般公開され、歴史文化を伝えています。</li>
-            </ul>
-            <h3>文化・歴史的意義</h3>
-            <ul>
-                <li>銘文は商周の政治、宗族、礼制に関する重要な参考資料です。</li>
-                <li>青銅の工芸技術は、古代の冶金と彫刻の水準を示しています。</li>
-                <li>文化財の価値が確認され、一般の人々に鑑賞されています。</li>
-            </ul>
-        `
-    },
-    "de": {
-        "modell/1_soft.glb": `
-            <h3 class="phase-title">Phase 1 — Guss und Entstehung<br><span style="font-size:16px;">(Späte Shang- / Frühe Westliche Zhou-Dynastie)</span></h3>
-            <h3>Historischer Hintergrund</h3>
-            <p>Die Bronzeschmelztechnik war hoch entwickelt. Das Min Fanglei wurde als viereckiges Ritualgefäß in königlichen oder adligen Bronzewerkstätten gegossen.</p>
-            <h3>Artefaktschicksal / Funktion</h3>
-            <ul>
-                <li>Zur Aufbewahrung von Wein für die Ahnenverehrung.</li>
-                <li>Viereckiger Körper, vier Beine und ein hoher Hals für feierliche Anlässe.</li>
-                <li>Verziert mit Taotie-Motiven und Inschriften.</li>
-            </ul>
-            <h3>Kulturelle Bedeutung</h3>
-            <ul>
-                <li>Symbol für Macht und Würde, spiegelt die soziale Hierarchie wider.</li>
-                <li>Wichtige Daten für die Erforschung der Shang- und Zhou-Politik.</li>
-            </ul>
-        `,
-        "modell/2_soft.glb": `
-            <h3 class="phase-title">Phase 2 — Nutzungsperiode<br><span style="font-size:16px;">(Späte Shang- – Frühe Westliche Zhou-Dynastie)</span></h3>
-            <h3>Historischer Hintergrund</h3>
-            <p>Das Min Fanglei wurde zu einem zentralen Bronzegefäß für königliche und adlige Opfer, Bankette und Rituale.</p>
-            <h3>Artefaktschicksal / Funktion</h3>
-            <ul>
-                <li>Behielt Wein für Opfergaben und große Zeremonien.</li>
-                <li>Inschriften hielten das Ritualsystem und familiäre Beziehungen fest.</li>
-            </ul>
-            <h3>Kulturelle Bedeutung</h3>
-            <ul>
-                <li>Ein unverzichtbares Artefakt für adlige Rituale, das Autorität symbolisierte.</li>
-                <li>Spiegelte die soziale Hierarchie und die politische Ordnung wider.</li>
-            </ul>
-        `,
-        "modell/3_soft.glb": `
-            <h3 class="phase-title">Phase 3 — Krieg und Besitzerwechsel<br><span style="font-size:16px;">(Mittlere-Späte Westliche Zhou-Dynastie)</span></h3>
-            <h3>Historischer Hintergrund</h3>
-            <p>Die politische Landschaft war komplex, mit häufigen Kriegen, was auch das Schicksal der Ritualgefäße beeinflusste.</p>
-            <h3>Artefaktschicksal</h3>
-            <ul>
-                <li>Wurde möglicherweise geplündert, erbeutet oder begraben, um Kriegen zu entgehen.</li>
-                <li>Langfristige Zirkulation führte zu Abnutzung.</li>
-                <li>Die Kupferoberfläche wurde matt und entwickelte Oxidationsflecken.</li>
-            </ul>
-            <h3>Kulturelle Bedeutung</h3>
-            <ul>
-                <li>Trotz Kriege blieb es ein wichtiges Symbol für Rituale und sozialen Status.</li>
-                <li>Spiegelt die sozialen Unruhen der Zeit wider.</li>
-            </ul>
-        `,
-        "modell/4_soft.glb": `
-            <h3 class="phase-title">Phase 4 — Ausgrabung und Forschung<br><span style="font-size:16px;">(Moderne, spätes 19. - 20. Jahrhundert)</span></h3>
-            <h3>Historischer Hintergrund</h3>
-            <p>Nach Jahrhunderten der Stille wurde das Min Fanglei wiederentdeckt und zu einem Museumsausstellungsstück.</p>
-            <h3>Artefaktschicksal / Funktion</h3>
-            <ul>
-                <li>Archäologen dokumentierten seine Form, Inschriften und Gusstechniken.</li>
-                <li>Es wurde zu einem Objekt der öffentlichen Ausstellung.</li>
-            </ul>
-            <h3>Kulturelle Bedeutung</h3>
-            <ul>
-                <li>Inschriften bieten eine wichtige Referenz für die damalige Politik.</li>
-                <li>Demonstriert das hohe Niveau der antiken Metallurgie.</li>
-            </ul>
-        `
+// --- MODIFIED --- 这是最核心的修改，实现点击不重刷
+function toggleMessageSelection(index) {
+    // 如果是第一次点击，则进入选择模式并更新UI
+    if (!isInSelectionMode) {
+        isInSelectionMode = true;
+        updateSelectionUI();
     }
-};
+    
+    // 获取对应的DOM元素
+    const historyDiv = document.getElementById('chat-history');
+    const allMessages = historyDiv.querySelectorAll('.message');
+    const messageDiv = allMessages[index];
 
+    // 更新数据和UI
+    if (selectedMessages.has(index)) {
+        selectedMessages.delete(index);
+        if (messageDiv) messageDiv.classList.remove('selected');
+    } else {
+        selectedMessages.add(index);
+        if (messageDiv) messageDiv.classList.add('selected');
+    }
+    
+    // 如果没有选中的了，就退出选择模式
+    if (selectedMessages.size === 0) {
+        isInSelectionMode = false;
+    }
+
+    // 再次调用以更新计数器 或 隐藏/显示控制栏
+    updateSelectionUI();
+}
+
+
+function deleteSelectedMessages() {
+    if (selectedMessages.size === 0) return;
+    if (!confirm(`确定要永久删除选中的 ${selectedMessages.size} 条消息吗？`)) {
+        return;
+    }
+
+    // 从 chatHistory 数组中过滤掉被选中的项
+    chatHistory = chatHistory.filter((_, index) => !selectedMessages.has(index));
+    
+    // 重置状态
+    isInSelectionMode = false;
+    selectedMessages.clear(); 
+    
+    // 更新UI（隐藏选择控件）
+    updateSelectionUI();
+    // 保存
+    saveHistoryToLocal();
+    // 因为数据变了，所以这里必须重绘
+    renderChat();
+}
+
+// --- MODIFIED --- “取消”按钮也不再重刷界面
+function cancelSelection() {
+    isInSelectionMode = false;
+    
+    // 清除数据
+    selectedMessages.clear();
+    
+    // 只移除视觉样式，不重绘
+    document.querySelectorAll('#chat-history .message.selected').forEach(el => {
+        el.classList.remove('selected');
+    });
+
+    // 更新UI（隐藏选择控件）
+    updateSelectionUI();
+}
+
+// --- 核心功能函数 ---
+
+function deleteTurn(index) {
+    if (!confirm("确定要删除这条消息吗？记录将无法恢复。")) {
+        return;
+    }
+    chatHistory.splice(index, 1); 
+    saveHistoryToLocal();
+    renderChat();
+}
+//====================================================================
+//！！！！！发送用户消息并获取 AI 回复！！！！！
+async function sendChat(overrideText = null) {
+    const input = document.getElementById('user-input');
+    const text = overrideText || input.value.trim();
+    if (!text) return;
+
+    if (!overrideText) {
+        input.value = '';
+        chatHistory.push({ role: "user", content: text });
+        saveHistoryToLocal();
+        renderChat();
+    }
+    
+    const artifactName = document.getElementById('artifact-name').value;
+    const historyDiv = document.getElementById('chat-history');
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'message ai';
+    loadingDiv.id = 'temp-loading';
+
+    // ✨ 修改：从翻译字典中获取“思考中”的文本
+    loadingDiv.innerText = translations[currentLang].thinking;
+
+    historyDiv.appendChild(loadingDiv);
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                history: chatHistory,
+                artifact_name: artifactName,
+                language: currentLang
+            })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.detail || data.answer || `HTTP ${response.status}`);
+        }
+
+        const aiText = data.answer;
+        document.getElementById('temp-loading').remove();
+        chatHistory.push({ role: "assistant", content: aiText });
+        saveHistoryToLocal();
+        renderChat();
+        speak(aiText);
+
+    } catch (error) {
+        console.error('Chat error:', error);
+        const loadingElement = document.getElementById('temp-loading');
+        if (loadingElement) {
+            loadingElement.innerText = error?.message || translations[currentLang].connectionError;
+        }
+    }
+}
+// ✨ 新增：翻译对话历史的函数
+async function translateChatHistory(targetLang) {
+    if (chatHistory.length === 0) {
+        return; // 如果没有对话，无需翻译
+    }
+
+    // 显示翻译中的提示
+    const historyDiv = document.getElementById('chat-history');
+    const originalHTML = historyDiv.innerHTML;
+    const translatingDiv = document.createElement('div');
+    translatingDiv.className = 'message system-msg';
+    translatingDiv.id = 'translating-msg';
+    translatingDiv.innerText = `翻译中... (Translating to ${translations[targetLang]?.headerTitle || targetLang})`;
+    historyDiv.appendChild(translatingDiv);
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+
+    try {
+        const response = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                messages: chatHistory,
+                target_lang: targetLang
+            })
+        });
+
+        const rawText = await response.text();
+        let data = {};
+        try {
+            data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+            throw new Error(rawText || `HTTP ${response.status}`);
+        }
+
+        if (!response.ok) {
+            throw new Error(data.detail || data.error || rawText || `HTTP ${response.status}`);
+        }
+
+        // 移除翻译提示
+        const translatingMsg = document.getElementById('translating-msg');
+        if (translatingMsg) translatingMsg.remove();
+
+        // 更新 chatHistory 为翻译后的版本
+        if (data.translated_messages && data.translated_messages.length > 0) {
+            chatHistory = data.translated_messages;
+            saveHistoryToLocal();
+            renderChat();
+        }
+    } catch (error) {
+        console.error('Translation error:', error);
+        const translatingMsg = document.getElementById('translating-msg');
+        if (translatingMsg) {
+            translatingMsg.innerText = '翻译失败，保持原语言。';
+        }
+    }
+}
+
+//==================================语音播报=================================
+function speak(text) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const speechLangMap = {
+        zh: 'zh-CN',
+        en: 'en-US',
+        de: 'de-DE',
+        ja: 'ja-JP'
+    };
+    utterance.lang = speechLangMap[currentLang] || 'en-US';
+    utterance.rate = 1.0;
+    window.speechSynthesis.speak(utterance);
+}
+//================================================================================
+
+function undoLast() {
+    if (chatHistory.length >= 2) {
+        chatHistory.pop(); 
+        chatHistory.pop();
+    } else if (chatHistory.length === 1) {
+        chatHistory.pop();
+    }
+    saveHistoryToLocal();
+    renderChat();
+}
+
+function clearAll() {
+    chatHistory = [];
+    saveHistoryToLocal();
+    renderChat();
+}
+
+function retryLast() {
+    if (chatHistory.length === 0) return;
+    const lastMsg = chatHistory[chatHistory.length - 1];
+    
+    let userMsg;
+    if (lastMsg.role === 'assistant') {
+        chatHistory.pop(); // remove assistant message
+        userMsg = chatHistory.pop(); // remove user message
+    } else if (lastMsg.role === 'user') {
+        userMsg = chatHistory.pop();
+    }
+
+    if (userMsg) {
+        // 将用户消息放回历史记录，以便 sendChat 正确发送
+        chatHistory.push(userMsg);
+        saveHistoryToLocal();
+        renderChat(); // 刷新界面，显示正在重试的消息
+        sendChat(userMsg.content); // 使用 overrideText 模式发送
+    }
+}
+
+
+// --- 安全清空逻辑 ---
+function showClearModal() {
+    const modal = document.getElementById('clear-modal');
+    const input = document.getElementById('verify-input');
+    modal.style.display = 'flex';
+    input.value = '';
+    input.focus();
+}
+
+function verifyAndClear() {
+    const input = document.getElementById('verify-input').value;
+    const confirmText = translations[currentLang].clearModalConfirmText;
+    if (input === confirmText) {
+        clearAll();
+        closeClearModal();
+    } else {
+        alert(`${translations[currentLang].modalConfirm}失败！请输入：${confirmText}`);
+    }
+}
+
+function closeClearModal() {
+    document.getElementById('clear-modal').style.display = 'none';
+}
+
+// --- 保存聊天记录 ---
+function saveChatHistory() {
+    if (chatHistory.length === 0) {
+        alert("还没有聊天记录，无法保存哦！");
+        return;
+    }
+    const artifactName = document.getElementById('artifact-name').value;
+    const time = new Date().toLocaleString();
+    let content = `🏛️ 博物馆奇妙夜 · 对话存档\n`;
+    content += `文物身份：${artifactName}\n`;
+    content += `存档时间：${time}\n`;
+    content += `------------------------------------\n\n`;
+    chatHistory.forEach(msg => {
+        const roleName = msg.role === 'user' ? '【我】' : `【${artifactName}】`;
+        content += `${roleName}：\n${msg.content}\n\n`;
+    });
+    content += `------------------------------------\n(由 AI 数字博物馆生成)\n`;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${artifactName}_对话记录_${Date.now()}.txt`;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// --- 本地存储功能 ---
+function saveHistoryToLocal() {
+    try {
+        localStorage.setItem('museumChatHistory', JSON.stringify(chatHistory));
+    } catch (e) {
+        console.error("无法保存对话记录到浏览器。", e);
+    }
+}
+
+function loadHistoryFromLocal() {
+    try {
+        const savedHistory = localStorage.getItem('museumChatHistory');
+        if (savedHistory) {
+            chatHistory = JSON.parse(savedHistory);
+        }
+    } catch (e) {
+        console.error("无法从浏览器加载对话记录。", e);
+        chatHistory = [];
+    }
+}
+
+// 全局变量
+window.currentAiPersona = 'scholar'; 
+
+// ================= 合并后的初始化 =================
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. 初始化 3D 环境
+    if (typeof init3D === 'function') {
+        init3D(); 
+        loadModel('2.glb');
+        animate();
+    }
+
+    // 2. 处理 URL 传来的角色设定
+    const params = new URLSearchParams(window.location.search);
+    window.currentAiPersona = params.get('role') || 'scholar';
+    
+    const greetings = {
+        child: "哇！你终于来看我啦！我肚子里装了好多好玩的故事，你想先听哪一个呀？",
+        student: "阁下有礼了。相见即是缘，咱们一同探讨探讨这器物背后的奥秘如何？",
+        storyteller: "惊堂木一拍，咱们话接上回！这位看官，您想听点宫廷秘闻呢，还是江湖传说？",
+        scholar: "您好。此器历经沧桑。若有关于其形制、纹饰或年代断代的学术探讨，但问无妨。"
+    };
+    const greetingMsg = document.getElementById('dynamic-greeting');
+    if (greetingMsg) greetingMsg.innerText = greetings[window.currentAiPersona];
+
+    // 3. 对话与历史记录加载
+    loadHistoryFromLocal();
+    renderChat(); 
+
+    // 4. 语言选择逻辑 (已完美修复)
+    const langSelect = document.getElementById('lang-select');
+    
+    // 1. 读取时统一使用 'app_language'，和其它页面保持一致
+    const savedLang = localStorage.getItem('app_language') || 'zh'; 
+    if (savedLang && langSelect.querySelector(`[value=${savedLang}]`)) {
+        langSelect.value = savedLang;
+        updateUIText(savedLang);
+    }
+    
+    langSelect.addEventListener('change', () => {
+        const newLang = langSelect.value;
+        
+        // 2. 写入时统一使用 'app_language'
+        localStorage.setItem('app_language', newLang);
+        updateUIText(newLang);
+        
+        // 3. 修复了变量名错误 (原本错写成了 chatHistoryData)
+        chatHistory.length > 0 ? translateChatHistory(newLang) : renderChat(); 
+    });
+
+    // 5. 按钮事件绑定
+    document.getElementById('send-btn').addEventListener('click', sendChat);
+    document.getElementById('user-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChat(); });
+    document.getElementById('undo-btn').addEventListener('click', undoLast);
+    document.getElementById('retry-btn').addEventListener('click', retryLast);
+    document.getElementById('save-btn').addEventListener('click', saveChatHistory);
+    document.getElementById('clear-btn').addEventListener('click', showClearModal);
+    document.getElementById('confirm-clear').addEventListener('click', verifyAndClear);
+    document.getElementById('cancel-clear').addEventListener('click', closeClearModal);
+
+    // 6. ★ 长按显示选择栏逻辑 ★
+    const chatPanel = document.getElementById('chat-history');
+    const selectionControls = document.getElementById('selection-controls');
+    let longPressTimer;
+
+    chatPanel.addEventListener('touchstart', () => {
+        longPressTimer = setTimeout(() => {
+            selectionControls.style.setProperty('display', 'flex', 'important');
+            if (navigator.vibrate) navigator.vibrate(50); // 震动反馈
+        }, 800); // 800毫秒判定为长按
+    });
+
+    chatPanel.addEventListener('touchend', () => clearTimeout(longPressTimer));
+    chatPanel.addEventListener('touchmove', () => clearTimeout(longPressTimer));
+
+    document.getElementById('cancel-selection-btn').addEventListener('click', () => {
+        selectionControls.style.setProperty('display', 'none', 'important');
+    });
+});
+// 获取元素
 const infoBtn = document.getElementById('infoBtn');
-const infoBtnAction = document.getElementById('infoBtnAction');
 const infoModal = document.getElementById('infoModal');
 const closeInfo = document.getElementById('closeInfo');
-const infoTextContent = document.getElementById('infoTextContent');
 
-function openInfoModal(e) {
-    e.stopPropagation(); 
-    
-    if (controls) controls.enabled = false;
-    
-    const langData = ARTIFACT_INFO[currentLang] || ARTIFACT_INFO["zh"];
-    
-    if (langData[selectedModelPath]) {
-        infoTextContent.innerHTML = langData[selectedModelPath];
-    } else {
-        const fallbackMsg = {
-            "zh": "暂无该文物的详细信息。",
-            "en": "No detailed information available for this artifact.",
-            "ja": "この文化財の詳細情報はありません。",
-            "de": "Keine detaillierten Informationen für dieses Artefakt verfügbar."
-        };
-        const msg = fallbackMsg[currentLang] || fallbackMsg["zh"];
-        infoTextContent.innerHTML = `<p style='text-align:center; margin-top: 20px;'>${msg}</p>`;
-    }
-    
-    infoModal.style.display = 'flex';
+// 点击小圆球打开弹窗
+if (infoBtn) {
+    infoBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (infoModal) infoModal.style.display = 'flex';
+    };
 }
 
-if (infoBtn) infoBtn.onclick = openInfoModal;
-if (infoBtnAction) infoBtnAction.onclick = openInfoModal;
-
-if (closeInfo) {
+if (closeInfo && infoModal) {
     closeInfo.onclick = () => {
         infoModal.style.display = 'none';
-        if (controls) controls.enabled = true;
     };
 }
 
@@ -2524,12 +780,6 @@ if (infoModal) {
     infoModal.onclick = (e) => {
         if (e.target === infoModal) {
             infoModal.style.display = 'none';
-            if (controls) controls.enabled = true;
         }
     };
 }
-
-window.addEventListener('load', setupKeyboardAdjustments);
-</script>
-</body>
-</html>

@@ -380,24 +380,6 @@
                 transform: scale(0.96);
             }
 
-            /* 强制保持 #infoBtnAction 的原始位置和尺寸，仅修改颜色与边框（PC 端） */
-            #infoBtnAction {
-                position: static !important;
-                top: auto !important;
-                right: auto !important;
-                width: unset !important;
-                height: unset !important;
-                border-radius: unset !important;
-                padding: unset !important;
-                font-size: unset !important;
-                display: unset !important;
-                /* 颜色与边框覆盖（你之前要求的） */
-                background: rgba(0, 0, 0, 0.6) !important;
-                color: #fcd34d !important;
-                border: 1px solid #fcd34d !important;
-                box-shadow: none !important;
-            }
-
             /* PC-only: 仅改变二维码出现后按钮的颜色与边框，保持尺寸/形状/字号不变 */
             #infoBtnAction {
                 background: rgba(0, 0, 0, 0.6) !important;
@@ -1561,9 +1543,13 @@ const translations = {
 
         switchLanguage(savedLang);
     });
+
+//==========================盲盒抽取与业务流程流转核心模块=====================================================
+
     // 全局缓存已经预加载的模型，避免重复加载
     let preloadedModelScene = null;
 
+    //========================触发盲盒抽取======================================================
     window.startBlindBoxFlow = function() {
         let matchedKey = "博物馆"; 
         const pool = ZONE_CONFIG[matchedKey].models;
@@ -1576,6 +1562,7 @@ const translations = {
         window.gotoPage('aiPage');
         runAIProgress();
     }
+    //================================================================================================
     
     function runAIProgress() {
         const bar = document.getElementById('aiBar');
@@ -1628,7 +1615,9 @@ const translations = {
             }
         );
     }
+    //=========================================================================================
     
+    //===============================展示结果与起名界面=============================================
     function showResult() {
         window.gotoPage('mascotPage');
         
@@ -1651,8 +1640,9 @@ const translations = {
         
         showMascot(false);
     }
+    //==================================================================================
 
-function setupInputListeners() {
+    function setupInputListeners() {
         const nameInput = document.getElementById('mascotNameInput');
         const mascotPage = document.getElementById('mascotPage');
         const wrap = document.getElementById("mascotCanvasWrap");
@@ -1741,7 +1731,7 @@ function setupInputListeners() {
         window.location.href = `index.html?lang=${currentLang}`;
     }
 
-    // === THREE.js & AR Logic ===
+    // ======================MediaPipe AI 手势识别核心逻辑=========================
     async function loadAiModels() {
         if (handLandmarker) return true;
         if (aiLoadFailed) return false;
@@ -1777,6 +1767,7 @@ function setupInputListeners() {
         btn.onclick = startArExperience;
         document.getElementById('arInstructions').style.display = 'flex';
     }
+    //===================AR 模式与相机开启=======================================
     window.startArExperience = async function() {
         document.getElementById('arInstructions').style.display = 'none';
         showLoading(true, 'loadingCamera');
@@ -1832,6 +1823,7 @@ function setupInputListeners() {
             showLoading(false);
         }
     }
+    //========================================================================
     window.showArInstructions = function() {
         const btn = document.querySelector('#arInstructions .instructions-btn');
         const t = translations[currentLang] || translations.zh;
@@ -1911,6 +1903,8 @@ function handleHandGestures(landmarks) {
         lastRotationAngle = null;
     }
 }
+//=========================================================================
+
     function showTempStatus(text) {
         const el = document.getElementById('aiStatus');
         el.innerText = text; el.style.opacity = '1';
@@ -1983,6 +1977,8 @@ function handleHandGestures(landmarks) {
         if (controls) { controls.dispose(); }
         scene = null; camera = null; renderer = null; model = null; controls = null;
     }
+
+//============3D 场景的搭建、模型加载（含 Draco 压缩解码）和实时渲染。================================
 const gltfLoader = new GLTFLoader();
 const ktx2Loader = new KTX2Loader();
 gltfLoader.setMeshoptDecoder(MeshoptDecoder);
@@ -2095,6 +2091,7 @@ function setupAndAddModelToScene(modelData, isAR) {
         }
         renderer.render(scene, camera);
     }
+    //=================================================================================
     window.takePhoto = function() {
         const bgVideo = document.getElementById('bgVideo');
         const glCanvas = renderer.domElement;

@@ -286,12 +286,58 @@
             box-shadow: 0 0 10px rgba(252, 211, 77, 0.5);
         }
 
-        /* 移动端"经历"按钮增大 */
-        #infoBtn {
-            height: 42px !important;
-            padding: 0 20px !important;
-            font-size: 13px !important;
-            line-height: 42px;
+        /* =========================
+        移动端经历按钮（圆角四方）
+        ========================= */
+        @media screen and (max-width: 768px) {
+
+            /* 输入阶段的“经历”按钮 */
+            #infoBtn {
+                height: 48px !important;
+                min-width: 90px !important;
+
+                padding: 0 18px !important;
+
+                border-radius: 16px !important; /* 核心：圆角四方 */
+
+                font-size: 15px !important;
+                font-weight: bold;
+
+                line-height: 48px !important;
+
+                background: rgba(0, 0, 0, 0.6) !important;
+                color: #fcd34d !important;
+                border: 1px solid #fcd34d !important;
+
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+
+                box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            }
+
+            /* 二维码页面右上角“经历”按钮 */
+            #infoBtnAction {
+                height: 48px !important;
+                min-width: 90px !important;
+
+                padding: 0 18px !important;
+
+                border-radius: 16px !important; /* 圆角四方 */
+
+                font-size: 15px !important;
+                font-weight: bold;
+
+                background: rgba(0, 0, 0, 0.6) !important;
+                color: #fcd34d !important;
+                border: 1px solid #fcd34d !important;
+
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+
+                box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            }
         }
 
         /* --- ★★★ 仅在 PC 端生效 (屏幕宽度大于 1024px) ★★★ --- */

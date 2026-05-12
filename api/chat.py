@@ -1,17 +1,26 @@
 from http.server import BaseHTTPRequestHandler
 
-from _mimo import BASE_URL, MODEL_NAME, API_KEY, build_chat_messages, extract_message_content, parse_json_text, post_mimo, read_json_body, write_json, write_no_content
+try:
+    from api._mimo import BASE_URL, MODEL_NAME, API_KEY, build_chat_messages, extract_message_content, parse_json_text, post_mimo, read_json_body, write_json, write_no_content
+except ImportError:
+    from _mimo import BASE_URL, MODEL_NAME, API_KEY, build_chat_messages, extract_message_content, parse_json_text, post_mimo, read_json_body, write_json, write_no_content
 
 
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         write_no_content(self)
 
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Server is running. Use POST /api/chat")
+
     def do_POST(self):
         if not API_KEY:
             write_json(self, 500, {"answer": "服务器未配置 XIAOMI_KEY"})
             return
-
+    
         try:
             data = read_json_body(self)
         except Exception:
@@ -45,3 +54,8 @@ class handler(BaseHTTPRequestHandler):
             "base_url": BASE_URL,
             "model": MODEL_NAME,
         })
+if __name__ == "__main__":
+    from http.server import HTTPServer
+    server = HTTPServer(("localhost", 8000), handler)
+    print("Server running at http://localhost:8000")
+    server.serve_forever()

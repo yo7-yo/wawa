@@ -90,7 +90,7 @@ def normalize_history(history):
         if isinstance(item, dict) and item.get("content")
     ]
 
-def build_chat_messages(history, artifact_name, lang_code, role_key, system_instruction=""):
+def build_chat_messages(history, artifact_name, lang_code, role_key):
     language_name = LANGUAGE_MAP.get(lang_code, "English")
     persona_setting = PERSONA_MAP.get(role_key, PERSONA_MAP["storyteller"])
     final_system_prompt = CORE_SYSTEM_PROMPT.format(
@@ -98,8 +98,6 @@ def build_chat_messages(history, artifact_name, lang_code, role_key, system_inst
         language_name=language_name,
         persona_setting=persona_setting,
     )
-    if system_instruction:
-        final_system_prompt = f"{final_system_prompt}\n\n# Additional Rules\n{system_instruction.strip()}"
     return [{"role": "system", "content": final_system_prompt}] + normalize_history(history)
 
 def translation_prompt(lang_code):

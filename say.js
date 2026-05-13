@@ -800,8 +800,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 5. 按钮事件绑定
-    document.getElementById('send-btn').addEventListener('click', sendChat);
-    document.getElementById('user-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChat(); });
+    document.getElementById('send-btn').addEventListener('click', () => sendChat());       document.getElementById('user-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChat(); });
     document.getElementById('undo-btn').addEventListener('click', undoLast);
     document.getElementById('retry-btn').addEventListener('click', retryLast);
     document.getElementById('save-btn').addEventListener('click', saveChatHistory);

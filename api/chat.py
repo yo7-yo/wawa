@@ -31,9 +31,10 @@ class handler(BaseHTTPRequestHandler):
         artifact_name = data.get("artifact_name", "Ancient Bronze Vessel")
         lang_code = data.get("language", "en")
         role_key = data.get("role", "storyteller")
+        system_instruction = data.get("system_instruction", "")
 
         try:
-            messages = build_chat_messages(history, artifact_name, lang_code, role_key)
+            messages = build_chat_messages(history, artifact_name, lang_code, role_key, system_instruction)
             status, text = post_mimo(messages, temperature=0.8, max_tokens=800, timeout=60)
         except Exception as e:
             write_json(self, 500, {"answer": f"请求小米 API 失败: {str(e)}"})

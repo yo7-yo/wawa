@@ -153,12 +153,12 @@ input#user-input {
 /* 聊天气泡样式 */
 /* 聊天气泡样式 */
 .message {
-    padding: 18px 22px;
+    padding: 12px 16px;
     border-radius: 8px;
     max-width: 75%;
     line-height: 1.5;
     position: relative;
-    font-size: 27px;
+    font-size: 19px;
     letter-spacing: 0.5px;
 }
 .message.user { align-self: flex-end; background-color: #5c4d3c; color: #fff; border: 1px solid #7a6b5d; }

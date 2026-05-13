@@ -324,7 +324,6 @@ function renderChat() {
         const div = document.createElement('div');
         div.className = `message ${msg.role === 'user' ? 'user' : 'ai'}`;
         
-        // --- FIXED --- 在重绘时，正确地为已选中的消息加上 'selected' 类
         if (selectedMessages.has(index)) {
             div.classList.add('selected');
         }
@@ -469,6 +468,7 @@ function deleteTurn(index) {
 }
 //====================================================================
 //！！！！！发送用户消息并获取 AI 回复！！！！！
+// ！！！！！发送用户消息并获取 AI 回复！！！！！
 async function sendChat(overrideText = null) {
     const input = document.getElementById('user-input');
     const text = overrideText || input.value.trim();
@@ -487,24 +487,39 @@ async function sendChat(overrideText = null) {
     loadingDiv.className = 'message ai';
     loadingDiv.id = 'temp-loading';
 
-    // ✨ 修改：从翻译字典中获取“思考中”的文本
+    // 获取多语言的“思考中”
     loadingDiv.innerText = translations[currentLang].thinking;
 
     historyDiv.appendChild(loadingDiv);
     historyDiv.scrollTop = historyDiv.scrollHeight;
 
     try {
+        // ✨ 修改 1：暗中在传给后端的额外参数中加上字数限制要求
+        // （前提是你的后端 server.py 能够接收并处理这些额外要求）
         const response = await postJsonWithFallback('/api/chat', {
             history: chatHistory,
             artifact_name: artifactName,
-            language: currentLang
+            language: currentLang,
+            role: window.currentAiPersona, // 顺便把上一个问题提到的角色参数带上
+            system_instruction: "请严格扮演你的角色，并且每次回复的字数绝对不能超过50个字。不要输出任何标题、前缀、标签、括号说明或思考过程，直接给出角色对话内容。"
         });
+
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
             throw new Error(data.detail || data.answer || `HTTP ${response.status}`);
         }
 
-        const aiText = data.answer;
+        // ✨ 修改 2：清洗 AI 返回的奇怪前缀
+        let aiText = data.answer || "";
+        
+        // 暴力清除策略：如果模型输出了 【【Explanation】 这种字眼，直接把它和它后面的解释抹掉，
+        // 或者直接替换掉这个前缀。这里我们把开头可能存在的 【【Explanation】 以及相关的乱码直接删掉。
+        aiText = aiText.replace(/【【Explanation】[\s\S]*?(?:【【Answer】|【Answer】|答：|\]\])/gi, '');
+        aiText = aiText.replace(/【【Explanation】/gi, '');
+        aiText = aiText.replace(/^\s*【[^】]*】\s*/g, '');
+        aiText = aiText.replace(/^\s*(?:\[|［)[^\]\］]*(?:\]|］)\s*/g, '');
+        aiText = aiText.trim();
+
         document.getElementById('temp-loading').remove();
         chatHistory.push({ role: "assistant", content: aiText });
         saveHistoryToLocal();
@@ -681,9 +696,13 @@ function saveChatHistory() {
 }
 
 // --- 本地存储功能 ---
+function getChatHistoryStorageKey() {
+    return `museumChatHistory_${window.currentAiPersona || 'scholar'}`;
+}
+
 function saveHistoryToLocal() {
     try {
-        localStorage.setItem('museumChatHistory', JSON.stringify(chatHistory));
+        localStorage.setItem(getChatHistoryStorageKey(), JSON.stringify(chatHistory));
     } catch (e) {
         console.error("无法保存对话记录到浏览器。", e);
     }
@@ -691,10 +710,12 @@ function saveHistoryToLocal() {
 
 function loadHistoryFromLocal() {
     try {
-        const savedHistory = localStorage.getItem('museumChatHistory');
+        const savedHistory = localStorage.getItem(getChatHistoryStorageKey());
         if (savedHistory) {
             chatHistory = JSON.parse(savedHistory);
+            return;
         }
+        chatHistory = [];
     } catch (e) {
         console.error("无法从浏览器加载对话记录。", e);
         chatHistory = [];

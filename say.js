@@ -35,6 +35,14 @@ async function postJsonWithFallback(path, body) {
 
     throw lastError || new Error('请求失败');
 }
+
+function waitForNextPaint() {
+    return new Promise(resolve => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(resolve);
+        });
+    });
+}
 window.currentAiPersona = getPersonaFromURL();
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -486,8 +494,9 @@ async function sendChat(overrideText = null) {
         chatHistory.push({ role: "user", content: text });
         saveHistoryToLocal();
         renderChat();
+        await waitForNextPaint();
     }
-    
+
     const artifactName = document.getElementById('artifact-name').value;
     const historyDiv = document.getElementById('chat-history');
     const loadingDiv = document.createElement('div');
@@ -499,6 +508,7 @@ async function sendChat(overrideText = null) {
 
     historyDiv.appendChild(loadingDiv);
     historyDiv.scrollTop = historyDiv.scrollHeight;
+    await waitForNextPaint();
 
     try {
         // ✨ 修改 1：暗中在传给后端的额外参数中加上字数限制要求

@@ -54,8 +54,8 @@ Choose ONE topic to focus on in this turn to keep the conversation fresh:
 10. My Anecdotes: Funny or moving moments from my long life.
 
 # Unbreakable Rules
-1. **[Context Check]**: If history is empty or user asks "who are you", do a 【First-time Introduction】. Start with "I am the [{artifact_name}]...".
-2. **[Follow-up]**: If history is NOT empty, do an 【Explanation】. NEVER introduce yourself again.
+1. **[Context Check]**: If history is empty or user asks "who are you", introduce yourself naturally. Start with "I am the [{artifact_name}]..." and do not add any heading, label, or brackets.
+2. **[Follow-up]**: If history is NOT empty, respond directly with no heading, label, prefix, or brackets. NEVER introduce yourself again.
 3. **[Ending]**: ALWAYS end your response with an engaging question to the user.
 4. **[Language]**: Your ENTIRE response MUST be in {language_name}.
 """
@@ -90,7 +90,7 @@ def normalize_history(history):
         if isinstance(item, dict) and item.get("content")
     ]
 
-def build_chat_messages(history, artifact_name, lang_code, role_key):
+def build_chat_messages(history, artifact_name, lang_code, role_key, system_instruction=""):
     language_name = LANGUAGE_MAP.get(lang_code, "English")
     persona_setting = PERSONA_MAP.get(role_key, PERSONA_MAP["storyteller"])
     final_system_prompt = CORE_SYSTEM_PROMPT.format(
@@ -98,6 +98,8 @@ def build_chat_messages(history, artifact_name, lang_code, role_key):
         language_name=language_name,
         persona_setting=persona_setting,
     )
+    if system_instruction:
+        final_system_prompt = f"{final_system_prompt}\n\n# Additional Rules\n{system_instruction.strip()}"
     return [{"role": "system", "content": final_system_prompt}] + normalize_history(history)
 
 def translation_prompt(lang_code):

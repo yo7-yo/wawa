@@ -67,6 +67,7 @@ const translations = {
         pageTitle: 'AI文物探索',
         headerTitle: '🏛️文物秘语',
         loadingArtifact: '文物出库中...',
+        blindBoxBtn: '请君启藏',
         inputPlaceholder: '请在此输入您的对话...',
         sendButton: '发送',
         initialMessage: '有兴趣和我一起聊聊天吗,我定知无不言、言无不尽...',
@@ -88,6 +89,7 @@ const translations = {
         pageTitle: 'AI Artifact Explorer',
         headerTitle: 'Artifact Secrets',
         loadingArtifact: 'Loading artifact...',
+        blindBoxBtn: 'Open Mystery Box',
         inputPlaceholder: 'Type your message here...',
         sendButton: 'Send',
         initialMessage: 'Would you like to have a chat with me? I will tell you everything I know...',
@@ -109,6 +111,7 @@ const translations = {
         pageTitle: 'KI Artefakt-Explorer',
         headerTitle: 'Artefakt-Geheimnisse',
         loadingArtifact: 'Artefakt wird geladen...',
+        blindBoxBtn: 'Überraschungsbox öffnen',
         inputPlaceholder: 'Nachricht hier eingeben...',
         sendButton: 'Senden',
         initialMessage: 'Möchtest du mit mir plaudern? Ich werde dir alles erzählen, was ich weiß...',
@@ -130,6 +133,7 @@ const translations = {
         pageTitle: 'AIアーティファクト探索',
         headerTitle: 'アーティファクトの秘密',
         loadingArtifact: 'アーティファクトを読み込み中...',
+        blindBoxBtn: 'ミステリーボックスを開く',
         inputPlaceholder: 'ここにメッセージを入力...',
         sendButton: '送信',
         initialMessage: '私とチャットしませんか？知っていることは何でもお話しします...',
@@ -183,6 +187,9 @@ function updateUIText(lang) {
     // 更新 Loading 提示
     const loadingEl = document.getElementById('loading-overlay');
     if (loadingEl) loadingEl.innerText = t.loadingArtifact;
+
+    const blindBoxBtn = document.getElementById('blind-box-btn');
+    if (blindBoxBtn) blindBoxBtn.innerText = t.blindBoxBtn;
 
     // 更新输入框和发送按钮
     const userInput = document.getElementById('user-input');

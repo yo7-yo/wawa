@@ -325,9 +325,53 @@ function loadModel(modelPath) {
 
 // ================ 聊天交互逻辑 (核心修改) =================
 //！=======================渲染对话===========================================
+function createMessageElement(msg, index) {
+    const div = document.createElement('div');
+    div.className = `message ${msg.role === 'user' ? 'user' : 'ai'}`;
+
+    if (selectedMessages.has(index)) {
+        div.classList.add('selected');
+    }
+
+    div.innerHTML = msg.role === 'user' ? msg.content : `<strong>${document.getElementById('artifact-name').value}:</strong><br>${msg.content}`;
+
+    div.addEventListener('click', () => {
+        if (isInSelectionMode) {
+            toggleMessageSelection(index);
+        }
+    });
+
+    div.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        toggleMessageSelection(index);
+    });
+
+    div.addEventListener('mousedown', () => {
+        clearTimeout(longPressTimer);
+        longPressTimer = setTimeout(() => {
+            toggleMessageSelection(index);
+        }, LONG_PRESS_DURATION);
+    });
+
+    const clearLongPress = () => clearTimeout(longPressTimer);
+    div.addEventListener('mouseup', clearLongPress);
+    div.addEventListener('mouseleave', clearLongPress);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.innerHTML = '🗑️';
+    deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        deleteTurn(index);
+    };
+    div.appendChild(deleteBtn);
+
+    return div;
+}
+
 function renderChat() {
     const historyDiv = document.getElementById('chat-history');
-    historyDiv.innerHTML = ''; 
+    historyDiv.innerHTML = '';
     document.body.classList.toggle('selection-active', isInSelectionMode);
 
     if (chatHistory.length === 0) {
@@ -336,50 +380,9 @@ function renderChat() {
     }
 
     chatHistory.forEach((msg, index) => {
-        const div = document.createElement('div');
-        div.className = `message ${msg.role === 'user' ? 'user' : 'ai'}`;
-        
-        if (selectedMessages.has(index)) {
-            div.classList.add('selected');
-        }
-
-        div.innerHTML = msg.role === 'user' ? msg.content : `<strong>${document.getElementById('artifact-name').value}:</strong><br>${msg.content}`;
-        
-        // --- 绑定事件 ---
-        div.addEventListener('click', () => {
-            if (isInSelectionMode) {
-                toggleMessageSelection(index);
-            }
-        });
-
-        div.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            toggleMessageSelection(index);
-        });
-
-        div.addEventListener('mousedown', () => {
-            clearTimeout(longPressTimer);
-            longPressTimer = setTimeout(() => {
-                toggleMessageSelection(index);
-            }, LONG_PRESS_DURATION);
-        });
-
-        const clearLongPress = () => clearTimeout(longPressTimer);
-        div.addEventListener('mouseup', clearLongPress);
-        div.addEventListener('mouseleave', clearLongPress);
-        
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.innerHTML = '🗑️';
-        deleteBtn.onclick = (e) => {
-            e.stopPropagation();
-            deleteTurn(index);
-        };
-        div.appendChild(deleteBtn);
-
-        historyDiv.appendChild(div);
+        historyDiv.appendChild(createMessageElement(msg, index));
     });
-    
+
     historyDiv.scrollTop = historyDiv.scrollHeight;
 }
 //==========================================================================================
@@ -482,23 +485,30 @@ function deleteTurn(index) {
     renderChat();
 }
 //====================================================================
-//！！！！！发送用户消息并获取 AI 回复！！！！！
-// ！！！！！发送用户消息并获取 AI 回复！！！！！
 async function sendChat(overrideText = null) {
     const input = document.getElementById('user-input');
     const text = overrideText || input.value.trim();
     if (!text) return;
 
+    const historyDiv = document.getElementById('chat-history');
+
     if (!overrideText) {
         input.value = '';
-        chatHistory.push({ role: "user", content: text });
+        const userMessage = { role: "user", content: text };
+        chatHistory.push(userMessage);
         saveHistoryToLocal();
-        renderChat();
+
+        const initialMessage = historyDiv.querySelector('.system-msg');
+        if (initialMessage && chatHistory.length === 1) {
+            historyDiv.innerHTML = '';
+        }
+
+        historyDiv.appendChild(createMessageElement(userMessage, chatHistory.length - 1));
+        historyDiv.scrollTop = historyDiv.scrollHeight;
         await waitForNextPaint();
     }
 
     const artifactName = document.getElementById('artifact-name').value;
-    const historyDiv = document.getElementById('chat-history');
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'message ai';
     loadingDiv.id = 'temp-loading';
